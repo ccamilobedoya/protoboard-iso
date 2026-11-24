@@ -21,9 +21,29 @@ point at rest, with each control operated and with each output of a board's prog
 thresholds). It does not block and is not a fix round: the agent reports it prominently, with the
 kit's computed fix (`To fix it: …`, or "The kit has no computed fix for this."), and the main
 conversation tells the user, since burning a part can be the lesson. A fix asked for is that line,
-applied by the kit in one call (`layout` with `fix: true`; CLI `layout <target> --fix`); any other
+applied by the kit in one call (`layout` with `fix: true`; CLI `layout <target> --fix`; for a part
+in backwards it turns the part round or swaps the supply's leads, never adds a resistor); any other
 idea is tried first with `layout`'s `dry_run` (nothing saved) and applied only when the trial ends
-`DONE`.
+`DONE`. The same verdict comes with **doubts** (`doubts`, under "The kit cannot confirm these
+work": what the kit could not check or found may not work, a part not simulated, a program that
+does not run, stops or calls a function the kit does not know (`shiftOut` and `attachInterrupt`
+run; a two-dimensional array is refused by its line), a mistake in the sketch a real board would
+show (named by its line), a chip with no supply, a logic input open or under its high level, a
+relay that may not pull in, an output that never comes on, a coil
+switched with no diode across it, a button across joined pins, any warning of the simulation;
+[simulation.md](simulation.md#what-it-could-not-tell-doubts)): the agent reports each one and never
+says the circuit works. A `Note:` line (a supply written with a negative voltage: which rail is
+positive in fact) is reported as printed, and a figure the answer says "about" as approximate; `DONE` and `APPROVED` mean the kit
+checked it and found nothing to tell. For a circuit with a program, a sensor or an oscillator, the
+layout and review agents also run it with the brief's conditions (`simulate` with `run_s`,
+`environment`, `set`, `press`, `at`; CLI `simulate --run`) and report what the outputs did, as
+printed; an output that does not do what the brief says is open, not done. A board's `.ino` goes in
+the circuit's folder, beside `circuit.json`. `layout`'s "Too large for one board" (`FIX_SPEC`) is
+reported as `BLOCKED` (the circuit must be split), and a search stopped at its budget is tried once
+with a larger `budget_s` or reported: the same call gives the same answer. `apply_ops` refuses input
+it cannot read and saves a readable change that adds errors, saying so: agents apply only a diff the
+dry run cleared. The parts librarian rewrites the skill's `references/parts.md` (`npm run
+parts-reference -- --write`) with every new part.
 
 ```bash
 node bin/protoboard-iso.js review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
@@ -90,6 +110,15 @@ names with the closest ones, nets naming a missing part or pin with the pins it 
 only checks. Measured with a smaller model on the same supply: 13 calls and 52 s, nine of them
 `catalog` lookups that this makes unnecessary. How the algorithm works, its limits and how to
 change it: [layout.md](layout.md).
+
+Since 2026-11-20: before `layout` answers `CHANGES` it tries what a person would (the orders the
+nets give, the double board when a development board covers a part, the tallest or widest parts
+first, each from its best try), and each ✖ left ends with the one spec change it would try next
+(`→ next the kit would try: …`, never one it tried); the layout agent makes that change in one call
+before fixing by operations ([layout.md](layout.md#what-layout-tries-before-changes-since-2026-11-20)).
+A part it found no place for is left off the board and kept in the circuit's `spec.unplaced`; from
+then on `review` and `simulate` start with `Not on the board: …`, which the reviewer treats as
+blocking (since 2026-11-23). Both agents run a sketch that reads `Serial` with `serial` (`--serial`).
 
 Since 2026-10-20 (aimed at small models): the agent's file starts with a choice of path (A: `layout`
 for a new circuit; B: operations for changes and fixes) instead of one long loop; `layout` reads pin
@@ -200,6 +229,9 @@ an agent lists exists in the server, so a renamed or removed tool is caught.
 
 - Agents are loaded when a Claude Code session starts in this repository; MCP tools too.
 - Each agent writes its name as `author`, so `history` shows who did what.
+- A damaged `history.jsonl` (`HISTORY_DAMAGED`: `apply_ops` saves nothing, the circuit is intact) is
+  reported, not worked around: `new_history: true` keeps the old file as `history.jsonl.damaged` and
+  starts again, and only the main conversation, with the user, decides it.
 - Keep agents short-lived: a new agent per task, reuse it only for the fix rounds of the same
   circuit. The numbers are named options in `project.json` (`review_rounds`, `briefs_per_agent`),
   shown in `CLAUDE.md`.

@@ -6,7 +6,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { autoLayout, fixRequest, signalOrders, specFromCircuit } from '../src/layout.js';
+import { fixRequest, signalOrders, specFromCircuit } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
 
 // A small linear congruential generator: the same shuffles on every run and machine.

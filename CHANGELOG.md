@@ -9,6 +9,333 @@ detail.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-24
+
+What `DONE` means: the kit says `DONE` only for what it checked, and `STATUS: WARNINGS` names every
+point it could not confirm, beside the parts that would be damaged. It runs a circuit the way the live
+page does (`simulate --run`, with presses, typed serial text and the environment), so an assistant can
+check what a circuit does before saying it works. The six chips it only drew are simulated: the
+74HC595, the CD4017, the ULN2003, the ULN2803, the PC817 and the LM386.
+
+### Added
+
+**Running a circuit (`simulate --run`)**
+
+- `simulate <target> --run <seconds>` (MCP `simulate` with `run_s`): the circuit run as the live page runs it, for 1 µs to 60 s, with nothing saved.
+- Stimuli of a run: `--env light=0.5`, `--set RV1=0.8`, `--press S1@0.5+0.2`, `--at 1.0:light=0.1`; `--env` and `--set` also work with the DC point and `--transient`.
+- A run answers what each board's program printed, with its times; each output's share of the time on, its changes and spans on, its frequency and duty when it toggles; the readings at the end.
+- `--start zero|dc` (MCP `start`): from everything discharged, or from the resting point the page starts at (the default); the first line says which, and `--json` has `start` and `run.page`.
+- `--serial "U1:1\n@0.5"` (repeatable; MCP `serial`, only with `run_s`) types text to a board's serial port at a time; `Serial2:` names the port.
+- `--budget <s>`: the machine's time a run may take, 15 s by default, at most 300 s (`LIMITS.runMsMax`); more is capped and said (`RUN_BUDGET_CAPPED`), and a run cut by its budget names it.
+- A tune is said note by note: each note's frequency, start and length, the first eight (`· 6 notes: 262 Hz at 103 ms for 298 ms, …`; `notes` and `notesTotal` in `--json`).
+- `layout`'s answer has a `Behaviour` line for a circuit that changes by itself: the frequency and duty of what toggles over its first 2 s (`D1 1 Hz, on 50 % of the time`).
+- The `Behaviour` line comes from a run of at most 25 000 steps, so it is the same on any machine, and it names its start (`Behaviour, first 2 s from its resting point, as the page starts …`).
+- A sketch that waits for serial input is said so on the `Behaviour` line (`U1 waits for serial input (simulate --run … --serial "text@seconds" types to it)`), not as outputs `off throughout`.
+- A circuit with two resting states (a transistor latch) is found: after the DC point the kit pushes each transistor's base or gate and sees whether it comes back (`restingStates` in `src/sim/run.js`).
+- Such a circuit shows each state's readings in `layout` (`Two resting states (a model): … it powers up in one of them, and the kit cannot say which`).
+- `simulate` warns `SIM_TWO_STATES` (`states` in `--json`), and `--run` starts from the first state and says so.
+
+**Sketches**
+
+- Interrupts run: `attachInterrupt(digitalPinToInterrupt(pin), handler, RISING | FALLING | CHANGE | LOW)`, `detachInterrupt`, `noInterrupts()` and `interrupts()` (before, `RISING` stopped the program).
+- The handler runs at the step that sees its pin cross, between two statements, also during a `delay`; only the pins that have one (an UNO's D2 and D3, any ESP32 GPIO), else `SIM_PROGRAM_NO_INTERRUPT`.
+- Two boards talk over a serial line: the bytes one sends on its TX pin arrive, at the sender's rate, at the other's port whose RX pin it reaches, and `simulate --run` shows both boards' output.
+- `available()`, `read()`, `parseInt()` and `readStringUntil()` work between two boards; two rates that differ pass nothing (`SIM_PROGRAM_BAUD_MISMATCH`); `println` sends `\r\n`, `print("\n")` only `\n`.
+- `Serial1` and `Serial2` on an ESP32 (`Serial1` on an ESP32-C3) are ports of their own, labelled in a run (`Serial2: …`); on an UNO `Serial2` stops the program with a line that names it.
+- Serial ports read with `parseInt`, `parseFloat`, `readStringUntil`, `readString` (waiting their timeout), `peek`, `setTimeout`, `flush` and `end`.
+- ESP32 deep sleep (`esp_sleep_enable_timer_wakeup`, `esp_deep_sleep_start`, `ESP.deepSleep`): the program stops, its pins go to inputs, and after its timer it starts again from `setup()`.
+- `String`'s usual methods are read: `length`, `charAt`, `indexOf`, `substring`, `toInt`, `toFloat`, `equals`, `startsWith`, `trim`, `toUpperCase`, `toLowerCase`, `concat`…
+- Also read: a `char` or a `float` joined to a String, `char *text`, `sprintf`/`snprintf` into a `char` buffer (an UNO has no `%f`) and simple function-like macros.
+- A sketch that reads its serial port with nothing typed and nothing wired to RX gets one note naming `--serial` (`SIM_SERIAL_WAITS`).
+- A DHT11 read in its first second gets a note saying it was still powering up (`SIM_LIBRARY_EARLY`).
+
+**The six chips**
+
+- The 74HC595 and the CD4017 are simulated (`src/sim/devices/logic.js`, `shift-register.js`, `counter.js`): their LEDs are judged, and a circuit with them can end `DONE`.
+- The 74HC595 shifts on SRCLK, clears on SRCLR, latches on RCLK, opens its outputs with OE high and chains through QH'.
+- The CD4017 counts on CLK with CE low, holds with CE high and resets with MR; a Qn wired to MR makes it count to n.
+- A logic chip hears each change of a board's pin in order, so `shiftOut` (whose clock pulse takes no simulated time) works from an UNO and an ESP32.
+- Logic outputs are sources with the datasheet's drive, with limits per output, on the supply and on power.
+- The ULN2003 and ULN2803 Darlington arrays, the PC817 optocoupler and the LM386 audio amplifier are simulated: their outputs drive LEDs, relays and loads with the datasheet's voltages and limits.
+- A ULN's `COM` on the coil's supply counts as the coil's flyback diode; the PC817's two sides, with their own supplies and grounds, simulate in DC, in a run and in the page; the LM386's clip is smooth.
+- `catalog <part>` says in a `Simulated:` line what each chip's model covers and what it leaves out.
+- New warnings: an open logic input, taken as low (`SIM_IC_INPUT_OPEN`), and a logic chip fed under its minimum supply (`SIM_IC_SUPPLY_RANGE`).
+- An LM386 whose output is clipped against its rails for a fifth of a transient or a run, or more, gets one note with its swing (`SIM_AMP_CLIPPING`).
+- Examples `uno-74hc595-fill`, `555-cd4017-chaser`, `uln2003-relay`, `pc817-isolated-led` and `lm386-amplifier`.
+
+**The layout**
+
+- Before answering `CHANGES`, `layout` tries what a person would, from its best try: the orders the nets give, the double board when a board covers a part or a strip, the tallest and the widest parts first.
+- It keeps the first try that ends without `CHANGES`, with a note saying what changed from the spec; still `CHANGES`, each ✖ names the next change (`→ next the kit would try: …`).
+- Those trials start on the double board when the layout moved there, try first the parts that found no place, then the change the answer would offer, so it never offers one it tried.
+- A circuit saved with parts left out keeps them in `spec.unplaced`, `layout` again on it asks for them, and `simulate` and `review` say first `Not on the board: R2, R3…` (`unplaced` in `--json`).
+- `layout`'s answer says in one line each part under 50 % visible in every view (`review.hidden`), as information.
+
+**The command line and `apply`**
+
+- `apply --new-history` (MCP `apply_ops` `new_history`) keeps a damaged `history.jsonl` as `history.jsonl.damaged` and starts a new history from the current revision.
+- `catalog parts`, `catalog boards`, `catalog modules` and `catalog recipes` list one kind each.
+- `catalog <part>` shows an example of that part, or of one of its type with the same pins (a 2N3904 shows a 2N2222A), or none (`catalog ULN2803` showed a 555).
+- `catalog` of a development board gives the output resistance the simulator uses for its pins and where it comes from (`behind 40 Ω (from the ATmega328P datasheet: …)`; JSON `pinOutput`).
+- On a development board `TX` and `RX` name its serial pins (UNO `D1`/`D0`, ESP32-C3 `GPIO21`/`GPIO20`, DevKit `TX0`/`RX0`), and a DevKit's `GPIO17`/`GPIO16` its `TX2`/`RX2`.
+- A common ask the kit lacks says what it has near: a stepper motor (`28BYJ-48`: a DC motor turns but does not step; a ULN2003 to four inductors only as a wiring exercise), an OLED, a keypad, a joystick.
+- The same for a Bluetooth or a Wi-Fi module, a speaker, an LED strip, a servo, a transformer and an LCD; an SD card, a real-time clock and a load cell say nothing is near.
+- An unknown part is matched by the words in its name, in English and Spanish (`LED strip 12V`, `tira de LED`).
+
+**The skill and the docs**
+
+- `references/run-it.md`: running a circuit with the user's conditions before saying it works, with a worked example (the distance alarm at 10 cm and at 50 cm).
+- `run-it.md` also says the environment a run starts from (a distance sketch prints 9 for 10 cm at 25 °C), how to cut a laser's beam, a run's 60 s cap and early stop, `--start zero`, and a latch's two states.
+- `run-it.md` says which pins of a button make the switch, that parts are named by their id, that a recipe's supply is a bench supply and how to lay it out on a battery.
+- `run-it.md` says that `--dry-run` trials are free while two corrections end the stop rule, and what to say when the kit checks only part of a request.
+- `run-it.md` shows a board's program in a run: an interrupt counting presses made during a `delay`, two boards over a serial line, deep sleep, a menu typed to with `--serial`, a tune note by note.
+- `references/chips.md`: for each of the six chips, the wiring a beginner gets wrong and a worked spec, with pins, model and limits written from the catalog (`npm run parts-reference -- --write`).
+- `chips.md` also says the 74HC595's total current, how the fill sketch counts for n LEDs, how a board reads a PC817's output side, that 3.3 V pins into a chip fed 5 V are a ⚠, and the LM386's clipping note.
+- `references/sketch.md`: what a board's program may use (functions, `Serial`, constants, types and arrays, libraries), from the simulator's tables and a probe of each common Arduino name.
+- `sketch.md` also says that a `char` prints as its letter, what interrupts, `Serial1`/`Serial2` and ESP32 deep sleep do, and that the kit's buttons do not bounce (a debounce runs only as a lockout).
+- `references/parts.md`: for every part type and part number, its pins, the fields a spec and a `set` take, what a run changes on it and the environment's fields it reads, with units and ranges.
+- `parts.md` and `sketch.md` are written from the kit's data and probes by `npm run parts-reference -- --write` (`partReference`, `partControls`, `scripts/sketch-reference.js`).
+- `references/warnings.md`: each ⚠ the kit now gives, laid out, with what to tell the user: a sketch's mistakes, a chip with no supply, an open logic input, a 3.3 V pin on a 5 V logic chip, a damaged history.
+- `warnings.md` also has a board on USB past 500 mA, a chip fed less than its signals (with the `resupply` fix `--fix` applies) and a serial line that carries no data.
+- `test/skill-run-it.test.js`, `skill-warnings.test.js`, `skill-chips.test.js` and `skill-quotes.test.js` run every command and quoted line of the skill, and fail on a quote of the kit with no test.
+- `test/sketch-reference.test.js` and `test/parts-reference.test.js` fail when `references/sketch.md` or `references/parts.md` is stale or says what the simulator does not do.
+
+### Changed
+
+**What `DONE` and `WARNINGS` mean**
+
+- `DONE` means checked. Beside the hazards (a part that would burn), `review` returns `doubts`: what the kit could not check, or checked and found may not work (`summary.doubts` counts them).
+- A doubt is a part wired in with no simulation model (`SIM_PART_NOT_SIMULATED`), any issue with a board's program, a program that never lets time pass or stopped with an error, a source whose DC point does not solve.
+- Any other warning of the simulation that is not a hazard is a doubt too, and so is a note that a part is over a maximum.
+- One doubt makes the verdict APPROVED WITH WARNINGS and `layout` end `STATUS: WARNINGS`, the doubts as ⚠ under `The kit cannot confirm these work (so it cannot say the circuit works):`.
+- The `STATUS: WARNINGS` line asks to tell the user each point first; hazards alone keep their words and the `To fix it` line.
+- The `Checked` line says what was checked: the environment's fields visited at both ends (`Checked: at rest, light at both ends`), `what U2 does` for one part.
+- It says `what the sensors read from the environment` for a sensor set by its own value, and `what the program of U1 does where the kit cannot run it` for a program with a doubt.
+- When a run cannot cover a slow oscillation, the `Checked` line says the run was too short to tell (`short-run`), and no doubt is raised.
+
+**Hazards and doubts the kit finds**
+
+- A circuit fed backwards is a hazard: regulators, op-amps, the 555 and development boards with the supply pin below the ground pin (`SIM_REVERSE_VOLTAGE`, naming both pins).
+- A regulator over its absolute maximum input is a hazard: 35 V for the 7805 to 7818, 40 V for the 7824, 40 V from input to output for the LM317 (40 V into a 7805 ended `DONE`).
+- A board on USB past the 500 mA a USB 2.0 port gives is a hazard on its USB pin saying what happens (`… the board's 500 mA resettable fuse opens…`; `SIM_OVER_CURRENT` variant `usb`).
+- An UNO's 3V3 pin past its LP2985's 150 mA is a hazard (`SIM_OVER_CURRENT` variant `regulator`); the computed fix proposes no resistor in the supply for these.
+- A battery shorted (bare wires, or a second battery facing the other way) is a hazard over its maximum current, beside the short-circuit doubt.
+- A chip whose supply pins are not both wired, or share a net, is a doubt (`SUPPLY_PINS_UNWIRED`: `U1 has no supply: its supply pins VCC and GND are …`); an LM358 with both open ended `DONE`.
+- A relay's coil or a motor switched with no diode across it is a doubt (`COIL_NO_FLYBACK`): the switch can be damaged when it turns off. A wiring check: it never blocks placement.
+- On a load driven from both ends (an H-bridge) `COIL_NO_FLYBACK` asks for four diodes, from each end to each rail, and says why one across the motor would conduct (`motorBridge`, `relayBridge`).
+- An output that never comes on is a doubt naming the parts (`SIM_OUTPUT_NEVER_ON`): a relay fed from a sensor module's output, a joule thief of two uncoupled inductors.
+- An output that hangs from a part the kit does not simulate is named on that part's `SIM_PART_NOT_SIMULATED` line (`params.drives`), not called "never comes on".
+- Before an output is called never on, the review's run grows to two periods of the slowest oscillation the time constants suggest, and on while outputs come on late, up to 30 s.
+- So a 555 at 0.3 Hz clocking a CD4017 ends `DONE`.
+- A relay driven but not pulled in says so (`SIM_RELAY_UNDERDRIVEN`): what the coil gets, what it needs, and that the stage driving it does not deliver it.
+- A push button whose joined pins carry two nets (`BUTTON_PINS_JOINED`) is a doubt, never a ✖: layout ends `WARNINGS`, `check` lists a warning, `apply` saves it marked ⚠ (`DOUBT_CODES`).
+- A note that says a part is over a maximum is a warning now: a BME280 fed from 3.3 V on a 5 V UNO's I2C (`SIM_PIN_OVER_VDDIO`, judged by the run when the program runs), an active buzzer over 35 mA.
+- Also warnings now: a voltage sensor over its 25 V (`SIM_VOLTAGE_SENSOR_RANGE`), a 49E over its range or its load (`SIM_HALL_HIGH_SUPPLY`, `SIM_HALL_LOAD`), a touch module's output (`SIM_TOUCH_OUTPUT_SPEC`).
+- A bare BME280 over its supply names `BME280-5V`, the board with its own regulator; the VDDIO line names the sketch's fix (`digitalWrite(A4, LOW)` and `A5` after `Wire.begin()`).
+- The hazard check visits a declared environment's fields at both ends (a laser's `beam`), the page's controls, and a run with each state held and released (a touch module in toggle mode).
+- With a program that runs, the hazard check visits the combinations of outputs its run reaches (`with D2 + D5 high`), not each output alone.
+- What a clocked chip latches is one of the states the review visits (`engine.hold`): eight red LEDs on 330 Ω filled by a 74HC595 end `WARNINGS` with `… with U2 QA…QH 11111111 latched`.
+- A hazard seen in several states is said once, at its strongest, in the state that tells most; a finding names the state only when it is stronger there by more than 5 %.
+- A power limit is judged on the average over a run or a `--transient`'s samples (`on average over the run, from … to …`), not on the peak; currents and voltages stay instantaneous.
+- The computed fix leaves an LED lit and a motor above the bottom of its voltage range, or the kit says it has none; a lone overloaded resistor gets none.
+- For a part in backwards the fix turns it round, or swaps a supply's leads (`fix.kind` `swap`, `swap-supply`, also in `specWithFix`); a series resistor is never offered for it.
+- Damage lines end by saying what happens to the part, and a brightness far over the rated one is said in words, not as thousands of per cent.
+- A supply written negative simulates as the same supply reversed and is named as written (`-5 V`, `written negative: T- is the positive rail`), with a `Note:` in `layout`'s answer.
+- Wording that overstated: reverse supply "can be destroyed" (a board "can be damaged"); a ceramic capacitor's dielectric can break down, an electrolytic slightly reversed only degrades; a LED in reverse "can burn out".
+- A relay "may not pull in", and a coil under a quarter of its pull-in current (a leak) is not reported.
+
+**Running a circuit**
+
+- `--transient` on a circuit whose board runs a program steps it as the page does (events landed, at most 1 ms a piece) and names `--run`; a 10 µs pulse was lost.
+- A run takes the page's step, never one shorter than its length over 20 000, the same as the `Behaviour` line; steps still end on every event and on a 555's thresholds.
+- A time constant shorter than the step gets one note (`RUN_STEP_OVER`); an output faster than 100 steps a period is measured again in a shorter run (`measured in the first 200 ms in steps of 10 µs`).
+- A frequency measured over fewer than five periods is said `about`.
+- An output too fast to measure that way has no figure and a note (`RUN_TOO_FAST`); a run cut by the machine's time in steps of that floor says only `--budget` helps.
+- A run that covers less than asked (`RUN_CAPPED` at 60 s, `RUN_BUDGET`, `RUN_STEPS`) prints it under its header: `Every figure below covers the first 12 ms of the 2 s asked, not the whole run.`
+- In `--json`, `run.seconds` is the seconds asked and `run.ran` the seconds covered; the `Serial` and `Outputs` headings name the span.
+- A run keeps a warning about a level that must last (`SIM_RELAY_UNDERDRIVEN`, `SIM_IC_INPUT_LEVEL`, `SIM_REG_DROPOUT`, `SIM_MOTOR_STALL`…) only once the level has settled, or at the run's end.
+- A coil whose current rises through the band on its way to pulling in is not under-driven, so runs of different lengths give the same warnings; peaks that damage at once stay at their strongest.
+- A run's warning is its strongest reading, with when and the pin's level then (`at its strongest in the run, at 10 ms, with D9 high`), added only to a warning with a quantity.
+- A DC hazard on a pin the program sets high says `with D9 high, as the program first sets it`.
+- A board's pin playing a PWM or a tone is reported by the level the program writes, and a pin playing several notes says how many and their range.
+- `--transient`'s first line says the table shows 11 of its samples and `--json` has them all; a line after the table gives each series' peak and, where it repeats, its frequency.
+- `--transient` gives the step solved and the spacing of the samples printed; a run's Serial cut in the text says so on its heading (`the first and last 5 here, --json has 30 of them`).
+- A loaded pin's reading names its output resistance.
+
+**Sketches**
+
+- A board's integers keep their type's size on the board in use: `byte` 8 bits, `int` and `unsigned int` 16 on an UNO and 32 on an ESP32, `long` 32; `millis()` and `micros()` wrap at 2^32.
+- So `byte b = 255; b++` is 0 (it was 256), and `now - start` of two `unsigned long`s across the wrap is 16, as every `millis()` timer needs (it was −4294967280).
+- Mistakes a real board would show are warnings with their line, a ⚠ of the review, and the sketch goes on as a board would: a pin it lacks, a pin not set as output, PWM on a pin without it.
+- The same for a division by zero, an index past an array, `delay(-1)`, an undeclared name and a missing brace (`SIM_PROGRAM_PIN_UNKNOWN`, `_NOT_OUTPUT`, `_NO_PWM`, `_DIVIDE_ZERO`, `_OUT_OF_BOUNDS`…).
+- Constructs the subset lacks are doubts naming what to write instead: a pointer, a `struct`/`class`/`enum`, a member read with `.`, a `String` method the kit lacks, a macro it cannot expand.
+- Their codes: `SIM_PROGRAM_POINTER`, `_TYPE_DECL`, `_MEMBER`, `_STRING_METHOD`, `_MACRO`; the sketch runner's warnings are doubts wherever they are raised, also when the DC point does not solve.
+- A bit macro on something that is not a variable, and a reference parameter (`int &x`, passed as a copy), are doubts too (`SIM_PROGRAM_NOT_LVALUE`, `SIM_PROGRAM_REFERENCE`).
+- A program that still runs as written (a bit macro noted, a reference passed as a copy) keeps the review's visit of its run.
+- An `#include` of a library the kit lacks is one line, and its objects (`Servo s;`, `LiquidCrystal lcd(…)`) and calls (`WiFi.begin(…)`) do nothing instead of stopping the sketch.
+- A serial line between boards follows the wire, not the net's name: through a 1 kΩ/2 kΩ divider or a series resistor the bytes arrive.
+- A path that never gives an RX pin both levels, or an RX wired to no TX, is a doubt saying why (`SIM_SERIAL_LEVELS`, `SIM_SERIAL_NO_TX`).
+- Serial output takes time at the rate `Serial.begin` gave (ten bits a character, once the transmit buffer is full): a loop printing on an UNO at 9600 baud prints about 87 lines a second.
+- A loop that ends is not called stuck: turns without time passing are counted across steps, and `SIM_PROGRAM_STUCK` comes at 200 000 of them, saying so.
+- `layout` reads a board's `.ino` from the circuit's folder when it judges the circuit it keeps; a file not found says where the kit looked and that it goes beside `circuit.json`.
+- A `program` that names a folder says so and where the kit looked (`SIM_PROGRAM_FOLDER`); a one-line `program` with a slash or another ending than `.ino` is taken for a file name (`SIM_PROGRAM_NOT_SKETCH`).
+
+**The six chips**
+
+- A logic chip's input switches near half its supply, as a real one does (74HC595: NXP's typical 2.1 V to 2.4 V at 4.5 V; the CD4017's clock with a Schmitt band).
+- A steady level inside the band the datasheet does not guarantee is the doubt `SIM_IC_INPUT_LEVEL`, saying why (a 3.3 V pin into a 5 V chip; an output loaded by an LED).
+- So a CD4017 counting to seven with a white LED on Q7 resets (Q7 at 2.9 V) and says so, and a 74HC595 on 5 V driven by 3.3 V pins latches, with the doubt.
+- A logic chip's input more than 0.5 V over its supply is a hazard naming the pin (`SIM_IC_PIN_VOLTAGE`, `U2.SER has 4.99 V on it, more than its maximum 3.8 V`).
+- Every input a board drives is judged high, also one pulsed inside `shiftOut`; the warning says the chip is fed less than the signals that drive it (variant `fed`).
+- When a rail at the signals' voltage exists, the computed fix is `resupply` (`To fix it: feed U2 from U1.5V …: move its VCC there`), applied by `layout --fix` and `specWithFix`.
+- An open logic input says what the kit's low means for that pin (`SRCLR … the register is held clear, so the outputs never light`) and that a real open input floats.
+- A logic chip's damage warning is at its absolute maximum supply (74HC595 7 V, CD4017 20 V), with `SIM_IC_SUPPLY_RANGE` past the recommended range (6 V, 18 V).
+- The LM386's supply lines name the variant their figures are for (`… for the LM386N-1 and N-3 (the N-4 goes from 5 V to 18 V)`).
+- A reading that rounds to its limit is shown with more figures (`carries 50.04 mA, more than its maximum 50 mA`, not `50 mA … 50 mA`).
+- The kit has no loudspeaker, as `catalog speaker`, the LM386's catalog line and `references/chips.md` say: an 8 Ω resistor stands in for it in the simulation.
+- The PC817's catalog line says its 170 % is one value of the datasheet's 50 % to 600 %, and that a real part's rank (A to D) fixes it within a factor of two.
+- `catalog CD4017` says what the kit computes for an LED straight on an output: about 3.3 mA at 5 V, 15 mA at 9 V (over the chip's power, a ⚠), 28 mA at 12 V, likely too much above 10 V.
+- The example `uno-74hc595-fill` has 1 kΩ resistors, inside the chip's 70 mA with margin.
+
+**The layout**
+
+- `layout --budget <seconds>` (MCP `budget_s`, 60 s by default, at most 300 s, `LIMITS.layoutSeconds`) is counted in placements tried, so the same spec stops at the same place on every run.
+- When the budget runs out `layout` answers with its best try, `STATUS: CHANGES`, and a line saying what is still open and that a larger budget or a smaller circuit are the options.
+- A try cut short (parts left off) never ranks above a whole one; a cut by the wall clock (a slow machine) says it is not repeatable; the answer has `tried`, and `changesTried`.
+- A spec too large for the board is `STATUS: FIX_SPEC` at once (exit 1, nothing created), with the columns needed and available and how many parts fit one board.
+- A spec beyond what one try places within its budget is said in a first note; `suggest` takes a `deadline`.
+- `layout` finds the order that works sooner: each order of the nets gets one try (and one from the part with most signal pins), and they are searched whole, best start first.
+- So an UNO with a 7-segment display and a button ends `DONE` in about 11 600 placements (was 67 146), and two 74HC595 with sixteen LEDs on the double board end `DONE`; recipes keep their placements.
+- `layout` places four relays on a driver chip: a relay or a switch whose body lands on another slides along the edge by its own width.
+- The elastic board grows when a part finds no place, also for a board placed by pin 1, and a lead beside the board never picks a hole under a body.
+- A development board alone in a spec (no nets) is laid out, its ground lead in a strip, and a second battery lies beside the first along the edge (in series they simulate at 18 V).
+- Large circuits lay out in seconds and without running out of memory: a placement is checked against the parts near it, and what it hides is measured while placing (`src/layout-sight.js`).
+- Ten LEDs with their resistors from one UNO pin take about 3 s (were about 60 s, `CHANGES`); two hundred resistors in series end `DONE` in about 6 s (was out of memory).
+- Each try is judged by its placement only; hazards, doubts, the fix, the readings and the run are worked out once, on the circuit kept (the laser and HC-SR04 on an UNO: 29 s → 15 s).
+- The `Readings` line for a circuit with nothing that lights or moves gives the voltage of each net that is not a rail, at most four (`supply 5 V · R1.2 = R2.1 3.33 V`; `readings.nets` in `--json`).
+- `layout --fix` says what it did: `Applied the fix: turned BZ1 round (its 1 and 2 swapped).`, `… swapped the leads of V1 (its + and −).`, `… U2 fed from U1.5V (its VCC moved there).`
+- `layout` on an existing circuit with no spec says on its first line that it laid the circuit out again.
+- Nets that share a pin are one net, joined where the first was, with a note naming them (`LAYOUT_NETS_JOINED`); a board's pin could find no place and be named twenty times.
+
+**The command line and `apply`**
+
+- `apply` refuses a batch it cannot read (a value the part does not understand, an unknown part, pin, field or hole, `UNKNOWN_FIELD`): nothing is saved, also with `--dry-run`.
+- A change that is readable but wrong (a short, a collision) is still saved, with a line saying `with K new error(s)` and `review says CHANGES`; `--json` carries `newErrors`.
+- `apply` and `undo` measure a change with the judgement `review` gives, less the run (`judge` in `src/diff.js`): the spec's connections, and doubts found without solving.
+- `apply` refuses to save on a damaged `history.jsonl` (`HISTORY_DAMAGED`, naming the file and the line, the circuit intact); `undo` and `history` there point at `apply … --new-history`.
+- `layout --dry-run` says in its `STATUS` line that nothing was saved, and `undo --dry-run` changes nothing (it undid the last change).
+- A missing, empty, malformed or wrongly shaped spec, operations or circuit file is answered in one or two lines (exit 1; `STATUS: FIX_SPEC` for `layout`), never a stack trace.
+- A circuit over the size cap, or with fields of the wrong shape (`"parts":"x"`), is an input error (exit 1) in the person's language; a spec with no parts is `STATUS: FIX_SPEC`.
+- An unexpected error is `internal error: …` (exit 3; `PROTOBOARD_DEBUG=1` adds the stack), and so is a failed write such as a full disk.
+- An option the kit cannot read (`--expect-revision abc`, `--lang fr`, `--start foo`) is refused by the argument parser with its name on the last line, then `See the options with --help.` (exit 2).
+- JSON given on the command line (`--values`) is read like a file (exit 1); a missing field in an operation is named (`needs \`part\``).
+- With `--json` every answer is one JSON value (`ok`, `code`, `message` on an error).
+- `--run` echoes what was typed and takes 1 µs to 60 s; `--transient 0` says above 0; a part id with a space says ids have no spaces.
+- A resistance of 0, -100, 1e12 or 1T says which rule it breaks and the range, and `simulate --set R1=10M` reads values as a spec does; a part with no value says what it takes.
+- A language given with `layout --lang` stays with the circuit (and replaces the one stored), so `apply`, `undo` and the rest answer in it.
+- `page .` and `layout .` name their files after the folder; `layout <folder>` with no circuit and no spec says so in one line.
+- `catalog servo`, `catalog SG90` and `catalog speaker` (CLI and MCP) answer with `layout`'s "the kit does not know … Nearest it has: …"; an unknown part with no close name points to `catalog`.
+- `catalog buzzer` says which kind is which (no part number: the passive one, silent on steady DC; `TMB12A05`: the active one), and the active buzzer's card no longer calls it passive.
+- `catalog` marks the part numbers and modules the simulator only draws (`Not simulated: …`), and its texts no longer name source or docs paths.
+- `review` (lesson) lists a part hidden in one view but seen in another as a note, so it gives no warning on a circuit it and `layout` call APPROVED.
+- A transistor carrying current is not read `off`: a TIP120 at 0.9 V on its base carrying 1.7 mA is `active`, and a MOSFET under its threshold carrying current `saturation`.
+
+**The skill and the docs**
+
+- The skill says `STATUS: WARNINGS` covers a part that would be damaged and what the kit cannot confirm works, each told to the user before saying the circuit works; exit codes 0, 1, 2, 3.
+- A circuit with a program, a sensor or an oscillator is run with the user's conditions (`simulate --run`) before saying it works; a `warning:` a run prints is a ⚠ to tell even after `DONE`.
+- The reply uses only the lines the answer printed; `FIX_SPEC` "Too large" means split, `CHANGES` at the budget means `--budget` or a smaller circuit, never the same call again.
+- A board's `.ino` goes beside `circuit.json`; `catalog` comes first for a part not used before; a `· note:` is about the drawing, the nets or a model detail.
+- With nobody to ask, the assistant says what the kit lacks and stops; swapping one kind of part for another is laid out with `--dry-run` first and its ⚠ read before saving.
+- The skill, the agents and `docs/en/agents.md` say what the checks find: an output that never comes on, a coil with no diode, a part in backwards (`--fix` turns it), a supply written negative.
+- They also say that a figure said "about" is approximate, that a chip only drawn names the outputs that hang from it, and what `layout` tried before `CHANGES`; the agents say what the skill says.
+- `SKILL.md` points at `--serial` and at a part that "found no place"; `operations.md` says what `layout` tried before `CHANGES` and the `Not on the board:` line; `spec.md` puts relays side by side.
+- `references/spec.md` says the one part with no model is the DESPI-C02 adapter, how to see whether a part is simulated (its `Simulated:` line), and that `shiftOut` runs.
+- `SKILL.md` says logic inputs switch near half the supply, that what a chip latches is checked and that a run judges power on its average; the logic-level rule moved to `chips.md`.
+- `chips.md` quotes each chip's supply range and damage limit, the LM386 from zero (its 220 µF charging is the switch-on) and clipped, and 5 V pins into a chip fed 3.3 V (damage).
+- `references/beyond-the-kit.md` lists the new asks (a stepper, an OLED, a keypad, a joystick, Bluetooth and Wi-Fi modules; an SD card, a clock and a load cell have nothing near).
+- `references/operations.md`'s list of commands is a `bash` block (a `text` block is the kit's output); a button's pin roles say which side of the switch each pin is, in `parts.md` and the page.
+- Docs: the agent interface's exit codes name a damaged history (1) and an option value not taken (2) and show `undo --dry-run`; the simulation page says an LM386's transient runs `--start dc`.
+- `PLANNING.md` logs the six chips' models, a sketch's mistakes as warnings, `apply` refusing on a damaged history and the layout's budget counted in work, in both languages.
+- The roadmap's section "Trust: what DONE means" lists what this release did and what is still open.
+- Tests lay the sixty recipes out once and read that sweep (`test/recipe-sweep.test.js`), and the tests not about a budget use the largest (`test/layout-generous.js`, `test/run-generous.js`).
+
+**If you come from 0.12.1**
+
+- `STATUS: WARNINGS` (APPROVED WITH WARNINGS) now covers doubts as well as hazards: a circuit that ended `DONE` may end `WARNINGS`; read its ⚠ lines.
+- `apply` refuses a batch with input it cannot read and saves nothing; on a damaged history it refuses until `--new-history`.
+- Exit codes: 0 fine, 1 an input mistake, 2 `CHANGES` or an option it cannot read, 3 an internal error; a bad file is never a stack trace.
+- A run's step is never shorter than its length over 20 000, so its figures match `layout`'s `Behaviour` line and long runs finish; `run.asked` is now `run.seconds`, beside `run.ran`.
+- A sketch's integers wrap at their type's size on the board in use (`byte`, `int` on an UNO), as the board's do.
+- A logic chip's inputs switch near half its supply, not anywhere between 0.3 and 0.7 of it.
+- `layout --budget` is counted in placements tried, not in the wall clock's seconds.
+
+### Fixed
+
+**Hazards and doubts**
+
+- A buzzer wired backwards got "To fix it: a 820 kΩ resistor in series", which silences it.
+- A bench supply with no rails of its own is really swapped by the fix (it stayed on T+ and T−, and the hazard stayed).
+- The underdriven-relay line no longer prescribes "a smaller base resistor, a bigger driver" (that loaded a sensor's divider and made it worse).
+- An HC-SR04's ECHO (5 V) straight on an ESP32 pin got no warning: `SIM_PIN_OVERVOLTAGE` comes from the highest voltage each board pin sees over the states and the run, with the moment.
+- `Serial.begin` makes the UART's TX pin an output that idles high, so an UNO's TX on an ESP32's RX is seen at 5 V on a 3.3 V pin (`SIM_PIN_OVERVOLTAGE`; it read 1.38 V).
+- An H-bridge driven by a sketch got "Q3 dissipates 3.65 W … with D4 high": each program output was raised alone.
+- A part wired to nothing is open, never a hazard; a press that ends after the run is not a warning.
+- The control of a supply written at −5 V showed 5 V: it is as written, from −30 V to 0 (`--set V1=-9`).
+
+**Running a circuit**
+
+- A run said "Run from switch-on" while it started at the DC point (a capacitor behind 22 kΩ already at 9 V), and ignored `--start zero`.
+- `simulate --run` and the `Behaviour` line gave two figures for one thing (1.11 kHz and 1.04 kHz; a motor on an UNO pin at 49.7 mA and another): each names its state, and a fast rhythm is measured again.
+- `regulator-7805 --run 1` was 1.7 million steps of 100 ps and stopped at 173 µs; every recipe now runs 3 s.
+- A print at a run's last instant is in the run (a sketch printing every 500 ms prints at 0, 0.5 and 1 s in a run of 1 s).
+- A pin overloaded under the half-rail line read "off the whole time" beside LEDs on; a buzzer that loaded its pin read `on < 1 %`.
+- A passive buzzer that beeps was said as its tone: the run and the `Behaviour` line say beeps and tone apart (`BZ1 (buzzer): beeps 2 Hz (every 500 ms), sounding 20 % of the time · tone 2 kHz`).
+- A passive buzzer on a steady current is silent, not "on": `BZ1 never sounds` (`SIM_OUTPUT_NEVER_ON`, variant `passive`); `--json` adds `sound` and `tone` to the output; an active buzzer on DC sounds.
+- A tune of six notes gave `beeps: 5 · tone 385 Hz`; one tone figure is given only when every note has it.
+- An op-amp with positive feedback (a relaxation oscillator) stopped at its first switch (`did not converge`): Newton now stops at the edges of its linear range at most twice per solve.
+- A development board on USB with no connection to the circuit's supplies (an UNO reading a PC817's output side) floated: its side now takes the board's GND as its reference (`SIM_SEPARATE_CIRCUIT`, `board`).
+- A run no longer throws on a warning about a chip's pin (`U2.QA`), nor on an over-current on one (`U2.OUT1`).
+- `A change at 0.8 s comes after the run ends` (it printed `0.7999999999999999 s`), and `simulate --run` no longer prints an empty `Supplies:` heading for a board on USB alone.
+- `--transient 1,1e-5`: a step written with an exponent was read as no step at all; a number the kit cannot read is an error.
+
+**Sketches**
+
+- A sketch's `delay()` lasts what it says: after a `loop()` that ran a while without waiting, the next `delay(300)` lasted 0 ms (the time not waited was carried as a debt), also in the live page.
+- A `char` prints as its letter (`Serial.println('Z')`, a `char` variable, `(char) 65`), as a board's `Print` does; `char` arithmetic stays a number and `Serial.println(c, DEC)` prints it.
+- `Serial.write(65)` prints `A`; `DEC`, `HEX`, `OCT` and `BIN` are known: an integer's second argument is its base, a float's its decimals.
+- `bitSet`, `bitClear`, `bitToggle` and `bitWrite` change their variable (they did nothing).
+- `shiftOut(DS, SH, MSBFIRST, c)` stopped with `$MSBFIRST is not defined`: `shiftOut`, `shiftIn`, `MSBFIRST`, `LSBFIRST`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD` and `RAD_TO_DEG` are in the subset.
+- An unknown name says it is not in the kit's Arduino subset, by its own name; a two-dimensional array is refused with its line and names the array (`a[row * columns + column]`; `SIM_PROGRAM_ARRAY_DIMENSIONS`).
+- Pointers, a member, a macro and a `String` method said `does not read at line 5 (near ".")`; an untouched `char` buffer printed 33 zeros, and a received `\r` printed U+FFFD.
+- `int a[5] = {1, 2}` has five elements (it had two); an error that stops the program names its line; on an UNO `analogRead(0)` reads A0 (it read D0).
+- A comparison stored in an `int` (`int pressed = digitalRead(2) == LOW;`) was always 0, so `uno-button`'s LED never lit.
+- A loop printing 100 000 lines on an UNO printed two million in a second and was called stuck.
+- A board's `.ino` beside `circuit.json` was "not found" by `layout` and `review` on a circuit with a sensor that reads the world, and did not run in `simulate --run` with an environment, nor in `Behaviour`.
+
+**The layout**
+
+- Four relays on an ESP32 and a ULN2003 ended `CHANGES` with two relays "found no place" in every order.
+- `layout` at its budget printed no "Before this answer the kit also tried" line (its list was overwritten by the budget's count).
+- An UNO alone in a spec ended `✖ U1 found no place`; a second battery was given the first one's place and ended `CHANGES`.
+- A net of 250 resistors placed 203 and then 189 parts in 84 s; it places all 251, the same twice, in about 45 s.
+- The memo kept a whole build per candidate (2.9 GB for ten LEDs); it is bounded, and a review no longer builds the same circuit five times (`buildCircuit` keeps its last two results).
+- A layout of a large circuit whose tries never converged on parts hidden in both views ran on; what a place hides is measured only once a first try leaves parts hidden, so recipes keep their placements.
+- The `Readings` line named a battery twice (`battery BT1 8.92 V · battery BT1 8.92 V`); a divider's answer said only `supply 5 V`.
+- Four recipes (`uno-button`, `c3-pot-pwm`, `encoder-dimmer-uno`, `clap-switch`) and the example `esp32-both-headers.json` list their ground pins as one net.
+
+**The command line and `apply`**
+
+- A part moved past its strips was saved by `apply` with only a note; it now says `✖ new: error: Net 1 of the spec …` and the saved-with-errors line.
+- `apply` saved a revision on a damaged `history.jsonl` that `undo` and `history` could then never read; they named `--new-history`, which they do not take.
+- `apply` saved input the kit cannot read; it is refused now.
+- `apply` with 850 or more `add` operations ended `internal error: Maximum call stack size exceeded`; 3000 are refused by the parts cap.
+- A part with the id `__proto__`, `constructor`, `toString`, `hasOwnProperty` or `valueOf` opens its card in the page (its tap threw).
+- `simulate --json` through a pipe was cut at 64 KiB, and a reader that closes the pipe (`check … | head -1`) hid the command's exit code; both end quietly with the right code.
+- A resistance, potentiometer, capacitor, inductor or Zener with no value printed `"undefined"`; a missing field in an operation printed "undefined"; an unknown part with no close name printed `Closest: —.`
+- `page .` and `layout .` wrote `out/..html`; `--run 1e-300` ran "0 s, 0 steps" while 0 was refused.
+- `npm run parts-reference -- --write` threw on a two-dimensional array.
+
 ## [0.12.1] - 2026-11-18
 
 A fix for videos: a part that lands stays seen when the focus moves on before it touches down.
@@ -613,7 +940,8 @@ what it uses.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.0...v0.11.1

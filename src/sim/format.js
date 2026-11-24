@@ -2,10 +2,12 @@
 
 import { t, decimalSeparator } from '../i18n/index.js';
 import { formatValue } from '../core/units.js';
+import { BRIGHTNESS_OVER } from './models.js';
 import { nodeParams } from '../circuit/checks.js';
 import { linesFor, runtimeWords } from './lines.js';
 
 const pad = (s, n) => String(s).padEnd(n);
+const CARD_KINDS = new Set(['DRV', 'OPT', 'AMP']);
 
 export function formatSimulation(result, lang = 'en', { formatIssue, netLabels = {} } = {}) {
   const decimal = decimalSeparator(lang);
@@ -30,9 +32,18 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
   if (result.analysis === 'transient') return formatTransient(result, lang, { f, lines, issues, nodeName });
 
   lines.push(t(lang, 'sim.dc', { iterations: result.iterations }));
-  lines.push(t(lang, 'sim.supplies'));
-  for (const [id, s] of Object.entries(result.supplies)) {
-    lines.push(`  ${pad(id, 6)} ${pad(f(s.voltage, 'V'), 10)} ${pad(f(s.current, 'A'), 10)} ${pad(f(s.power, 'W'), 10)} ${t(lang, `sim.mode.${s.mode}`)}`);
+  readingLines(result, lang, { f, lines, nodeName, decimal });
+  issues();
+  return lines.join('\n');
+}
+
+// Supplies, nodes and parts of one reading (the DC point, or the end of a run).
+function readingLines(result, lang, { f, lines, nodeName, decimal }) {
+  // A board on USB alone has no supply of its own: no heading over nothing.
+  if (Object.keys(result.supplies ?? {}).length) lines.push(t(lang, 'sim.supplies'));
+  for (const [id, s] of Object.entries(result.supplies ?? {})) {
+    const written = s.written < 0 ? ` · ${t(lang, 'sim.supplyNegative', { named: s.named, high: s.high })}` : '';
+    lines.push(`  ${pad(id, 6)} ${pad(f(s.voltage, 'V'), 10)} ${pad(f(s.current, 'A'), 10)} ${pad(f(s.power, 'W'), 10)} ${t(lang, `sim.mode.${s.mode}`)}${written}`);
   }
   lines.push(t(lang, 'sim.nodes', { ground: nodeName(result.ground) }));
   for (const [node, v] of Object.entries(result.nodes)) lines.push(`  ${pad(nodeName(node), 30)} ${f(v, 'V')}`);
@@ -48,10 +59,10 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     else if (p.kind === 'SW') text = `${t(lang, p.pressed ? 'state.pressed' : 'state.released')} · ${f(p.current, 'A')}`;
     else if (p.kind === 'BR') text = `${t(lang, 'sim.q.bridge.vac')} ${f(p.vac, 'V')} · ${t(lang, 'sim.q.bridge.vdc')} ${f(p.vdc, 'V')} · ${t(lang, 'sim.q.bridge.current')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'REG') text = `${t(lang, 'sim.reg.' + p.state)} · ${t(lang, 'sim.q.reg.vin')} ${f(p.vin, 'V')} · ${t(lang, 'sim.q.reg.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.reg.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
-    else if (p.kind === 'MCU') text = [p.usb ? `USB ${f(p.usb.voltage, 'V')} ${f(p.usb.current, 'A')}` : null, `${t(lang, 'sim.q.mcu.vdd')} ${f(p.vdd, 'V')}`, ...p.pins.map((x) => `${x.name} ${x.mode === 'output' ? t(lang, `sim.mcu.${x.level ? 'high' : 'low'}`) : t(lang, `sim.mcu.input${x.pull ? `.${x.pull}` : ''}`)} ${f(x.voltage, 'V')} ${f(x.current, 'A')}`), p.program?.error ? t(lang, 'sim.mcu.programError', { error: p.program.error }) : null, f(p.power, 'W')].filter(Boolean).join(' · ');
+    else if (p.kind === 'MCU') text = [p.usb ? `USB ${f(p.usb.voltage, 'V')} ${f(p.usb.current, 'A')}` : null, `${t(lang, 'sim.q.mcu.vdd')} ${f(p.vdd, 'V')}`, ...p.pins.map((x) => `${x.name} ${x.mode === 'output' ? t(lang, `sim.mcu.${x.level ? 'high' : 'low'}`) : t(lang, `sim.mcu.input${x.pull ? `.${x.pull}` : ''}`)} ${f(x.voltage, 'V')} ${f(x.current, 'A')}${x.behind ? ` ${t(lang, 'sim.mcu.behind', { resistance: f(x.behind, 'Ω') })}` : ''}`), p.program?.error ? t(lang, 'sim.mcu.programError', { error: p.program.error }) : null, f(p.power, 'W')].filter(Boolean).join(' · ');
     else if (p.kind === 'OPA') text = [...p.amps.map((a) => `${a.name ? `${t(lang, 'sim.opamp.amp', { n: a.name })}: ` : ''}${t(lang, 'sim.opamp.' + a.state)} · V+ ${f(a.vplus, 'V')} · V− ${f(a.vminus, 'V')} · ${t(lang, 'sim.q.opamp.vout')} ${f(a.vout, 'V')} · ${f(a.current, 'A')}`), f(p.power, 'W')].join(' · ');
     else if (p.kind === 'TMR') text = `${t(lang, 'sim.timer.' + p.state)} · ${t(lang, 'sim.q.timer.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.timer.vthr')} ${f(p.vthr, 'V')} · ${t(lang, 'sim.q.timer.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
-    else if (p.kind === 'LEDS') text = [...Object.entries(p.channels).map(([pin, c]) => `${pin} ${f(c.voltage, 'V')} ${f(c.current, 'A')} ${Math.round(c.brightness * 100)} %`), `${t(lang, 'sim.q.leds.common')} ${f(Math.abs(p.current), 'A')}`, f(p.power, 'W')].join(' · ');
+    else if (p.kind === 'LEDS') text = [...Object.entries(p.channels).map(([pin, c]) => `${pin} ${f(c.voltage, 'V')} ${f(c.current, 'A')} ${c.brightness > BRIGHTNESS_OVER ? t(lang, 'sim.bright.over') : `${Math.round(c.brightness * 100)} %`}`), `${t(lang, 'sim.q.leds.common')} ${f(Math.abs(p.current), 'A')}`, f(p.power, 'W')].join(' · ');
     else if (p.kind === 'TMP') text = [p.state !== 'ok' && t(lang, `sim.lm35.${p.state}`), `${f(p.temperature, '°C')}`, `${t(lang, 'sim.q.lm35.vout')} ${f(p.vout, 'V')}`, `${t(lang, 'sim.q.lm35.vs')} ${f(p.vs, 'V')}`, `${t(lang, 'sim.q.lm35.own')} ${f(p.quiescent, 'A')}`].filter(Boolean).join(' · ');
     else if (p.kind === 'HAL') text = [p.state !== 'ok' && t(lang, `sim.hall.${p.state}`), `${p.field} G`, `${t(lang, 'sim.q.hall.vout')} ${f(p.vout, 'V')}`, `${t(lang, 'sim.q.hall.vs')} ${f(p.vs, 'V')}`, `${t(lang, 'sim.q.hall.own')} ${f(p.quiescent, 'A')}`].filter(Boolean).join(' · ');
     else if (p.kind === 'VSN') text = `${t(lang, 'sim.q.divider.vin')} ${f(p.vin, 'V')} · S ${f(p.vs, 'V')} · ${t(lang, 'sim.q.divider.current')} ${f(p.current, 'A')}`;
@@ -66,6 +77,8 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
       const said = [`${n(a.temperature, p.part === 'DHT11' ? 0 : 2)} °C`, Number.isFinite(a.humidity) && `${n(a.humidity, p.part === 'DHT11' ? 0 : 2)} %RH`, Number.isFinite(a.pressure) && `${n(a.pressure / 100, 2)} hPa`].filter(Boolean).join(' ');
       text = [p.state === 'ready' ? said : t(lang, p.state === 'warmup' ? 'sim.climate.warmup' : `sim.climate.${p.state}`, { voltage: f(p.vcc, 'V'), time: f(p.left ?? 0, 's'), values: said }), `${t(lang, 'sim.q.climate.vcc')} ${f(p.vcc, 'V')}`, `${t(lang, 'sim.q.climate.own')} ${f(p.current, 'A')}`].join(' · ');
     } else if (p.kind === 'MOT') text = [t(lang, `sim.motor.${p.state}`), `${Math.round(p.rpm)} r/min`, `${pad(f(p.voltage, 'V'), 10)} ${f(p.current, 'A')}`, `${t(lang, 'sim.q.motor.emf')} ${f(p.emf, 'V')}`, f(p.power, 'W')].join(' · ');
+    // The chips whose card lines say it all (the Darlington array, the optocoupler, the LM386).
+    else if (CARD_KINDS.has(p.kind)) text = linesFor(p, { t: (key, params) => t(lang, key, params), decimal }).filter((l) => l.key !== 'floating').map((l) => l.text).join(' · ');
     else if (p.kind === 'BAT' && !p.on) text = t(lang, 'sim.battery.off');
     else if (p.kind === 'BAT') {
       text = `${pad(f(p.voltage, 'V'), 10)} ${pad(f(p.current, 'A'), 10)} ${f(p.power, 'W')} · ${t(lang, 'sim.q.battery.emf')} ${f(p.emf, 'V')}`;
@@ -78,23 +91,160 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     if (p.floating) text += ` · ${t(lang, 'sim.floating')}`;
     lines.push(`  ${pad(id, 6)} ${text}`);
   }
-  issues();
+}
+
+// A run (sim/run.js) as text: what the program printed (the first and the last lines when it is
+// long), one line per output (its rhythm when it toggles regularly, else its share of the time on and,
+// when there are a few, the spans it was on), the readings at the end, the notes.
+const SERIAL_SHOWN = 10;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what it replaces
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g;
+const SPANS_SHOWN = 3;
+export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } = {}) {
+  const decimal = decimalSeparator(lang);
+  const f = (value, unit) => (value == null ? t(lang, 'sim.floating') : formatValue(value, unit, { decimal }));
+  const lines = [];
+  const notes = (list) => {
+    if (!list?.length) return;
+    lines.push(t(lang, 'sim.issues'));
+    for (const i of list) lines.push(`  ${formatIssue(i, lang)}`);
+  };
+  if (!result.ok && !result.readings) {
+    lines.push(t(lang, 'sim.failed'));
+    notes(result.issues ?? result.errors);
+    return lines.join('\n');
+  }
+  const { run, serial, outputs } = result;
+  const gains = (s) => [...s.gains.map((g) => t(lang, g.on ? 'layout.states.on' : 'layout.states.off', { id: g.id })), ...s.on.map((id) => t(lang, 'sim.run.state.lit', { id }))].join(', ');
+  const from = run.states ? t(lang, 'sim.run.start.state', { first: gains(run.states[0]), second: gains(run.states[1]) }) : t(lang, `sim.run.start.${run.start}.${run.start === (run.page ?? run.start) ? 'page' : 'other'}`);
+  lines.push(t(lang, 'sim.run', { start: from, seconds: f(run.seconds, 's'), step: f(run.step, 's'), steps: run.steps }));
+  // A run that covers less than was asked (capped at the limit, stopped by the machine's time or its
+  // steps) says so first, and each heading after it names the span it covers.
+  const ran = run.ran ?? run.seconds;
+  const cut = (result.issues ?? []).filter((i) => CUT.has(i.code));
+  const short = cut.length > 0 || ran < run.seconds - 1e-9;
+  for (const i of cut) lines.push(formatIssue(i, lang));
+  if (short) lines.push(t(lang, 'sim.run.covers', { ran: f(ran, 's'), seconds: f(run.seconds, 's') }));
+  const span = short ? t(lang, 'sim.run.span', { ran: f(ran, 's') }) : '';
+  if (result.boards > 0 || serial.count > 0) {
+    if (!serial.count) lines.push(t(lang, 'sim.run.serialNone', { span }));
+    else {
+      const shown = serial.lines;
+      // Cut to its first and last lines here: the heading says so, and how many --json keeps.
+      const cut = !(serial.count <= SERIAL_SHOWN && shown.length === serial.count);
+      lines.push(cut ? t(lang, 'sim.run.serialCut', { count: serial.count, span, shown: SERIAL_SHOWN / 2, kept: shown.length }) : t(lang, 'sim.run.serial', { count: serial.count, span }));
+      // What a program printed is shown as it is, but never as a line of the answer of its own.
+      const line = (l) => `  ${pad(f(l.t, 's'), 10)} ${l.board ? `${l.board}: ` : ''}${String(l.text).replace(CONTROL, '\uFFFD')}`;
+      if (serial.count <= SERIAL_SHOWN && shown.length === serial.count) for (const l of shown) lines.push(line(l));
+      else {
+        for (const l of shown.slice(0, SERIAL_SHOWN / 2)) lines.push(line(l));
+        lines.push(t(lang, 'sim.run.serialMore', { count: serial.count - SERIAL_SHOWN }));
+        for (const l of shown.slice(-SERIAL_SHOWN / 2)) lines.push(line(l));
+      }
+    }
+  }
+  if (!outputs.length) lines.push(t(lang, 'sim.run.noOutputs'));
+  else {
+    lines.push(t(lang, 'sim.run.outputs', { span }));
+    for (const o of outputs) lines.push(`  ${outputText(o, lang, f)}`);
+  }
+  if (result.readings?.ok) {
+    lines.push(t(lang, 'sim.run.readings', { time: f(ran, 's') }));
+    const nodeName = (n) => {
+      const np = nodeParams(n);
+      const name = np ? t(lang, np.key, np.params) : n;
+      return netLabels[n] ? `${name} (${netLabels[n]})` : name;
+    };
+    readingLines(result.readings, lang, { f, lines, nodeName, decimal });
+  }
+  notes(result.issues?.filter((i) => !CUT.has(i.code)));
   return lines.join('\n');
+}
+// The issues of a run that covers less than was asked: printed first (formatRun).
+const CUT = new Set(['RUN_CAPPED', 'RUN_BUDGET', 'RUN_STEPS']);
+
+// One output in a line: "D1 (LED): 1 Hz, on 50 % of the time (period 1 s) · 7 changes".
+const percentOf = (share) => (share > 0 && share < 0.005 ? '< 1' : share < 1 && share > 0.995 ? '> 99' : String(Math.round(100 * share)));
+export function outputText(o, lang, f) {
+  const params = { id: o.id, kind: t(lang, `sim.run.kind.${o.kind}`), changes: o.changes };
+  if (o.sound) return soundText(o, lang, f, params);
+  // A rhythm faster than this run's steps (sim/run.js): measured again in a shorter run, which the line
+  // names, or no figure; its count of changes is the steps', not its own, and is left out.
+  if (o.measured && o.frequency) return t(lang, 'sim.run.measured', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare), seconds: f(o.measured.seconds, 's'), step: f(o.measured.step, 's') });
+  if (o.fast) return t(lang, 'sim.run.fast', { ...params, percent: percentOf(o.onShare) });
+  // A pin playing a tune: its notes' range, the buzzer's line has them in order.
+  if (o.notes?.length > 1) {
+    const fs = o.notes.map((n) => n.frequency);
+    return t(lang, 'sim.run.share', { ...params, percent: percentOf(o.onShare), spans: '' }) + t(lang, 'sim.run.pinNotes', { count: o.notesTotal ?? o.notes.length, low: f(Number(Math.min(...fs).toPrecision(3)), 'Hz'), high: f(Number(Math.max(...fs).toPrecision(3)), 'Hz') });
+  }
+  if (o.frequency) return t(lang, 'sim.run.regular', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare) });
+  if (!o.changes) return t(lang, o.onShare > 0.5 ? 'sim.run.always' : 'sim.run.never', params);
+  const spans = o.intervals.length && o.intervals.length <= SPANS_SHOWN && !o.intervalsTotal ? t(lang, 'sim.run.spans', { list: o.intervals.map(([a, b]) => `${f(a, 's')} → ${f(b, 's')}`).join(', ') }) : '';
+  return t(lang, 'sim.run.share', { ...params, percent: percentOf(o.onShare), spans });
+}
+
+// A passive buzzer by when it is heard (its beeps) and its tone, apart: "BZ1 (buzzer): beeps 2 Hz
+// (every 500 ms), sounding 20 % of the time · beeps: 4 · tone 2 kHz".
+// A tune's notes in order, each its frequency, start and length, the first NOTES_SHOWN (the JSON has
+// them all, up to the run's cap, and `notesTotal`).
+const NOTES_SHOWN = 8;
+function notesText(o, lang, f) {
+  const total = o.notesTotal ?? o.notes.length;
+  const list = o.notes.slice(0, NOTES_SHOWN).map((n) => t(lang, 'sim.run.note', { frequency: f(Number(n.frequency.toPrecision(3)), 'Hz'), start: f(n.start, 's'), length: f(n.length, 's') })).join(', ');
+  return t(lang, 'sim.run.notes', { count: total, list, more: total > NOTES_SHOWN ? t(lang, 'sim.run.notesMore', { count: total - NOTES_SHOWN }) : '' });
+}
+function soundText(o, lang, f, params) {
+  const s = o.sound;
+  const tone = o.tone ? t(lang, 'sim.run.tone', { frequency: f(o.tone.frequency, 'Hz') }) : o.notes?.length ? notesText(o, lang, f) : '';
+  const p = { ...params, starts: s.starts, tone };
+  if (s.frequency) return t(lang, 'sim.run.sound.regular', { ...p, frequency: f(s.frequency, 'Hz'), period: f(s.period, 's'), percent: percentOf(s.onShare) });
+  if (!s.changes) {
+    if (s.onShare > 0.5) return t(lang, 'sim.run.sound.always', p);
+    return o.onShare > 0 ? t(lang, 'sim.run.sound.click', { ...p, percent: percentOf(o.onShare) }) : t(lang, 'sim.run.sound.silent', p);
+  }
+  const spans = s.intervals.length && s.intervals.length <= SPANS_SHOWN && !s.intervalsTotal ? t(lang, 'sim.run.sound.spans', { list: s.intervals.map(([a, b]) => `${f(a, 's')} → ${f(b, 's')}`).join(', ') }) : '';
+  return t(lang, 'sim.run.sound.share', { ...p, percent: percentOf(s.onShare), spans });
 }
 
 // A table at about ten evenly spaced times: capacitor voltages and supply currents (the
 // JSON answer has every sample, every node and every part).
+// A series' frequency where it repeats: its rising crossings of the mean of its second half, at least
+// three, evenly spaced (within 10 %); else null (a charge, a step, noise).
+function frequencyOf(times, values) {
+  const half = Math.floor(values.length / 2);
+  const tail = values.slice(half);
+  const mean = tail.reduce((a, b) => a + b, 0) / Math.max(1, tail.length);
+  const span = Math.max(...tail) - Math.min(...tail);
+  if (!(span > 1e-9 * Math.max(1, Math.abs(mean)))) return null;
+  const ups = [];
+  for (let k = half + 1; k < values.length; k++) if (values[k - 1] < mean && values[k] >= mean) ups.push(times[k - 1] + ((mean - values[k - 1]) / (values[k] - values[k - 1])) * (times[k] - times[k - 1]));
+  if (ups.length < 3) return null;
+  const gaps = ups.slice(1).map((x, k) => x - ups[k]);
+  const avg = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+  return gaps.every((g) => Math.abs(g - avg) <= 0.1 * avg) ? 1 / avg : null;
+}
+const SUMMARY_SHOWN = 8; // series a transient's text gives the peak of
 function formatTransient(result, lang, { f, lines, issues }) {
-  lines.push(t(lang, 'sim.transient', { start: t(lang, `sim.start.${result.start}`), stop: f(result.stop, 's'), step: f(result.step, 's'), points: result.times.length }));
+  const n = result.times.length;
+  const rows = [...new Set(Array.from({ length: 11 }, (_, i) => Math.round((i * (n - 1)) / 10)))];
+  lines.push(t(lang, 'sim.transient', { start: t(lang, `sim.start.${result.start}`), stop: f(result.stop, 's'), step: f(result.step, 's'), shown: rows.length, points: n, spacing: f(n > 1 ? result.times[1] - result.times[0] : result.step, 's') }));
   const caps = Object.keys(result.parts).filter((id) => result.parts[id].voltage && /^C/i.test(id));
   const columns = [
     ...caps.map((id) => ({ head: `V(${id})`, values: result.parts[id].voltage, unit: 'V' })),
     ...Object.entries(result.supplies).map(([id, s]) => ({ head: `I(${id})`, values: s.current, unit: 'A' })),
   ];
   lines.push(`  ${pad('t', 10)} ${columns.map((c) => pad(c.head, 11)).join(' ')}`);
-  const n = result.times.length;
-  const rows = [...new Set(Array.from({ length: 11 }, (_, i) => Math.round((i * (n - 1)) / 10)))];
   for (const k of rows) lines.push(`  ${pad(f(result.times[k], 's'), 10)} ${columns.map((c) => pad(f(c.values[k], c.unit), 11)).join(' ')}`);
+  // Each series' peak and, where it repeats, its frequency: the columns, then the voltage across each
+  // other part (an amplifier's load), wires left out; a table of eleven rows cannot show a wave.
+  const others = Object.keys(result.parts).filter((id) => !caps.includes(id) && result.parts[id].voltage && !/^W\d/.test(id)).map((id) => ({ head: `V(${id})`, values: result.parts[id].voltage, unit: 'V' }));
+  const all = [...columns, ...others].filter((c) => c.values?.length);
+  const items = all.slice(0, SUMMARY_SHOWN).map((c) => {
+    const peak = c.values.reduce((m, v) => (Math.abs(v) > Math.abs(m) ? v : m), 0);
+    const freq = frequencyOf(result.times, c.values);
+    return `${c.head} ${f(peak, c.unit)}${freq ? `, ${f(Number(freq.toPrecision(3)), 'Hz')}` : ''}`;
+  });
+  if (items.length) lines.push(t(lang, 'sim.transient.peaks', { stop: f(result.stop, 's'), items: items.join(' · '), more: all.length > SUMMARY_SHOWN ? t(lang, 'sim.transient.more', { count: all.length - SUMMARY_SHOWN }) : '' }));
   issues();
   return lines.join('\n');
 }

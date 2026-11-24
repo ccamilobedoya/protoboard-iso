@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
 

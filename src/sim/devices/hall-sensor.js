@@ -138,9 +138,9 @@ export const hallSensor = {
       stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vs, m.maxReverse, 'V', { param: 'voltage', of: 'supply' }),
       stress('SIM_OVER_CURRENT', 'current', r.demand, m.outputLimit, 'A', { of: 'output' }),
     ];
-    if (r.vs > m.maxOperating && r.vs <= m.maxSupply) out.push(note('info', 'SIM_HALL_HIGH_SUPPLY', { part: entry.id, voltage: q(r.vs, 'V'), max: q(m.maxOperating, 'V') }));
+    if (r.vs > m.maxOperating && r.vs <= m.maxSupply) out.push(note('warning', 'SIM_HALL_HIGH_SUPPLY', { part: entry.id, voltage: q(r.vs, 'V'), max: q(m.maxOperating, 'V') }));
     if (r.state === 'low') out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vs, 'V'), min: q(m.minSupply, 'V') }));
-    if (Math.abs(r.current) > m.loadNote) out.push(note('info', 'SIM_HALL_LOAD', { part: entry.id, current: q(Math.abs(r.current), 'A'), max: q(m.loadNote, 'A') }));
+    if (Math.abs(r.current) > m.loadNote) out.push(note('warning', 'SIM_HALL_LOAD', { part: entry.id, current: q(Math.abs(r.current), 'A'), max: q(m.loadNote, 'A') }));
     return out;
   },
   lines(p, h) {

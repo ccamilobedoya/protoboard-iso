@@ -10,7 +10,7 @@ import { paceOf } from '../src/sim/pace.js';
 import { resistor as resistorDevice } from '../src/sim/devices/resistor.js';
 import { DIODES, VT, WIRE_RESISTANCE } from '../src/sim/models.js';
 import { expandRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 
 // An RC ladder of 40 sections from a 5 V supply, a 1N4148 to ground every five sections.
 function ladder(n = 40) {

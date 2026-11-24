@@ -315,6 +315,7 @@ export function regulatorElement(inp, ref, out, { vref, dropout, quiescent }) {
 // pins as node indices. The latch is a memory: it changes only when a step is accepted, from the
 // voltages of that step, so every step solves a linear stage (high: VCC − highDrop through
 // highResistance; low: lowLevel through lowResistance; discharge on only while low).
+const CROSS_PAST = 1e-6; // s past a 555's predicted crossing a step ends, at most a hundredth of the step
 export function timerCore({ gnd, trig, out, reset, ctrl, thr, dis, vcc }, m) {
   const gh = 1 / m.highResistance;
   const gl = 1 / m.lowResistance;
@@ -345,12 +346,27 @@ export function timerCore({ gnd, trig, out, reset, ctrl, thr, dis, vcc }, m) {
       const id = (volt(x, dis) - volt(x, gnd)) * (this.q ? GMIN : gd);
       return [(this.q ? 0 : -io) - id, 0, io, 0, 0, 0, id, this.q ? -io : 0];
     },
-    accept(x) {
+    accept(x, ctx = {}) {
       const v = (n) => volt(x, n) - volt(x, gnd);
       const c = v(ctrl);
+      // The comparators' distances to their thresholds, this step's and the one before (`crossing`).
+      const now = { thr: v(thr) - c, trig: v(trig) - c / 2, h: ctx.h };
+      this.seen = this.seen && ctx.h > 0 ? [this.seen[1], now] : [null, now];
       if (v(reset) < m.resetThreshold) this.q = 0;
       else if (v(trig) < c / 2) this.q = 1;
       else if (v(thr) > c) this.q = 0;
+    },
+    // When the comparator the latch waits for will be crossed (seconds from now, or null), from the
+    // slope of the last step: high, THR rising to CTRL; low, TRIG falling to half of it, and a little
+    // more (CROSS_PAST, or a hundredth of the run's `step`), so the step that ends there is past it and the latch switches then. A capacitor's curve
+    // bends away from the line: a guess that comes early is followed by a closer one.
+    crossing(step = 0) {
+      const [a, b] = this.seen ?? [];
+      if (!a || !(b.h > 0)) return null;
+      const key = this.q ? 'thr' : 'trig';
+      const slope = (b[key] - a[key]) / b.h;
+      const ahead = this.q ? b[key] < 0 && slope > 0 : b[key] > 0 && slope < 0;
+      return ahead ? Math.abs(b[key] / slope) + Math.min(CROSS_PAST, step / 100 || CROSS_PAST) : null;
     },
   };
 }
@@ -480,10 +496,16 @@ export function brake(w, torque, slip) {
 // would leave the linear range it stops just inside it (LIMIT volts from the edge, where the slope
 // is near 1 and the next step is nearly exact); if the next iteration still wants out on that
 // side, the output really saturates and it goes.
+// With positive feedback (a Schmitt trigger, a relaxation oscillator) the solution at the instant
+// the output switches lies on the other rail, and the linear range between is the unstable middle:
+// a stop at each edge in turn would send Newton round the same four iterations for ever (the
+// op-amp oscillator stopped at its first switch). So each solve stops at the edges at most
+// EDGE_STOPS times; after that the output saturates where the iteration takes it.
 // The output current x[branch] comes from vcc while it sources and goes to vee while it sinks,
 // split smoothly at a few microamperes so the supply pins carry what they would.
 const SOFT = 0.02;
 const LIMIT = 2 * SOFT;
+const EDGE_STOPS = 2;
 const softplus = (z) => (z > 40 ? z : z < -40 ? 0 : Math.log1p(Math.exp(z)));
 const logistic = (z) => 1 / (1 + Math.exp(-Math.max(-300, Math.min(300, z))));
 const SPLIT = 1e-6;
@@ -515,8 +537,10 @@ export function opampStage({ p, n, vcc, vee, o }, m) {
     needsRow: true,
     vd: 0,
     edge: null,
+    solve: null,
+    stops: 0,
     shape,
-    stamp(st, x) {
+    stamp(st, x, ctx) {
       const k = this.branch;
       const S = volt(x, vcc) - volt(x, vee);
       const { lo, hi } = range(S);
@@ -524,9 +548,19 @@ export function opampStage({ p, n, vcc, vee, o }, m) {
       const uOf = (vd) => m.gain * vd + S / 2;
       let vd = want;
       let edge = null;
-      if (uOf(want) > hi + LIMIT && uOf(this.vd) < hi + LIMIT && this.edge !== 'hi') edge = 'hi';
-      else if (uOf(want) < lo - LIMIT && uOf(this.vd) > lo - LIMIT && this.edge !== 'lo') edge = 'lo';
-      if (edge) vd = ((edge === 'hi' ? hi - LIMIT : lo + LIMIT) - S / 2) / m.gain;
+      // A new solve (Newton is called with a new ctx each time): its count of stops starts again.
+      if (ctx !== this.solve) {
+        this.solve = ctx;
+        this.stops = 0;
+      }
+      if (this.stops < EDGE_STOPS) {
+        if (uOf(want) > hi + LIMIT && uOf(this.vd) < hi + LIMIT && this.edge !== 'hi') edge = 'hi';
+        else if (uOf(want) < lo - LIMIT && uOf(this.vd) > lo - LIMIT && this.edge !== 'lo') edge = 'lo';
+      }
+      if (edge) {
+        vd = ((edge === 'hi' ? hi - LIMIT : lo + LIMIT) - S / 2) / m.gain;
+        this.stops++;
+      }
       this.edge = edge;
       const limited = edge !== null;
       this.vd = vd;

@@ -7,10 +7,11 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
-import { autoLayout, specFromCircuit, formatLayout } from '../src/layout.js';
+import { formatLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { review, formatReview, formatHazards } from '../src/review.js';
 import { compile, createEngine, controlStates, engineHazards, STATES_MAX } from '../src/sim/index.js';
-import { RECIPES, expandRecipe } from '../src/recipes/index.js';
+import { expandRecipe } from '../src/recipes/index.js';
 import { applyOps } from '../src/ops.js';
 import { formatIssue, t } from '../src/index.js';
 
@@ -67,18 +68,8 @@ test('a circuit that cannot be simulated has no hazards', () => {
   assert.deepEqual(review(r.circuit).hazards, []);
 });
 
-test('recipes with their defaults: none would damage a part', () => {
-  // Known list: recipes whose defaults are past a limit, at rest, with each control operated or with
-  // each output of a board's program high (none today; the maintainer decides about any listed here,
-  // each with a comment saying what burns and when).
-  const known = new Set([]);
-  for (const name of Object.keys(RECIPES)) {
-    const r = autoLayout(expandRecipe(name).spec);
-    const hazards = r.review.hazards.map((h) => formatIssue(h, 'en'));
-    if (known.has(name)) assert.ok(hazards.length, `${name} is on the known list but has no hazard any more: remove it`);
-    else assert.deepEqual(hazards, [], name);
-  }
-});
+// The recipes with their defaults (none would damage a part) are checked in test/recipe-sweep.test.js,
+// on the sweep every such check reads.
 
 // ---- with a control operated (sim/index.js checkHazards): one control at a time, the others at rest
 
@@ -93,11 +84,11 @@ test('npn-switch with a 47 Ω collector resistor at 12 V: nothing burns at rest,
   assert.ok(d1.params.current.value > 0.17 && d1.params.current.value < 0.19, 'about 178 mA');
   assert.ok(r.review.hazards.every((h) => h.when), 'nothing at rest');
   const en = formatLayout(r, 'en', { t, formatIssue });
-  assert.match(en, /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA, with S1 pressed\.\n/);
+  assert.match(en, /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA: it burns out, with S1 pressed\.\n/);
   assert.match(en, /⚠ warning: R2 dissipates [\d.]+ W, more than its 250 mW: it overheats, with S1 pressed\.\n/);
   assert.match(en.split('\n').at(-1), /^STATUS: WARNINGS · /);
   const es = formatLayout(r, 'es', { t, formatIssue });
-  assert.match(es, /⚠ aviso: Por D1 pasan 178 mA, más que su máximo de 30 mA, con S1 oprimido\.\n/);
+  assert.match(es, /⚠ aviso: Por D1 pasan 178 mA, más que su máximo de 30 mA: se quema, con S1 oprimido\.\n/);
   // The same recipe at its defaults: nothing burns pressed either.
   const fine = autoLayout(expandRecipe('npn-switch').spec);
   assert.equal(fine.status, 'done');
@@ -147,7 +138,7 @@ test('the states are capped: past the cap the review says how many were checked,
   const states = controlStates(compiled.program, engine);
   assert.deepEqual(states, [{ part: 'S1', field: 'pressed', value: true, rest: false }]);
   // With room for no state, the hazard pressed is not found, and the count says so.
-  assert.deepEqual(engineHazards(engine, states, 0), { hazards: [], states: { checked: 0, total: 1, controls: 1, outputs: 0 }, ok: true });
+  assert.deepEqual(engineHazards(engine, states, 0), { hazards: [], doubts: [], states: { checked: 0, total: 1, controls: 1, outputs: 0 }, ok: true });
   assert.ok(STATES_MAX >= 16);
   const capped = { hazards: [], hazardStates: { checked: STATES_MAX, total: STATES_MAX + 6 } };
   assert.match(formatHazards(capped, 'en', formatIssue, t).join('\n'), new RegExp(`^States checked for damage: ${STATES_MAX} of ${STATES_MAX + 6} \\(one control or program output at a time`));
@@ -188,35 +179,7 @@ test('layout again: a part keeps its holes only where its new nets want them (LE
   assert.equal(autoLayout(next).status, 'done');
 });
 
-const railOf = (ref) => /^[TBUK][+-]$/.test(String(ref));
-test('layout again, property: with one net changed, never a short together with DONE or APPROVED; DONE means the nets are clean', () => {
-  let tried = 0;
-  for (const name of Object.keys(RECIPES)) {
-    const first = autoLayout(expandRecipe(name).spec);
-    if (first.status !== 'done') continue;
-    const base = specFromCircuit(first.circuit);
-    const nets = base.nets.map((n) => (Array.isArray(n) ? { pins: [...n] } : { ...n, pins: [...n.pins] }));
-    const withRail = nets.findIndex((n) => n.pins.some(railOf) && n.pins.some((p) => !railOf(p)));
-    const without = nets.findIndex((n, i) => i !== withRail && !n.pins.some(railOf));
-    if (withRail < 0 || without < 0) continue;
-    // Variant: the first pin of the net on a rail joins another net (a pin leaves a rail and lands on another node).
-    const variant = nets.map((n) => ({ ...n, pins: [...n.pins] }));
-    const moved = variant[withRail].pins.find((p) => !railOf(p));
-    variant[withRail].pins = variant[withRail].pins.filter((p) => p !== moved);
-    variant[without].pins.push(moved);
-    const r = autoLayout(specFromCircuit(first.circuit, { nets: variant }), { previous: first.circuit });
-    if (r.checked) continue; // the variant is not a valid spec
-    tried++;
-    const text = formatLayout(r, 'en', { t, formatIssue });
-    if (r.check.shorted.length) {
-      assert.equal(r.review.verdict, 'changes', `${name}: a short with a review that approves\n${text}`);
-      assert.doesNotMatch(text, /APPROVED/, name);
-    }
-    if (r.status === 'done') assert.ok(r.check.ok && r.review.verdict === 'approved', `${name}: DONE with open nets\n${text}`);
-    if (r.status === 'warnings') assert.ok(r.check.ok, name);
-  }
-  assert.ok(tried >= 8, `only ${tried} recipes gave a variant`);
-});
+// Layout again with one net changed, on every recipe: test/recipe-sweep.test.js (the shared sweep).
 
 test('undo after layout again restores the first layout exactly', async () => {
   const { tempDir: mk } = await import('../scripts/tmp.js');

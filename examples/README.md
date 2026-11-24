@@ -18,7 +18,7 @@ npm run examples                                                   # every examp
 |---|---|---|
 | **By hand**: every part with its holes (`pins`) | You want each hole exactly where it is on your board | [`led-resistor.json`](led-resistor.json) |
 | **Layout**: parts without holes and the nets that join them; `layout` places and wires them | Another new circuit | [`layout/regulator-led.json`](layout/regulator-led.json): `node bin/protoboard-iso.js layout my-regulator examples/layout/regulator-led.json` |
-| **Recipe**: a usual lesson circuit by name, only the values that change | The circuit is one of the [37 recipes](../docs/en/recipes.md) | `node bin/protoboard-iso.js layout my-divider --recipe divider --values '{"R2":"4k7"}'` |
+| **Recipe**: a usual lesson circuit by name, only the values that change | The circuit is one of the [60 recipes](../docs/en/recipes.md) | `node bin/protoboard-iso.js layout my-divider --recipe divider --values '{"R2":"4k7"}'` |
 
 The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 
@@ -29,6 +29,7 @@ The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 | <img src="../docs/img/examples/led-resistor.png" width="280" alt="LED with a resistor"> | **[led-resistor.json](led-resistor.json)**: an LED with its current-limiting resistor on 5 V. The smallest circuit with a simulation; the README's pictures are drawn from it. |
 | <img src="../docs/img/examples/voltage-divider.png" width="280" alt="Voltage divider"> | **[voltage-divider.json](voltage-divider.json)**: two 10 kΩ resistors split 9 V in half; the page shows the voltage where they meet. |
 | <img src="../docs/img/examples/controls-and-ics.png" width="280" alt="Buttons, potentiometers and chips"> | **[controls-and-ics.json](controls-and-ics.json)**: push buttons across the centre channel, potentiometers and DIP chips (NE555, LM358) placed by their pin 1. Drawing only, no source. |
+| <img src="../docs/img/examples/555-cd4017-chaser.png" width="280" alt="555 clocking a CD4017 with five LEDs"> | **[555-cd4017-chaser.json](555-cd4017-chaser.json)**: a 555 astable clocks a CD4017 decade counter; five LEDs on Q0…Q4 light one after another and Q5 wired to MR resets it on the sixth count. Made by `layout` from [layout/555-cd4017-chaser.json](layout/555-cd4017-chaser.json). |
 | <img src="../docs/img/examples/npn-switch.png" width="280" alt="NPN transistor switch"> | **[npn-switch.json](npn-switch.json)**: the `npn-switch` recipe as laid out, with a tour ([tours/npn-switch.json](tours/npn-switch.json)): *See how it works* in the page's ⋯ menu presses S1 and follows the current to the LED. |
 
 ## Power
@@ -67,6 +68,7 @@ The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 | <img src="../docs/img/examples/esp32-two-boards.png" width="280" alt="ESP32 across two breadboards"> | **[esp32-two-boards.json](esp32-two-boards.json)**: an ESP32 DevKit with nets on both pin headers, laid out on two breadboards side by side (board `double`), across the joint, so each header keeps a free strip: an LED on D4, a button on D15, a potentiometer on D34. Made by `layout` from [layout/esp32-both-headers.json](layout/esp32-both-headers.json). |
 | <img src="../docs/img/examples/uno-led.png" width="280" alt="Arduino UNO lighting an LED"> | **[uno-led.json](uno-led.json)**: an Arduino UNO beside the board, Dupont leads to an LED on D13. |
 | <img src="../docs/img/examples/epaper-esp32.png" width="280" alt="ESP32 with an e-paper panel"> | **[epaper-esp32.json](epaper-esp32.json)**: an ESP32 driving a 7.5" e-paper panel through the DESPI-C02 adapter. |
+| <img src="../docs/img/examples/uno-74hc595-fill.png" width="280" alt="UNO with a 74HC595 and eight LEDs"> | **[uno-74hc595-fill.json](uno-74hc595-fill.json)**: an Arduino UNO fills eight LEDs through a 74HC595 shift register with `shiftOut` (three pins for eight outputs: SER, SRCLK, and RCLK to latch). Made by `layout` from [layout/uno-74hc595-fill.json](layout/uno-74hc595-fill.json). |
 
 Programs (Arduino sketches that run in the simulation) are in the microcontroller recipes:
 [microcontrollers.md](../docs/en/microcontrollers.md).
@@ -77,6 +79,14 @@ Programs (Arduino sketches that run in the simulation) are in the microcontrolle
 |---|---|
 | <img src="../docs/img/examples/parts-showcase.png" width="280" alt="Every part in the kit"> | **[parts-showcase.json](parts-showcase.json)**: resistors (5 % and 1 %), diodes, LEDs (one RGB), capacitors, transistors, an AMS1117 module, a 7-segment display, slide and tilt switches, an LM35, and beside the board a relay and a DC motor, with jumpers. Its notes about unconnected pins are expected. |
 | <img src="../docs/img/examples/more-parts.png" width="280" alt="More parts"> | **[more-parts.json](more-parts.json)**: trimmer, Zener, inductor, thermistor, LDR, buzzer, header, LM324, LM317, PC817 and lithium cells. |
+
+## Analog chips
+
+| | |
+|---|---|
+| <img src="../docs/img/examples/uln2003-relay.png" width="280" alt="A UNO switching a relay through a ULN2003"> | **[uln2003-relay.json](uln2003-relay.json)**: a UNO's D8 drives channel 1 of a ULN2003, whose OUT1 sinks the relay coil's current from 5 V; COM on the same 5 V is the coil's flyback diode. The relay pulls in for a second and drops for a second. |
+| <img src="../docs/img/examples/pc817-isolated-led.png" width="280" alt="A PC817 optocoupler between a 9 V and a 5 V side"> | **[pc817-isolated-led.json](pc817-isolated-led.json)**: a button on a 9 V battery lights the PC817's infrared LED through 680 Ω; its phototransistor sinks a green LED's current from a 5 V supply. The two sides share no wire and each has its own ground; press the button in the page. |
+| <img src="../docs/img/examples/lm386-amplifier.png" width="280" alt="An LM386 amplifying a 1 kHz signal into 8 ohms"> | **[lm386-amplifier.json](lm386-amplifier.json)**: the generator's 1 kHz, 50 mV wave through 10 µF into an LM386 with pins 1 and 8 open (gain 20); the 8 Ω load gets about 1 V peak through 220 µF, around the 4.5 V the output rests at. The 8 Ω resistor stands for a speaker, which the kit does not have yet. |
 
 ## Wrong on purpose
 

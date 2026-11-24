@@ -141,7 +141,9 @@ function partData(circuit, lang, sim) {
   });
   // Pin names are identifiers ("anode"); show them in the page's language when there is a word.
   const pinName = (name) => (t(lang, `pin.${name}`) === `pin.${name}` ? name : t(lang, `pin.${name}`));
-  const parts = {};
+  // By a part's id, kept as entries and made with Object.fromEntries: an id may be "__proto__",
+  // which an assignment to a plain object turns into its prototype.
+  const partEntries = [];
   const kinds = {};
   for (const part of built.parts) {
     // A development board lists only the pins in use (it has many), each with its note.
@@ -161,7 +163,7 @@ function partData(circuit, lang, sim) {
     // The strip of each line, so the card can open it (a part often hides its strip on screen).
     const pinNodes = pins.map((p) => p.node ?? null);
     pins = pins.map((p) => p.text);
-    parts[part.id] = {
+    partEntries.push([part.id, {
       title: labelText(part, lang) ?? part.id,
       // The kind of part is a value like the others: tap it (or hover it) to read what that kind
       // of part is and how it works, from the kit. What it does in this circuit is the circuit's
@@ -174,9 +176,10 @@ function partData(circuit, lang, sim) {
       rows: [...new Set(part.holes.filter((h) => h.kind === 'main').map((h) => h.row))],
       pins,
       pinNodes,
-      sim: sim?.ok && sim.parts[part.id] ? partLines(sim.parts[part.id], lang) : [],
-    };
+      sim: sim?.ok && Object.hasOwn(sim.parts, part.id) ? partLines(sim.parts[part.id], lang) : [],
+    }]);
   }
+  const parts = Object.fromEntries(partEntries);
   // The card of each strip in use (stage 3, phase 9): what is clipped to it and, with the
   // results, its voltage to ground and the current of each lead.
   const nodes = {};
@@ -214,7 +217,7 @@ function partData(circuit, lang, sim) {
       templates[`node:${node}`] = { node, text: t(lang, 'probe.voltage', { value: MARK, node: nodeName(node), ground: groundName }) };
     }
     for (const part of built.parts) {
-      const r = sim.parts[part.id];
+      const r = Object.hasOwn(sim.parts, part.id) ? sim.parts[part.id] : null;
       if (!r || r.floating || r.unsupported || part.def.electrical?.kind === 'W') continue;
       // A device may say it its own way (a transistor: Ic or Id); otherwise "I flows from … to …".
       const own = deviceOfReading(r)?.probe?.(r);

@@ -23,6 +23,29 @@ export const LIBRARY_CLASSES = [
 export const LIBRARY_CONSTANTS = { DHT11: 11, DHT12: 12, DHT21: 21, DHT22: 22, AM2301: 21, NAN: Number.NaN };
 // Sensor types a library knows but the kit does not have yet: noted, their reads give NaN.
 export const NOT_IN_KIT = ['DHT12', 'DHT21', 'DHT22', 'AM2301'];
+// A serial port's methods (Serial, Serial1, Serial2), by their place: `Serial2.println(x)` becomes
+// `__serial(2, 2, x)`. The last four wait for what arrives (a Stream's timeout, 1 s by default).
+// Appending keeps the numbers of the others; never reorder.
+export const SERIAL_PORT_METHODS = ['begin', 'print', 'println', 'write', 'available', 'read', 'peek', 'flush', 'setTimeout', 'end', 'parseInt', 'parseFloat', 'readStringUntil', 'readString'];
+export const SERIAL_WAITING = ['parseInt', 'parseFloat', 'readStringUntil', 'readString'];
+// The integer types a stored value is wrapped to (sketch.js writes `__w(value, <kind>)`, program.js
+// wraps it on the board in use): `int` and `unsigned int` are 16 bits on an AVR and 32 on an ESP32.
+// MASK: the bits a kind adds to an arithmetic chain (`now - start`), which program.js turns into C's
+// type of the result on that board (1 unsigned long, 2 unsigned int, 4 uint16_t, 8 long).
+export const INT_KIND = { u8: 1, s8: 2, int: 3, uint: 4, u16: 5, s16: 6, u32: 7, s32: 8, bool: 9 };
+export const INT_KIND_MASK = [0, 0, 0, 0, 2, 4, 0, 1, 8, 0];
+// A String's methods, by number (`s.length()` becomes `__strm(0, $s)`); the IN_PLACE ones change the
+// String itself, as Arduino's do (`s.trim();`). Appending keeps the numbers of the others; never reorder.
+export const STRING_METHODS = ['length', 'charAt', 'indexOf', 'lastIndexOf', 'substring', 'toInt', 'toFloat', 'toDouble', 'equals', 'equalsIgnoreCase', 'startsWith', 'endsWith', 'compareTo', 'c_str', 'trim', 'toUpperCase', 'toLowerCase', 'concat', 'replace', 'remove', 'isEmpty'];
+export const STRING_IN_PLACE = ['trim', 'toUpperCase', 'toLowerCase', 'concat', 'replace', 'remove'];
+// Where a value is changed in place (an array element: __upd(array, index, <op>, kind, …)), by number.
+export const UPDATE_OPS = ['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=', 'bitSet', 'bitClear', 'bitToggle', 'bitWrite', 'post++', 'post--'];
+// Names an Arduino core or its boards define that the kit's subset does not (a sketch that uses one
+// compiles on a real board): the runtime says the kit does not know it, never that it is undeclared.
+// Prefixes cover a family (GPIO_NUM_4, ADC_11db, ESP_SLEEP_WAKEUP_TIMER).
+export const ARDUINO_NAMES = ['A6', 'A7', 'EXTERNAL', 'INTERNAL', 'INTERNAL1V1', 'INTERNAL2V56', 'DEFAULT', 'F_CPU', 'NOT_A_PIN', 'NUM_DIGITAL_PINS', 'NUM_ANALOG_INPUTS', 'nullptr', 'LED_BUILTIN_TX', 'LED_BUILTIN_RX', 'SDA', 'SCL', 'SS', 'MOSI', 'MISO', 'SCK', 'TX', 'RX', 'Serial1', 'Serial2', 'Serial3', 'ESP', 'SPI', 'EEPROM', 'WiFi', 'SERIAL_7E1', 'T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'];
+export const ARDUINO_PREFIXES = ['GPIO_NUM_', 'ADC_', 'ESP_', 'SERIAL_', 'PIN_'];
+export const isArduinoName = (name) => ARDUINO_NAMES.includes(name) || ARDUINO_PREFIXES.some((p) => name.startsWith(p));
 // The default I2C address of both Adafruit libraries' begin() (BME280_ADDRESS, BMP280_ADDRESS).
 export const I2C_DEFAULT_ADDRESS = 0x77;
 

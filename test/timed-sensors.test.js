@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { expandRecipe, RECIPES } from '../src/recipes/index.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
 import { paceOf } from '../src/sim/pace.js';
@@ -31,7 +31,8 @@ function pirEngine(part = {}, load = '10k', volts = 5) {
     environment: { motion: false },
   };
   const r = autoLayout(spec);
-  assert.equal(r.status, 'done', JSON.stringify(r.problems));
+  // Outside its 4.5…20 V the module is not guaranteed to work: a doubt, so WARNINGS.
+  assert.equal(r.status, volts >= 4.5 && volts <= 20 ? 'done' : 'warnings', JSON.stringify(r.problems));
   return createEngine(compile(r.circuit).program);
 }
 
@@ -512,7 +513,9 @@ test('pir and touch: a supply the wrong way round is SIM_REVERSE_VOLTAGE', () =>
 test('pir and touch: a module with no supply has a high-impedance output, so a pull-up raises it to the rail', () => {
   for (const [type, pin, extra] of [['pir-sensor', 'OUT', { warmup: 0, motion: true }], ['touch-sensor', 'SIG', {}], ['touch-sensor', 'SIG', { activeLow: true }]]) {
     const r = autoLayout({ parts: [{ id: 'U1', type, ...extra }, { id: 'R1', type: 'resistor', value: '10k' }], nets: [['T+', 'R1.1'], ['R1.2', `U1.${pin}`], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
-    assert.equal(r.status, 'done', `${type} ${JSON.stringify(extra)}`);
+    // Its VCC is wired to nothing: it cannot work, and the review says so (C12, SUPPLY_PINS_UNWIRED).
+    assert.equal(r.status, 'warnings', `${type} ${JSON.stringify(extra)}`);
+    assert.ok(r.review.doubts.some((d) => d.code === 'SUPPLY_PINS_UNWIRED' && d.params.part === 'U1'), type);
     const e = createEngine(compile(r.circuit).program);
     assert.ok(e.start('dc', H));
     for (let k = 0; k < 100; k++) e.advance(H);

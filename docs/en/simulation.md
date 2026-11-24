@@ -97,7 +97,14 @@ time runs one period a second, with at least 100 steps per period. Examples
 `half-wave-rectifier.json` and `rc-square-wave.json`.
 
 The first supply's negative is **ground** (0 V); with no `supplies`, the first battery part's. A second supply with no connection to the
-first one feeds a separate circuit, measured from its own negative.
+first one feeds a separate circuit, measured from its own negative; so does a development board on
+USB with no connection to the supplies (the output side of an optocoupler read by an UNO), measured
+from its own GND (it was left floating: "no DC path to the supply").
+
+A negative `voltage` (`-5`) is the same supply the other way round: it is simulated with its
+terminals swapped, and read as written (`V1 -5 V … written negative: T- is the positive rail, not
+T+`); `layout`'s answer has one `Note:` line saying the rail named + is the lower one. Its control
+(the page's slider, `--set V1=-9`) is as written too: from −30 V to 0, at −5 V.
 
 Set them with an operation like any circuit field:
 `{ "op": "circuit", "supplies": [ … ] }`.
@@ -113,7 +120,130 @@ Set them with an operation like any circuit field:
 - **Transient.** `stop` and `step` in seconds; capacitors start discharged and inductors with
   no current (`start: "zero"`, the supply switched on at t = 0), or at their DC values
   (`start: "dc"`). Backward Euler with a
-  fixed step; at most 400 samples are kept (`points`).
+  fixed step; at most 400 samples are kept (`points`). The text shows eleven of them in a table and
+  says so (`the table shows 11 of its 401 samples … (--json has them all)`), then each series' peak and,
+  where it repeats, its frequency (`Peaks over the 10 ms (and the frequency of what repeats): … V(R1)
+  4.72 V, 994 Hz`), as a run gives its outputs' figures. A circuit whose board runs a program is
+  stepped as the page steps it (below, "A run"): pieces of at most 1 ms that end on each event of
+  the program and of the timed modules, so a 10 µs pulse or an echo is at its time; the answer
+  then has a note naming `--run`, which says what the program printed and how its outputs toggle.
+- **A run** (`simulate <target> --run <seconds>`, MCP `run_s`). The circuit as the page runs it,
+  from where the page starts (its resting point, the DC point, with every capacitor already at its
+  DC voltage; or everything discharged with `page.start: "zero"`), or from the one asked with
+  `--start zero|dc` (MCP `start`), for that many simulated seconds. Its first line says which in
+  plain words (`Run from its resting point, as the page starts` or `Run from everything
+  discharged`): a capacitor behind 22 kΩ that a real circuit takes seconds to charge is already
+  charged in a run from the resting point. The run uses the same engine as the page, the board's
+  program with `pulseIn`, the library sensors, the encoder and the timed modules, and the page's step
+  (`sim/pace.js`) but never one shorter than the run's length over 20 000 (`RUN_STEPS`): the page's
+  step follows the fastest thing it can show (a decoupling capacitor's nanoseconds), which a run of
+  seconds cannot afford. Each step still ends on every event (a program's writes, a press, a change
+  at a time, a 555's thresholds) and the solver is stable at any step, so a run of 3 s takes about
+  20 000 steps whatever the circuit. Its first line says the step. A time constant shorter than the
+  step is stepped over and one note names the slowest of them (`This run's steps of 150 µs are longer
+  than C1's time constant of 33 ns: what changes that fast is shown settled at each step, not
+  followed`). An output whose rhythm is faster than 100 of the run's steps a period is measured again
+  in a shorter run from the same start whose step follows it, and its line says where its figure comes
+  from (`measured in the first 200 ms in steps of 10 µs`); one that even that cannot follow has no
+  frequency, and a note says how short a run measures it. A run that hits the machine's time in steps
+  of that floor says that only `--budget` helps (a shorter `--run` takes as many steps). It
+  answers what an assistant needs to say whether the circuit does what was asked:
+  - **Serial**: what the program printed, each line with its time, in order, and the count (a
+    long story keeps its first and last lines, `runSerialLines` in `src/limits.js`);
+  - **outputs over time**, one per part that shows something (an LED, a chip of an RGB LED, a
+    segment of a display, a buzzer, a relay, a motor), each op-amp's output and each pin a
+    program drives (`U1.D13`): the share of the time it was on, how many times it changed, the
+    spans it was on (`intervals`) and, when it toggles regularly (every period within 10 % of
+    their mean, the start-up's first period left out), its frequency, period and duty. Edges are
+    found between steps: a pin at the step its program changed it, an LED a pin drives in the
+    middle of that step, anything slower where it crosses its level (an LED at 5 % of its rated
+    current, a relay closed, a motor over 30 r/min, a pin or an op-amp's output over half its
+    rail). A passive buzzer is said by when it is heard: it sounds while its current changes at
+    least every 50 ms (a tone of 20 Hz or more; `SOUND_GAP`, assumed), so its line gives the
+    beeps (the share of the run it sounds, how many times and how often it starts) and the
+    tone's frequency apart (`BZ1 (buzzer): beeps 2 Hz (every 500 ms), sounding 20 % of the time ·
+    beeps: 4 · tone 2 kHz`). A tune of several notes is said note by note, in order, each its
+    frequency, start and length (`· 6 notes: 262 Hz at 103 ms for 298 ms, 330 Hz at 452 ms for
+    298 ms, …`, the first eight, `--json` has `notes` and `notesTotal`), and one figure only when every
+    note has the same frequency; the pin that plays it says how many notes and their range. On a
+    steady current it is silent (it only clicks). An active buzzer
+    sounds on DC: its line is when it sounds, as before;
+  - **the readings at the end**, as the DC point prints them, and every warning the run produced,
+    each once at its strongest reading with when it came (`at its strongest in the run, at 10 ms,
+    with D9 high`): a figure of a run belongs to that moment, not to the DC point (a motor on a pin
+    takes more as it starts than turning steadily, and drives current back into the pin set low as
+    it slows down). The hazard of the DC point names its state too: on a board's pin the program
+    sets high there, `with D9 high, as the program first sets it`. A power limit is thermal: a part
+    over its power at an instant is followed from then and judged on its average power to the end of
+    the run (`on average over the run, from 250 µs to 50 ms`), so a clipped amplifier's peaks are not
+    damage while its average stays under its maximum; `--transient` averages its samples the same way.
+    A warning about a level that must last (a relay's coil under its pull-in current, a logic input in
+    the uncertain band, a supply outside a part's range, a regulator out of regulation or hot, a
+    stalled motor) is kept only once that level has settled: seen at every look for five of its
+    part's time constants with its figure no longer moving, or still there at the end of the run. A
+    coil whose current rises through the band on its way to pulling in is not under-driven, so runs
+    of different lengths over the same events give the same warnings. A peak that damages at once (a
+    current or a voltage over a maximum) is kept at its strongest.
+    Currents and voltages stay instantaneous.
+
+  Stimuli, each usable several times: `--env light=0.5,distance=10` (fields of the environment,
+  in the catalog's units, inside the field's range: an unknown field or a value outside it is an
+  input error, exit 1), `--set RV1=0.8,SW1=on` (a control: a potentiometer's position, a
+  switch, a sensor's own field such as `U2=30` on an LM35; `ID.field=value` when it has several),
+  `--press SW1@0.5+0.2` (pressed at 0.5 s for 0.2 s), `--at 1.0:light=0.1` (a field or a control
+  changed at a time), `--serial "U1:1\n@0.5"` (text typed to a board's serial port at a time;
+  [microcontrollers.md](microcontrollers.md)). A sensor that reads a field by a value of its own follows the field a run
+  sets, and the run says so (`RUN_ENV_ATTACHED`). `--env` and `--set` also apply to the DC point
+  and to `--transient`. Nothing is saved: the circuit file and its history stay as they were.
+  Bounded: at most `runSeconds` (60) of simulated time (more is capped, `RUN_CAPPED`) and
+  `runMs` (15 s) of the machine's (`RUN_BUDGET`: it ends where it got to; `--budget <s>` gives it more,
+  at most `runMsMax`, 300 s, `RUN_BUDGET_CAPPED` past it); a program that never
+  lets time pass ends with `SIM_PROGRAM_STUCK`. A run that covers less than was asked says so on the
+  line under its header (the warning, then `Every figure below covers the first 60 s of the 120 s
+  asked, not the whole run.`), each heading after it names its span (`Outputs over time in the
+  first 60 s:`, `Readings at 60 s:`), and `--json` has `run.ran` (the seconds covered) beside
+  `run.seconds` (the seconds asked).
+
+  ```text
+  $ protoboard-iso simulate alarm --run 1 --env distance=10
+  Run from its resting point, as the page starts (capacitors already at their DC voltages; start zero runs it from everything discharged) — a model, not a measurement: 1 s in steps of 1 ms (1000 steps).
+  Serial (10 lines, in order):
+    844 µs     10
+    …
+  Outputs over time:
+    D1 (LED): on 100 % of the time · changes: 1 (on 857 µs → 1 s)
+    U1.D9 (pin): 9.92 Hz, on < 1 % of the time (period 101 ms) · changes: 20
+  Readings at 1 s:
+  …
+  ```
+
+  A pin is reported by what the program writes to it (a pin loaded under the half-rail line is still
+  high; its sagging voltage is in the readings, with `(through its 40 Ω output resistance)` on a pin
+  carrying more than 1 mA).
+
+  `layout`'s answer has the same in one line for a circuit that changes by itself (a board's
+  program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s from its resting point, as the page starts (simulated, a
+  model): D1 1 Hz, on 50 % of the time`, from a run bounded at 25 000 steps of the simulation (so the
+  same circuit gives the same line on any machine; about as long as the 0.8 s of the machine's
+  time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`): it is `simulate --run 2`, the same step
+  and the same shorter run for a fast rhythm, so the two give the same figures (under five whole
+  periods in that shorter run it says `about` with two figures); past the bound it says it was not measured (`the run needed more than 25 000 steps of the
+  simulation`) and names `simulate --run 2`.
+- **Two resting states** (a transistor latch, a flip-flop). Its DC point can be the balance between
+  its two stable states, both transistors half on, which a real circuit never sits in. After the DC
+  point of a circuit with two transistors or more (and no board, 555 or op-amp), the kit pushes each
+  transistor's base or gate by 50 mV, up and down, with 1 nF on every node (what a real node has),
+  and lets it settle: a stable point takes the push back, a balance point runs away to a state on each
+  side (`restingStates` in `src/sim/run.js`; the sign of the loop gain would say the same, but the
+  system holds sources and switches whose rows are not dynamics, so the push uses the engine the
+  page runs). Each state is then solved again without the added capacitances, so its readings are
+  the circuit's own. `layout`'s answer then says `Two resting states (a model): … it powers up in one
+  of them, and the kit cannot say which` and each state's readings (`1. Q1 off, Q2 on · battery BT1
+  8.98 V · D1 4.54 mA …`) instead of the `Readings` line; the DC point of `simulate` adds the warning
+  `SIM_TWO_STATES` and `states` in `--json`; `--run` from the resting point starts from the first
+  state and says so (`Run from the first of its two resting states (Q1 off, Q2 on, D1 on); a real
+  circuit may power up in the other …`; `run.state`, `run.states` in `--json`). No recipe or example
+  has two.
 
 ## Results
 
@@ -135,6 +265,21 @@ Set them with an operation like any circuit field:
   issues: [ … ] }
 ```
 
+A run (`--run`, `run_s`):
+
+```js
+{ ok: true, start: 'dc',                                          // the start used
+  run: { seconds: 1, ran: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // seconds asked, ran covered; page: the page's start
+  serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: when capped
+  outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
+              intervals: [[0.00086, 1]] }, …],                         // an output still on closes at the end
+  // a passive buzzer adds sound (the same fields, when it is heard, and starts) and tone:
+  //   { id: 'BZ1', kind: 'buzzer', onShare: 0.1, frequency: 2000, …,   // its current, each cycle
+  //     sound: { onShare: 0.2, changes: 8, starts: 4, frequency: 2, period: 0.5, duty: 0.2, intervals },
+  //     tone: { frequency: 2000, period: 0.0005 } }
+  boards: 1, readings: { … the DC point's shape, at the end … }, issues: [ … ] }
+```
+
 Two-terminal parts: `voltage` = first pin − second pin, `current` flows from the first pin to
 the second through the part. Transistor pin currents are positive into the pin. The transient
 answer has `times` and the same quantities as arrays.
@@ -145,7 +290,8 @@ answer has `times` and the same quantities as arrays.
 |---|---|
 | `SIM_OVER_POWER` | a resistor above its rating (`power`: "1/4" W by default) or a transistor above its package limit |
 | `SIM_OVER_CURRENT` | an LED above 30 mA, a diode, inductor, regulator or battery above its maximum |
-| `SIM_REVERSE_VOLTAGE` | an LED with more than 5 V in reverse |
+| `SIM_REVERSE_VOLTAGE` | a part fed backwards: an LED with more than 5 V in reverse; a regulator, op-amp, 555 or development board whose supply pin sits more than 0.5 V below its ground pin ("any reverse voltage on a supply is outside its ratings: in a real circuit it can be destroyed"; the line names both pins and the voltage; 0.5 V is only a noise floor, no datasheet rates it); sensor modules over their own figure. Thresholds in one place: `REVERSE_LIMITS` in `src/sim/models.js` |
+| `SIM_RELAY_UNDERDRIVEN` | a relay whose coil carries more than its drop-out current and less than its pull-in current, the armature at rest: driven, but it does not pull in. Not damage: `checkHazards` returns it in `doubts` (with the state it was found in), `simulate` in its notes |
 | `SIM_CAP_REVERSED`, `SIM_CAP_OVER_VOLTAGE` | an electrolytic the wrong way round; any capacitor above its voltage |
 | `SIM_SUPPLY_LIMITED` | a bench supply at its current limit (constant current) |
 | `SIM_SHORT_CIRCUIT` | an unlimited supply delivering more than 3 A; a battery whose load is under half an ohm |
@@ -155,9 +301,11 @@ answer has `times` and the same quantities as arrays.
 | `SIM_RELAY_COIL`, `SIM_RELAY_KICK` | a relay's coil driven over its 120 % (6 V); its coil cut off with nothing across it, its voltage reversed far past the supply (a diode across the coil holds it to about 1 V) |
 | `SIM_MOTOR_VOLTAGE`, `SIM_MOTOR_STALL` | a DC motor over the top of its voltage range; held still by its load, drawing its stall current |
 | `SIM_FLOATING` | groups with no DC path to the supply (an unconnected MOSFET gate, for example) |
-| `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | a microcontroller pin beyond its rail (protection diodes conducting); an `io` entry naming no wired GPIO, a state it does not know, or an output on an input-only pin |
+| `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | a microcontroller pin beyond its rail (protection diodes conducting), in a DC state of the review (the highest it reaches there) or at a moment of the review's run, with that time (an HC-SR04's 5 V echo on an ESP32 pin, low at rest; `variant: 'run'`); an `io` entry naming no wired GPIO, a state it does not know, or an output on an input-only pin |
 | `SIM_IC_SUPPLY` | a chip fed above its maximum (555: 16 V; LM358: 32 V; 741: 36 V in total) |
-| `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | a part not simulated yet (chips other than the 555), or a part number without its own model |
+| `SIM_IC_INPUT_OPEN`, `SIM_IC_INPUT_LEVEL` (and `SIM_IC_SUPPLY_RANGE`) | a logic chip (74HC595, CD4017) fed under its minimum (2 V; 3 V: `SIM_IC_SUPPLY_RANGE`); an input of it left open (undefined on a real chip: the kit takes it as low and says what low means for that pin: OE enables the outputs, SRCLR holds the register clear, MR lets it count, CE lets the clock through); an input that settles between the levels its datasheet guarantees as low and high (0.3 and 0.7 of its supply): the chip reads it as it switches (near half its supply) and the doubt says the datasheet does not guarantee it and why it sits there (a 3.3 V pin on a chip fed 5 V; an output loaded by an LED); shown by `review` and `layout` in every state they visit, including what a run's chips latch |
+| `SIM_IC_PIN_VOLTAGE` | a chip's pin over what it takes: a logic chip's input more than 0.5 V over its supply (a 5 V board pin into a 74HC595 fed 3.3 V; CD4017B: VDD + 0.5 V), a ULN's input over 30 V or output over 50 V, an LM386 input past ±0.4 V; named by the pin (`U2.SER`) |
+| `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | a part not simulated yet (the DESPI-C02 adapter), or a part number without its own model |
 
 `review` runs this same DC analysis and lists every stress past its limit (the codes that name a
 part and a maximum: `SIM_OVER_CURRENT`, `SIM_OVER_POWER`, `SIM_REVERSE_VOLTAGE`, `SIM_IC_SUPPLY`, …;
@@ -169,11 +317,27 @@ each of these states, one at a time with everything else at rest (`src/sim/index
 - **Each control a learner moves by hand**: a push button (or a rotary encoder's) pressed, a switch
   in its other position (a rocker, a latching button, a slide switch, a tilt switch tipped), a
   potentiometer or trimmer at each end of its travel.
+- **Each field of the environment a sensor follows, at the bottom and at the top of its range**
+  (the circuit's `range` for it, else the registry's), one field at a time: a circuit that works
+  at the middle of the range can stop working in the dark or in the heat. A bench supply with a
+  negative `voltage` is the same supply the other way round, so what it feeds backwards is judged
+  by rule above. A damage line ends by saying what happens to that kind of part (it burns out, it
+  overheats, the pin can be damaged…), and a computed fix leaves the LED lit and the motor above
+  the bottom of its voltage range, or the kit says it has none.
+- Limit, as it is today: a part with unconnected pins is skipped by the limits, so a bare 555 with
+  its supply reversed and the other pins open is not flagged. A relay driven under a quarter of its
+  pull-in current is a leak, not a drive, and is not reported; when the warning shows in several
+  states, the one with the highest coil current is reported, with its state.
 - **Each output of a board's program held high** (since 2026-11-16): the pins the program has made
   outputs by the time it first waits (its `setup()` and `loop()` up to the first `delay`: the pin
   modes of the DC point, so `pinMode`, and the `digitalWrite`, `tone`, `analogWrite` and `ledcWrite`
   that make a pin an output there). Each is held high with `engine.drive` while the program runs on;
-  a pin already high at rest adds nothing. A board's pin is named in the warning (`U1.D10`).
+  a pin already high at rest adds nothing. A board's pin is named in the warning (`U1.D10`). When
+  the program runs, the states are instead the combinations of its outputs the review's run saw
+  (each once, the ones high held high and the rest low: `… with D2 + D5 high`), so a sketch that
+  never raises two pins together is never judged with them together; the Checked line then does not
+  list combinations of program outputs as not checked. Without a program, or when it cannot run,
+  each output alone as above.
 
 A hazard found only in one of those states says which (`… more than its maximum 30 mA, with S1
 pressed.`, `… with D10 high.`; in JSON `hazards[].when: { part, field, value }` or `{ part, pin,
@@ -193,6 +357,20 @@ To fix it: R1 = 360 Ω brings R1 to 140 mW (maximum 250 mW) and D1 to 19.7 mA (m
 The kit has no computed fix for this.
 ```
 
+- **A part in backwards is turned round.** For a reverse-voltage hazard the candidates are the part
+  with its two leads swapped (`To fix it: turn BZ1 round (swap its 1 and 2)`), then each supply or
+  battery with its leads swapped (`To fix it: swap the leads of BT1 (its + and −)`), the first that
+  clears every hazard in every state (`fix.kind` `swap` or `swap-supply`). A series resistor is never
+  offered for a reverse hazard (it only silences a buzzer): with none of the swaps clearing it, the
+  kit has no computed fix.
+- **A logic chip fed less than its signals is fed from theirs.** An input over its chip's supply (a
+  74HC595 on 3.3 V driven by an UNO's 5 V pins) says the cause on its line (`The chip is fed 3.3 V,
+  less than the signal that drives it: feed it from the signal's voltage, or drive it with 3.3 V
+  signals`), and every input a board drives is judged high, a clock pulsed inside `shiftOut` too (`with
+  D12 high`). When the circuit has a rail at the signals' voltage (a board's `5V` pin, a supply's +),
+  the fix moves the chip's supply pin there (`To fix it: feed U2 from U1.5V (4.99 V, the voltage of
+  the signals that drive it): move its VCC there`, `fix.kind` `resupply`); with none, the sentence of
+  the warning is the advice.
 - **Candidates, in this order**, the first that clears everything wins: (1) a new value for a
   resistor already in series with the stressed part or its branch (the part itself when it is a
   resistor), (2) one new resistor in series with the stressed part, or with each load on a board's
@@ -223,15 +401,88 @@ The kit has no computed fix for this.
   buzzer across 5 V through a transistor; only for a circuit with hazards.
 - **Applied only when asked**: `layout <target> --fix` (the MCP tool's `fix: true`) lays a circuit
   made by `layout` out again with its computed fix, as one revision, and says so
-  (`Applied the fix: R3 = 200 Ω in series with BZ1.`); nothing else applies it
+  (`Applied the fix: R3 = 200 Ω in series with BZ1.`, or for a part in backwards `Applied the
+  fix: turned BZ1 round (its 1 and 2 swapped).`); nothing else applies it
   ([layout.md](layout.md#laying-out-again-an-existing-circuit-since-2026-10-20)).
+
+### What it could not tell (doubts)
+
+A hazard is a part the kit sees burning. A **doubt** is something the kit cannot vouch for, so it
+cannot say the circuit works: what it could not check at all (a part with no model, a program it
+cannot run) or what it checked and found may not work (a relay that may not pull in, a button
+across joined pins): the review lists them in `doubts` (same shape as the hazards:
+`{ severity: 'warning', code, params, parts }`), any one of them makes the verdict APPROVED WITH
+WARNINGS and `layout` end `STATUS: WARNINGS`, and both print them as `⚠` lines under their own
+heading (`The kit cannot confirm these work …`), after the hazards (`src/sim/index.js`, `doubtsOf`).
+They never block. `DONE` then means what it says: the kit checked the circuit and found nothing to
+tell.
+
+- Wiring findings the kit reports and never blocks on (`DOUBT_CODES` in `src/circuit/checks.js`):
+  `BUTTON_PINS_JOINED`, a push button whose two pins on one side (one metal piece) carry two
+  different nets, so pressing it changes nothing. `check` lists it as a warning; `apply` saves a
+  change that adds it and marks it ⚠. `COIL_NO_FLYBACK`, a relay's coil or a motor switched by a
+  transistor's collector, a MOSFET's drain or a board's pin with no diode on the node the switch cuts
+  (across the coil): the switch can be damaged when it turns off. A load driven from both ends (an
+  H-bridge, each end switched) needs a diode from each end to each rail, four in all, and its line says
+  so (a diode across it would conduct when the bridge reverses). A motor on a plain switch or straight
+  on a supply has no switch to damage.
+  `SUPPLY_PINS_UNWIRED`, a part wired into the circuit whose supply pins are not both wired to
+  something, or are on one net (an LM358 with VCC and GND left open, a 555 with every pin on one
+  net): it cannot work. The supply pins are the part's own: its model's `supply`, else the pins the
+  kit reads as positive supply and ground by name (VCC, VDD, V+… and GND, VSS…); a development
+  board (5V, 3V3, its USB) and a part wired to nothing at all are not judged.
+- `SIM_PART_NOT_SIMULATED`: a part wired into the circuit with no simulation model (today only the
+  DESPI-C02 adapter; `catalog` marks it): it is drawn and its pins are left open, so what it does,
+  and what it drives, is unknown. The outputs that hang from it are named in its line (`so the kit
+  cannot tell what U2 does, nor what D1, D2, D3 do, which depend on it`): an output whose pins reach
+  a pin of that part through what current flows through (resistors, wires, switches, transistors,
+  relays), not through a rail or another chip (`hangingOutputs` in `src/sim/index.js`). Those
+  outputs get no `SIM_OUTPUT_NEVER_ON`: the kit cannot judge them. A part wired to nothing is not a
+  doubt.
+- `SIM_OUTPUT_NEVER_ON`: a part whose job is to show or move something (an LED, a chip of an RGB
+  LED, a segment of a display, a buzzer, a relay, a motor, a laser), wired into a circuit with a
+  source, that is off in every state the kit visits: at rest, each control, each end of the
+  environment, each program output, then every field of a declared environment and every control the
+  page offers, and a run (the first 2 s when the circuit changes by itself, then each of those states
+  held 0.5 s and released). With an output still dark and a slow oscillation (a 555 at 0.3 Hz clocking a
+  CD4017), the first part grows to two periods of it (taken as 4 times the longest time constant under
+  30 s) and doubles while outputs keep coming on late in it, up to 30 s; when that bound, or the run's
+  own steps or time, comes first, the kit cannot tell: no doubt, and the Checked line says
+  `whether every output comes on (the run was too short to tell)` (`short-run`). Parts that never come on are one doubt (`D1, D2 never come on`); a chip
+  or segment that never lights while the others do is named (`DS1: dp`); a relay says the most its
+  coil got and the pull-in it needs (a coil fed from a sensor module's output: 3.2 mA of 53.6 mA). A
+  relay driven past a quarter of its pull-in current that does not pull in is
+  `SIM_RELAY_UNDERDRIVEN` instead. A passive buzzer never heard (on a steady current, or none) is
+  `BZ1 never sounds` (`variant: 'passive'`): it sounds only with a current that changes. Not said when the board's program cannot run as written (its own
+  doubt says so). The two figures of the run are assumed (`src/sim/index.js`).
+- Every issue about a board's program: the file not found (`SIM_PROGRAM_FILE`, which says the
+  folder the kit looked in: the circuit's, beside `circuit.json`), outside the folder, too large, a
+  syntax error with its line, a call the simulator does not know (`analogReference()`), a library or a
+  class not in the kit, no `setup()`/`loop()` (`SIM_PROGRAM_IGNORED` stays a note). Also
+  `SIM_PROGRAM_STOPPED`, a program that stopped with an error at rest, and `SIM_PROGRAM_STUCK`, a
+  program that never lets time pass: `setup()` or one call of `loop()` that never returns and never
+  waits (`void loop() { while (1) {} }`). The program's runner says so itself
+  (`stuck`, `src/sim/program.js`): 200 000 turns of a loop inside one call with no time passing for
+  the program, counted across steps (at t = 0 one advance may take them all), so a long loop that
+  ends is not stuck; a `loop()` that returns without a `delay()` is a working program. Serial output
+  takes time at the rate `Serial.begin` gave (ten bits a character; the program waits once its
+  transmit buffer, 64 bytes on an UNO and 128 on an ESP32, is full), so a loop that prints 100 000
+  lines lets time pass as on a board and is not stuck.
+- Any other warning or error the simulation gives at rest or in one of the states above (with its
+  `when`) that is not a hazard and not already blocking: whatever warning the simulator prints can
+  no longer be invisible to `layout`. `SIM_FLOATING` is one only when a simulated part wired in by
+  another pin is on the floating nodes (a MOSFET's gate left open); nodes outside the circuit (parts
+  wired to nothing, what only a part not simulated touches) are not.
+- A circuit with a source whose DC point does not solve (`SIM_NO_CONVERGENCE`) or whose supply is
+  not valid (`SIM_BAD_SUPPLY`). A circuit with no source at all is not a doubt: its Checked line
+  says nothing could be simulated.
 
 ### What it does not check
 
 After the hazards, the review and `layout` (when the circuit was built) print one line with what
 the check covered and what it did not, for this circuit
 (`Checked: at rest, 3 program outputs. Not checked: peaks while switching, combinations of program
-outputs.`; JSON `checked: { rest, controls, outputs, notChecked: [code…], skipped?, unsimulated? }`).
+outputs.`; JSON `checked: { rest, controls, outputs, notChecked: [code…], skipped?, unsimulated?, programs? }`).
 The codes, only those that apply:
 
 - `switching`, **peaks while switching** (a board's program, a 555, a generator): a PWM pin, a
@@ -240,12 +491,16 @@ The codes, only those that apply:
 - `combinations`, **combinations** of controls and outputs (two buttons pressed together, two pins
   high at once), when there are two or more: one is moved at a time.
 - `environment`, **what the sensors read from the environment** (light, temperature, motion,
-  touch, a module's trimmer…): read as the circuit leaves them. Other sliders (a resistor's, a
+  touch, a module's trimmer…): read as the circuit leaves them, the circuit's `environment` or a
+  value of the part's own (an LDR's `light`). Other sliders (a resistor's, a
   motor's load) and the supplies' controls are too.
 - `limit`, **states past the limit**: at most 24 (controls first, in the order of the parts, then
   pins); the review also says how many were checked (`States checked for damage: 24 of 30 …`; JSON
   `hazardStates: { checked, total, controls, outputs }`).
-- `unsimulated`, **parts drawn but not simulated** (`SIM_UNSUPPORTED`).
+- `unsimulated`, **parts drawn but not simulated** (`SIM_UNSUPPORTED`; each also a doubt).
+- `short-run`, **whether every output comes on**: the review's run reached its bound before a slow oscillation could light them (see `SIM_OUTPUT_NEVER_ON`).
+- `program`, **a board's program where the kit cannot run it** (JSON `programs`: the boards with a
+  program doubt).
 - `no-source` / `no-simulation`, **nothing could be simulated** (no source, or another reason the
   simulator's issues give).
 - A pin the program first makes an output later than its first wait (no `pinMode` in `setup()`) is
@@ -268,15 +523,17 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | diode | Shockley + series resistance, per part number | datasheet Vf |
 | Zener diode | the diode plus a reverse breakdown: a soft knee below about 5.5 V (Zener effect), a sharp one above (avalanche), behind part of Zzt; exactly Vz at the test current Izt (1N47xxA table) | 1N4733A: 5.1 V at 49 mA |
 | bridge rectifier | four diodes (AC1 and AC2 up to +, − up to each), Shockley + series resistance, about 1.0 V each at the rated current (KBP2xx 2 A, KBP3xx 3 A) | same output polarity either way round; Kirchhoff at its pins |
-| regulator | output = reference + its voltage (GND + 5 V for a 7805, ADJ + 1.25 V for an LM317), or about 2 V below the input when that is too low (1.1 V for the AMS1117); its own current (5 mA; 50 µA out of ADJ); the AMS1117 module's power LED and resistor from OUT to GND, counted in what it draws | 7805 at 9 V; LM317 formula with Iadj; AMS1117 output and dropout from its datasheet |
+| regulator | output = reference + its voltage (GND + 5 V for a 7805, ADJ + 1.25 V for an LM317), or about 2 V below the input when that is too low (1.1 V for the AMS1117); its own current (5 mA; 50 µA out of ADJ); the AMS1117 module's power LED and resistor from OUT to GND, counted in what it draws; its absolute maximum input: 35 V for the 7805 to 7818, 40 V for the 7824, 40 V from input to output for the LM317, 15 V for the AMS1117 | 7805 at 9 V; LM317 formula with Iadj; AMS1117 output and dropout from its datasheet |
 | microcontroller board (ESP32 DevKit, ESP32-C3, UNO) | each GPIO in its `io` state: an output is the logic rail or ground behind 17 Ω (ESP32) or 40 Ω (UNO), an input draws nothing with an optional 45 kΩ / 35 kΩ pull; protection diodes to the rail and ground; on USB a 5 V source with its 3.3 V regulator and the chip's own current ([microcontrollers.md](microcontrollers.md)) | VOH = VDD − I·R; pull-up current; 5 V into an ESP32 pin |
 | op-amp (LM358, LM324, µA741, NE5532) | behavioural, DC and low frequency (no bandwidth or slew rate): output = gain·(V+ − V−) centred on mid-supply, clamped softly between swingLow above the negative supply and swingHigh below the positive one (LM358: 5 mV and 1.5 V; 741: 2 V each), behind its output resistance; current from the positive pin when sourcing, to the negative one when sinking; inputs draw nothing; an amplifier with nothing wired to it is left out; limits: total supply, output current (short-circuit), power | non-inverting 1 + R2/R1 and inverting −R2/R1 within 1 mV; follower; VOH = VCC − 1.5 V, VOL a few mV |
 | comparator (LM393) | open collector: OUT pulled to the negative supply through 60 Ω while V− > V+, open otherwise (needs a pull-up) | sinking and open states, the LED it drives |
 | NE555 timer | behavioural: its 5 kΩ divider sets CTRL at 2/3 of VCC; THR above CTRL resets the latch (output low, discharge on), TRIG below CTRL/2 sets it, RESET under 0.7 V holds it low; the latch changes between time steps; output high about 0.9 V below VCC behind 8 Ω, low behind 7.5 Ω; discharge 18 Ω; own current 3 mA at 5 V; limits 16 V, 200 mA, 600 mW. In DC it shows its state at switch-on (output high): an astable only oscillates in a transient or the live page | astable: f = 1.44 / ((R1 + 2·R2)·C) within 4 % and its duty cycle; the latch's truth table |
+| shift register 74HC595 | logic: SRCLK rising shifts SER in at QA's stage, SRCLR low clears the register, RCLK rising copies it to the latches (both at one instant: the latches get the register before the shift), OE high leaves QA…QH open, QH' follows the register's last stage; inputs switch near half the supply (NXP typical VIH 2.4 V / VIL 2.1 V at 4.5 V), guaranteed only over 0.7·VCC and under 0.3·VCC (a level between is a doubt); it hears each change of a board's pin in order (a `shiftOut` takes no simulated time) and, through a chain, the next chip's input after the shared edge; outputs 30 Ω to VCC and 25 Ω to GND (VOH 4.32 V / VOL 0.15 V at 6 mA, 4.5 V); own current 8 µA at 6 V; zeros at power-up (a real chip's are undefined); limits 7 V (absolute maximum; 2–6 V recommended, outside it `SIM_IC_SUPPLY_RANGE`), ±35 mA per output, 70 mA through VCC or GND, 750 mW; an open input is taken as low and warned (NXP 74HC595) | MSBFIRST puts bit 7 on QH; the mirror with LSBFIRST; an LED's current by KVL through 330 Ω + 30 Ω; two chained; OE, SRCLR; a 3.3 V pin on a 5 V chip warned |
+| decade counter CD4017 | logic: CLK rising with CE low advances the count (CE falling with CLK high too), MR high resets it at once; one of Q0…Q9 high, CO high for counts 0–4; a Qn on MR counts to n (one time step later); inputs as the 74HC595's (the clock's Schmitt action); outputs about 400 Ω near the rail at 5 V, 192 Ω at 10 V, 221 Ω at 15 V (interpolated), levelling off at 3.35 mA at 5 V (IOH 3.2 mA at 2.5 V) and as (VDD − 1.5 V)² above [assumed], held at the 15 V figures past 15 V (above 10 V the saturation is an estimate that likely overestimates a real output: about 28 mA into an LED at 12 V); limits 20 V (absolute maximum; 3–18 V recommended, outside it `SIM_IC_SUPPLY_RANGE`), 100 mW per output transistor, 500 mW; count 0 at power-up; the kit's buttons do not bounce (TI CD4017B) | an LED with no resistor at 5 V by the drive's formula (about 3.3 mA); a 555 chaser's order and period; presses counted; CE and MR held |
 | inductor | winding resistance in series; a short in DC, backward Euler in transient | RL: I·(1 − e^(−t/τ)) |
 | thermistor, photoresistor | resistors whose value comes from the temperature (B equation) or the light (GL55 curve) | B equation at 50 °C; GL5528 at 10 lx |
 | buzzer | its coil, 16 Ω | — |
-| active buzzer (TMB12A05) | a load that takes next to nothing under 1.5 V, rises smoothly to 5 V / 30 mA = 167 Ω at 2.0 V and stays there; it sounds (2.3 kHz, about 85 − 40·log10(5/V) dB at 10 cm) from 2.0 V across it, + to −, with no hysteresis; reversed it is 100 kΩ, silent, and warns over 1 V; over 7.5 V `SIM_IC_SUPPLY`, over 35 mA (from about 5.8 V) only the note `SIM_BUZZER_CURRENT` | 30 mA at 5 V, 19.8 mA and sounding at 3.3 V; silent and under 1 mA at 1 V |
+| active buzzer (TMB12A05) | a load that takes next to nothing under 1.5 V, rises smoothly to 5 V / 30 mA = 167 Ω at 2.0 V and stays there; it sounds (2.3 kHz, about 85 − 40·log10(5/V) dB at 10 cm) from 2.0 V across it, + to −, with no hysteresis; reversed it is 100 kΩ, silent, and warns over 1 V; over 7.5 V `SIM_IC_SUPPLY`, over 35 mA (from about 5.8 V) the warning `SIM_BUZZER_CURRENT` | 30 mA at 5 V, 19.8 mA and sounding at 3.3 V; silent and under 1 mA at 1 V |
 | linear Hall sensor 49E | a source of Vs/2 + 1.4 mV/G · (Vs/5) · field held in [0.95 V, Vs − 0.95 V] behind 50 Ω, 6 mA from the supply; stresses: supply over 8 V or reversed; notes: under 2.7 V, over 1.5 mA out | 2.500 / 2.640 / 2.360 V at 0 / +100 / −100 G and 5 V; 1.742 V at +100 G and 3.3 V; 4.05 V clamped |
 | voltage sensor module | 30 kΩ from VIN to S and 7.5 kΩ from S to GND, a milliohm joining − and GND; stress: the 30 kΩ over 100 mW | S = 2.40 V and 0.32 mA at 12 V in |
 | LED | Shockley + 10 Ω, Vf at 20 mA by colour; `"model": { "vf": 2.95 }` overrides | loop equation solved apart |
@@ -286,14 +543,16 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | DC motor (RE-140RA) | V = R·I + L·dI/dt + k·ω and J·dω/dt = k·I − b·ω − T_load as MNA elements: a resistor, an inductor and an ideal gyrator whose other side is the shaft, a node whose voltage is ω, with J as a capacitor and b as a conductance to ground and the load as a brake (a torque against the turning, tanh of ω over 1 rad/s); R, k and b from the datasheet's no-load point and stall current at the nominal voltage (RE-140RA-12240: 7.69 Ω, 5.20 mV·s/rad, 0.518 µN·m·s), J 1 g·cm² and L 1 mH the kit's figures (Mabuchi RE-140RA datasheet); stresses: voltage over the top of its range, a stall (held still by its load) over its maximum-efficiency current | 4800 r/min and 50 mA free at 3 V, 0.39 A stalled; the start against the two-pole solution solved apart, τ = J·R / (k² + R·b) ≈ 25 ms |
 | LM35 | a behavioural source: 10 mV/°C · T (never under 0 V) behind 0.4 Ω (load regulation 0.4 mV/mA) while +VS leaves it 1.5 V (the kit's own figure), 56 µA of its own from +VS (TI SNIS159H); stresses: supply over 30 V or reversed, output over 10 mA; notes: supply under 4 V, a temperature its grade does not read | 250 mV at 25 °C within ±1.5 °C (LM35DZ); 56 µA; 0.4 mV at 1 mA |
 | MOSFET | square law, smooth turn-on, k from Rds(on) | square law solved apart, Rds(on) |
-| BJT | Ebers–Moll, constant β; TIP120 as a Darlington with its two resistors | Ebers–Moll solved apart; hFE ≥ 1000 |
+| BJT | Ebers–Moll, constant β; TIP120 as a Darlington with its two resistors; `off` only when its base is under its threshold and it carries no more than 10 µA (a Darlington at 0.9 V carrying 1.7 mA is `active`; a MOSFET the same, `saturation`) | Ebers–Moll solved apart; hFE ≥ 1000 |
 | bench supply, battery | ideal source, optional limit; battery: emf from format, chemistry, cells and charge, behind its internal resistance | short circuit, Ohm's law with internal resistance |
+| Darlington array (ULN2003, ULN2803) | each channel as the TI datasheet draws it: IN through 2.7 kΩ into a Darlington pair (Ebers–Moll, β 50 each, 7.2 kΩ and 3 kΩ to GND) whose collectors are OUT through 1 Ω, and a clamp diode from OUT to COM (1.7 V at 350 mA); an open input is off; a channel with nothing wired is left out; stresses per channel (named `U1.OUT1`): 500 mA, 50 V on OUT, 30 V on IN, the clamp's 500 mA; 2.5 A through GND; 1.8 W (the kit's figure for a DIP); with COM on the coil's supply the flyback check counts it as the diode | VCE(sat) 0.9, 1.0, 1.2 V at 100, 200, 350 mA; on from about 2.2 V at 200 mA (datasheet VI(on) under 2.4 V) |
+| optocoupler (PC817) | the infrared LED (Shockley, 1.2 V at 20 mA) and a phototransistor (Ebers–Moll) whose base takes a current of CTR·I_F / (β + 1), so the collector takes 170 % of the LED's current (the middle, on the log scale, of the datasheet's 50 % to 600 %; real parts vary several times over) until it saturates at about 0.1 V; the two sides share no node, each read against its own ground; stresses: LED 50 mA, 6 V reverse, 70 mW; collector 50 mA, 35 V, 6 V reverse, 150 mW; 200 mW in all (Sharp PC817); not its switching speed | VF 1.2 V at 20 mA; Ic / I_F = 1.7 while active; under 0.5 V saturated |
+| audio amplifier (LM386) | the gain loop of the TI datasheet: IN+ − IN− across 150 Ω in series with the 1.35 kΩ between pins 1 and 8 (and whatever is across them), its current through 2 · 15 kΩ: gain 20 open, about 200 with 10 µF across pins 1 and 8; the output at half the supply, clipped smoothly 1 V from each rail (0.2 V wide: a hard clip stalls a transient), behind 0.25 Ω with a soft 1 A limit (the kit's figures); inputs 50 kΩ to GND; 4 mA of its own; BYPASS at half the supply; stresses: 15 V supply, ±0.4 V on an input, 1.25 W; a doubt outside 4–12 V; not its bandwidth, distortion or the bass boost from pin 1 to 5 | 4.5 V at rest on 9 V; 1.0 V peak from 50 mV (gain 20), about 0.9 V from 5 mV with 10 µF (180 at 1 kHz), 38 with 1.2 kΩ in series |
 
 Any model field can be overridden per part with `"model": { … }` (for example the forward
 voltage of an LED measured on the bench).
 
 ## Not yet
 
-Chips other than the 555, the op-amps and the LM393 (logic, optocouplers, the LM386, the ULN arrays) are left unconnected and reported, and so is the DESPI-C02 adapter; a microcontroller board runs its program (`"program"`, with PWM and `tone`; [microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal. The 555 has no paths in the conductor view yet: its current shows at its pins and strips. No events during
-a transient (pressing a button at a given time), no self-heating, no battery discharge over
+Every chip in the kit is simulated (the 555, the op-amps, the LM393, the 74HC595, the CD4017, the ULN arrays, the PC817 and the LM386); the DESPI-C02 adapter is left unconnected and reported; the kit has no loudspeaker (an 8 Ω resistor of 1 W stands in for it in the simulation behind an LM386, and the answer tells the user so; an LM386 clipped against its rails for a fifth of a run or more gets one note, `SIM_AMP_CLIPPING`; its transient is run from its resting point, `--start dc`: from everything discharged its output capacitor charges through the 8 Ω and the supply draws about half an ampere at first: that is the switch-on, not the amplifier); a microcontroller board runs its program (`"program"`, with PWM and `tone`; [microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal (a relaxation oscillator with positive feedback runs: Newton stops at the edges of the linear range at most twice per solve, so it switches rails; an LM358 one with 47 kΩ and 10 nF runs at about 920 Hz, the textbook formula's 968 Hz with ideal rails). The 555 has no paths in the conductor view yet: its current shows at its pins and strips. Events at a time are for a run (`--press`, `--at`), not for `--transient`; no self-heating, no battery discharge over
 time (`charge` is fixed for a run). Animation (stage 3) will read these same results.

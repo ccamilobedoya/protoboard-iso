@@ -22,8 +22,31 @@ umbrales nuevos). No bloquea ni es una ronda de arreglos: el agente lo reporta d
 arreglo calculado por el kit (`Para arreglarlo: …`, o «El kit no tiene un arreglo calculado para
 esto.»), y la conversación principal se lo dice al usuario, porque quemar un componente puede ser la
 lección. Un arreglo pedido es esa línea, que el kit aplica en una llamada (`layout` con `fix: true`;
-en la consola `layout <objetivo> --fix`); cualquier otra idea se ensaya antes con el `dry_run` de
-`layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
+en la consola `layout <objetivo> --fix`; para un componente al revés lo voltea o intercambia los cables
+de la fuente, nunca agrega una resistencia); cualquier otra idea se ensaya antes con el `dry_run` de
+`layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`. El mismo veredicto llega
+con **dudas** (`doubts`, bajo «El kit no puede confirmar que esto funcione»: lo que el kit no pudo
+comprobar o encontró que puede no funcionar, un componente sin simular, un programa que no corre, se
+detiene o llama una función que el kit no conoce (`shiftOut` y `attachInterrupt` corren; un arreglo
+de dos dimensiones se rechaza por su línea), un error del programa que una placa real mostraría
+(nombrado por su línea), un chip sin alimentación, una entrada lógica al aire o por debajo de su
+nivel alto, un relé que puede no cerrar, una salida que nunca se enciende, una bobina
+conmutada sin diodo en paralelo, un pulsador entre patas unidas, cualquier aviso de la simulación;
+[simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)): el agente reporta cada una y nunca dice que
+el circuito funciona. Una línea `Nota:` (una fuente escrita con voltaje negativo: cuál riel es el
+positivo en realidad) se reporta tal como sale, y una cifra que la respuesta dice «unos» o «cerca
+del», como aproximada; `DONE` y `APPROVED` significan que el
+kit lo revisó y no encontró nada que decir. En un circuito con programa, sensor u oscilador, los
+agentes de montaje y de revisión además lo corren con las condiciones del encargo (`simulate` con
+`run_s`, `environment`, `set`, `press`, `at`; en la consola `simulate --run`) y reportan lo que
+hicieron las salidas, tal como se imprimió; una salida que no hace lo que dice el encargo queda
+abierta, no terminada. El `.ino` de una placa va en la carpeta del circuito, junto a `circuit.json`.
+«Too large for one board» de `layout` (`FIX_SPEC`) se reporta como `BLOCKED` (hay que partir el
+circuito), y una búsqueda que se detuvo en su presupuesto se intenta una vez con más `budget_s` o se
+reporta: la misma llamada da la misma respuesta. `apply_ops` rechaza lo que no puede leer y guarda un
+cambio legible que agrega errores, diciéndolo: los agentes aplican solo un cambio que el ensayo dejó
+limpio. El bibliotecario de componentes reescribe `references/parts.md` de la habilidad (`npm run
+parts-reference -- --write`) con cada componente nuevo.
 
 ```bash
 node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
@@ -95,6 +118,17 @@ conoce con los más parecidos, redes que nombran una pieza o pata que no existe 
 tiene); `check_only` solo revisa. Medido con un modelo más pequeño con la misma fuente: 13
 llamadas y 52 s, nueve de ellas consultas a `catalog` que esto vuelve innecesarias. Cómo funciona
 el algoritmo, sus límites y cómo cambiarlo: [montaje-automatico.md](montaje-automatico.md).
+
+Desde el 2026-11-20: antes de que `layout` responda `CHANGES` prueba lo que probaría una persona
+(los órdenes que dan las redes, la protoboard doble cuando una placa de desarrollo tapa un
+componente, los componentes más altos o más anchos de primero, cada uno desde su mejor intento), y
+cada ✖ que queda termina con el único cambio de la especificación que probaría después (`→ lo
+siguiente que probaría el kit: …`); el agente de montaje hace ese cambio en una llamada antes de
+arreglar con operaciones ([montaje-automatico.md](montaje-automatico.md#lo-que-prueba-el-montaje-antes-de-changes-desde-el-2026-11-20)).
+Nunca ofrece un cambio que ya probó. Un componente para el que no encontró lugar queda por fuera de
+la protoboard y guardado en `spec.unplaced` del circuito; desde entonces `review` y `simulate`
+empiezan con `No están en la protoboard: …`, que el revisor trata como bloqueante (desde el 2026-11-23). Los
+dos agentes corren un programa que lee `Serial` con `serial` (`--serial`).
 
 Desde el 2026-10-20 (pensando en modelos pequeños): el archivo del agente empieza eligiendo camino
 (A: `layout` para un circuito nuevo; B: operaciones para cambios y arreglos) en vez de un solo ciclo
@@ -214,6 +248,9 @@ renombrada o eliminada no pasa desapercibida.
   herramientas MCP también.
 - Cada agente firma sus cambios con su nombre como `author`, así `history` muestra quién
   hizo qué.
+- Un `history.jsonl` dañado (`HISTORY_DAMAGED`: `apply_ops` no guarda nada, el circuito está intacto)
+  se reporta, no se esquiva: `new_history: true` guarda el archivo viejo como `history.jsonl.damaged`
+  y empieza de nuevo, y solo la conversación principal, con el usuario, lo decide.
 - Agentes de vida corta: uno nuevo por tarea; se reutiliza solo para las rondas de arreglos
   del mismo circuito.
   Los números son opciones con nombre en `project.json` (`review_rounds`, `briefs_per_agent`),

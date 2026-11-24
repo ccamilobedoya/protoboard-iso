@@ -15,10 +15,20 @@
 //   engine.advance(h) → ok                 h seconds: one step, or shorter ones where Newton fails;
 //                                          a step ends on each element's event inside h (`until()`)
 //   engine.read() → { nodes, parts, supplies }   the values now;  engine.time  seconds since start
+//   engine.readParts(ids: Set) → { id: reading }  only those parts, now
+//   engine.now() → the values now as dc() gives them (each part's `stress`, the limits' warnings)
+//   engine.onStep                          a function called after every step taken (a run's watch)
+//   engine.nudge(node, dv) → ok            a node's voltage pushed by dv (a resting state's test)
+//   engine.seed({ node: volts }) → ok      solved again from those voltages: the solution nearest
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
-//   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
+//   engine.timeConstants(named?) → [seconds…]   τ = C·R and L/R of each capacitor and inductor, with R
 //                                          the resistance it sees at the DC operating point, and
-//                                          an element's own times (a relay's `times`)
+//                                          an element's own times (a relay's `times`); named:
+//                                          [{ value, part }]
+//   engine.serial() → { id: { printed, lines, stamps } }   what each board's program printed
+//   engine.acceptLast()                    the last step taken accepted now (a step is accepted at the
+//                                          start of the next): a run's end, so what a program does at
+//                                          that instant (a print) is in the run
 //   engine.periods() → [seconds…]          the period of each signal generator (generator.js);
 //                                          their sources follow the wave at every time step
 // Controls (sliders, the push button):
@@ -28,6 +38,8 @@
 //                                          memory, junction voltages, and the keys a device lists
 //                                          in `state`: a timed sensor's phase and clock) and
 //                                          solved again at once
+//   engine.hold(id, logic) → ok            a clocked chip held in a state (null lets it go): the review's
+//                                          visit of what a run's chips latched
 //   engine.drive(id, pin, level) → ok      a board's pin held at a level whatever its program says
 //                                          (1 or 0; null lets the program drive it again): the
 //                                          hazard check's program-output states (sim/index.js)
@@ -47,7 +59,8 @@
 //   engine.emissions() → { field: { total, parts: { id: value }, blocked? } }   what each emitter adds
 //                                                  now ({} without emitters)
 // Programs move with simulated time, before each step (as a generator's wave); dc() and the start
-// take them at t = 0. transient() keeps the environment as it is (programs run in the page).
+// take them at t = 0. transient() keeps the environment as it is (programs run in the page), except
+// in a circuit whose board runs a program: there it steps as the page does (`stepping` below).
 // dc() on a started engine solves the circuit as the sensors last felt it (no fixed point of its own).
 // Emitters (a device with `emits` and `emit(entry, reading)`: a laser writes `light`): what one adds
 // in a time step reaches the sensors in the next (one step of delay). At the start, after a set and in
@@ -73,8 +86,23 @@ const ADVANCE_SPLITS = 4; // advance(h): halvings of a step that failed, at most
 // steps, and past the cap the rest of h is one step (a faster software PWM is read a step late).
 const LANDINGS = 32;
 const LAND_MIN = 0.5e-6;
+const CROSS_SHARE = 200; // a crossing closer than this share of a run's step is now (createEngine's `crossings`)
 // What an element changes while Newton iterates (junction limiting, an op-amp's rail edge).
 const LIMITING = ['vd', 'vgs', 'vds', 'vbe', 'vbc', 'edge'];
+// Each element's keys of those, found once (a step saves them before Newton runs: the cost of a step).
+const LIMITING_OF = new WeakMap();
+function limitingOf(el) {
+  let keys = LIMITING_OF.get(el);
+  if (!keys) {
+    keys = LIMITING.filter((key) => key in el);
+    LIMITING_OF.set(el, keys);
+  }
+  return keys;
+}
+// A transient of a circuit whose board runs a program steps at most PROGRAM_STEP at a time (the
+// page's step for a program, sim/pace.js), never under MIN_PIECE for a PWM or tone (the page's floor).
+export const PROGRAM_STEP = 1e-3;
+export const MIN_PIECE = 5e-6;
 const EMIT_ROUNDS = 8; // solve → emissions → sensors rounds before a loop is called feedback
 const EMIT_SETTLED = 1e-3; // relative change of every emission under which they have settled
 
@@ -167,6 +195,15 @@ function prepare(program) {
       issues.push(issue('info', 'SIM_SEPARATE_CIRCUIT', { supply: s.id }));
     }
   }
+  // A board on USB is a source too: its island, when no supply reaches it, takes its GND as its own
+  // reference, as another supply's island does.
+  for (const el of elements) {
+    if (el.reference && find(el.nodes[1]) !== find(-1)) {
+      tied.push(el.nodes[1]);
+      union(el.nodes[1], -1);
+      issues.push(issue('info', 'SIM_SEPARATE_CIRCUIT', { supply: el.reference, variant: 'board' }));
+    }
+  }
   const floating = new Set(names.filter((name, i) => find(i) !== find(-1) && !name.startsWith('~')));
   // In DC, each floating island is anchored to ground at one node. No direct current can flow in
   // it, so nothing changes, but its matrix rows are no longer left with only GMIN, which an
@@ -204,6 +241,10 @@ function dcAnchor(node) {
 }
 
 // ── Reading results ─────────────────────────────────────────────────────────────────
+
+// A supply written with a negative voltage (compile.js swapped its terminals) reads as written: its
+// voltage from the rail named + to the one named −, negative, with `written` and the rails.
+const writtenAs = (s, r) => (s.written < 0 ? { ...r, voltage: -r.voltage, written: s.written, named: s.named, high: s.high } : r);
 
 function supplyReading(s, x, ctx) {
   if (s.off) return { voltage: volt(x, s.pIndex) - volt(x, s.nIndex), current: 0, power: 0, mode: 'OFF' };
@@ -248,7 +289,7 @@ function readAll(prep, x, ctx) {
   const nodes = {};
   for (const [name, i] of prep.index) if (!name.startsWith('~')) nodes[name] = prep.floating.has(name) ? null : volt(x, i);
   const parts = Object.fromEntries(prep.parts.map((p) => [p.id, partReading(p, x, ctx, prep.floating)]));
-  const supplies = Object.fromEntries(prep.supplies.map((s) => [s.id, { kind: s.kind, ...supplyReading(s, x, ctx) }]));
+  const supplies = Object.fromEntries(prep.supplies.map((s) => [s.id, { kind: s.kind, ...writtenAs(s, supplyReading(s, x, ctx)) }]));
   return { nodes, parts, supplies };
 }
 
@@ -350,7 +391,10 @@ function feedbackIssue(program, prep, fields) {
 
 // ── The engine ──────────────────────────────────────────────────────────────────────
 
-export function createEngine(source) {
+// `crossings`: a step also ends where an element's own threshold is crossed (`crossing()`: the 555's
+// comparators), so a run in steps longer than the page's (sim/run.js) still switches it on time. The
+// page leaves it off: its short steps already follow the capacitor.
+export function createEngine(source, { crossings = false } = {}) {
   // Controls change the program, so each engine works on its own copy.
   const program = JSON.parse(JSON.stringify(source));
   let prep = prepare(program);
@@ -368,16 +412,24 @@ export function createEngine(source) {
   const memories = () => prep.system.elements.filter((el) => 'accept' in el);
   // The soonest event of an element (`until()`, seconds from now), or null. The step before is
   // accepted first, as step() does: an element's clock must be the one of now.
-  function nextEvent() {
-    if (!x) return null;
+  // With `crossings`, an element's crossing inside a step of `whole` too, which may land closer than
+  // LAND_MIN (`near`): a short step's crossing is a share of it, not a fixed time.
+  function nextEvent(whole) {
+    if (!x) return { soon: null, near: LAND_MIN };
     if (pending) for (const el of memories()) el.accept(x, pending);
     pending = null;
     let soon = null;
+    let near = LAND_MIN;
     for (const el of prep.system.elements) {
       const u = el.until?.();
-      if (u > 0 && (soon === null || u < soon)) soon = u;
+      const c = crossings && u == null ? el.crossing?.(whole) : null;
+      const at = u ?? c;
+      if (at > 0 && (soon === null || at < soon)) {
+        soon = at;
+        near = c != null ? Math.min(LAND_MIN, whole / CROSS_SHARE) : LAND_MIN;
+      }
     }
-    return soon;
+    return { soon, near };
   }
   const env = program.environment ? createEnvironment(program.environment.spec, program.environment.fields) : null;
   // Emitters: what they add now (`emitted`, measured after each solve) and what the sensors last felt
@@ -488,9 +540,30 @@ export function createEngine(source) {
     step: (t, h) => api.step(h, true),
     read: (c) => readAll(prep, x, c),
   };
+  // A board's program: the transient steps as the page does (engine.advance: a step ends on each
+  // event of an element, so a delayMicroseconds(10) or an echo's edge is at its time; a step Newton
+  // cannot take is split), in pieces no longer than the sampling step, PROGRAM_STEP and the step a
+  // running PWM or tone needs (stepHint). The environment's programs run too, as in the page.
+  const stepping = {
+    prep: () => prep,
+    begin: (start, h) => (api.start(start, Math.min(h, PROGRAM_STEP)) ? null : 'SIM_NO_CONVERGENCE'),
+    step(t, h) {
+      while (time < t - 1e-12) {
+        const hint = api.stepHint();
+        const piece = Math.min(t - time, h, PROGRAM_STEP, hint > 0 ? Math.max(MIN_PIECE, hint) : Infinity);
+        if (!api.advance(piece)) return false;
+      }
+      return true;
+    },
+    read: () => mark(readAll(prep, x, ctx)),
+  };
   const api = {
     dc: () => (!emitting() ? dc(prep) : x ? mark(withFeedback(dc(prep))) : settleDC()),
-    transient: (options) => (emitting() ? transient(prep, options, drive) : transient(prep, options)),
+    transient(options) {
+      if (!api.hasProgram()) return emitting() ? transient(prep, options, drive) : transient(prep, options);
+      const r = transient(prep, options, stepping);
+      return { ...r, issues: [...r.issues, issue('info', 'SIM_TRANSIENT_PROGRAM', {})] };
+    },
     start(mode = 'dc', h = 1e-3) {
       lastH = h;
       const ambient = env ? env.rewind() : null;
@@ -544,13 +617,15 @@ export function createEngine(source) {
       // A failed step leaves everything as the last accepted one did: the sources at its time, and
       // the junctions' limiting voltages too, so a retry starts from that step and not from the
       // failed iterations.
-      const before = prep.system.elements.map((el) => LIMITING.filter((key) => key in el).map((key) => [key, el[key]]));
+      const before = [];
+      for (const el of prep.system.elements) {
+        const keys = limitingOf(el);
+        if (keys.length) before.push([el, keys.map((key) => el[key])]);
+      }
       const r = newton(prep.system, x, next);
       if (!r.ok) {
         setTime(prep, time);
-        prep.system.elements.forEach((el, k) => {
-          for (const [key, value] of before[k]) el[key] = value;
-        });
+        for (const [el, values] of before) limitingOf(el).forEach((key, j) => (el[key] = values[j]));
         return false;
       }
       x = r.x;
@@ -566,6 +641,7 @@ export function createEngine(source) {
         for (const [pin, c] of Object.entries(r.channels ?? {})) glowSum.set(`${p.id}.${pin}`, (glowSum.get(`${p.id}.${pin}`) ?? 0) + c.brightness * h);
       }
       glowTime += h;
+      api.onStep?.();
       return true;
     },
     // One step of h, as step(); when Newton fails, the same h in two halves (each split again, down
@@ -576,15 +652,60 @@ export function createEngine(source) {
     // failure in the middle returns false with the pieces before it taken: the time stands at the
     // last piece that solved, as after a failed step.
     advance(h) {
+      const whole = h;
       for (let k = 0; k < LANDINGS; k++) {
-        const soon = nextEvent();
-        if (!(soon > LAND_MIN && soon < h - LAND_MIN)) break;
+        const { soon, near } = nextEvent(whole);
+        if (!(soon > near && soon < h - near)) break;
         if (!halving(this, soon, ADVANCE_SPLITS)) return false;
         h -= soon;
       }
       return halving(this, h, ADVANCE_SPLITS);
     },
     read: () => (x ? mark(readAll(prep, x, ctx)) : null),
+    // Only these parts' readings, now ({ id: reading }): what a run watches after every step.
+    readParts(ids) {
+      if (!x) return null;
+      const out = {};
+      for (const p of prep.parts) if (ids.has(p.id)) out[p.id] = partReading(p, x, ctx, prep.floating);
+      return out;
+    },
+    // A push to the state (a circuit's resting states, sim/index.js restingStates): a node's voltage
+    // moved by dv, which the capacitors take as theirs, so the next steps show where it settles.
+    nudge(node, dv) {
+      const i = prep.index.get(node);
+      if (!x || i == null || i < 0) return false;
+      x = x.slice();
+      x[i] += dv;
+      for (const el of memories()) el.accept(x, {});
+      pending = null;
+      return true;
+    },
+    // The state solved again from node voltages given ({ node: volts }), as at t = 0: the circuit's
+    // solution nearest to them (one of its resting states), the capacitors holding it.
+    seed(nodes) {
+      if (!x) return false;
+      const start = x.slice();
+      for (const [name, v] of Object.entries(nodes ?? {})) {
+        const i = prep.index.get(name);
+        if (i != null && i >= 0 && Number.isFinite(v)) start[i] = v;
+      }
+      const now = { h: lastH * 1e-6 };
+      const r = solveWithLimits(prep, start, now);
+      if (!r.ok) return false;
+      x = r.x;
+      for (const el of memories()) el.accept(x, {});
+      ctx = now;
+      pending = null;
+      return true;
+    },
+    // The readings now in the shape dc() gives them: each part with its `stress`, and the warnings
+    // of its limits (what `simulate` prints at the end of a run).
+    now() {
+      if (!x) return null;
+      const reading = mark(readAll(prep, x, ctx));
+      withStress(prep, reading);
+      return withFeedback({ analysis: 'state', model: true, ok: true, time, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] });
+    },
     get time() {
       return time;
     },
@@ -598,7 +719,19 @@ export function createEngine(source) {
       }
       return out;
     },
-    timeConstants: () => timeConstants(prep),
+    // A run's end: the last step is accepted as the next step would (a program advances to its end).
+    acceptLast() {
+      if (pending) for (const el of memories()) el.accept(x, pending);
+      pending = null;
+    },
+    // What each board's program printed: { id: { printed, lines, stamps } } (an element's `serial()`,
+    // devices/mcu.js): `printed` counts every line ended since setup, `lines` keeps the last few.
+    serial() {
+      const out = {};
+      for (const [id, list] of prep.owned) for (const el of list) if (el.serial) out[id] = el.serial();
+      return out;
+    },
+    timeConstants: (named = false) => timeConstants(prep, named),
     // A board runs a program: the page steps in real time even with no C, L or generator.
     hasProgram: () => prep.system.elements.some((el) => el.settle),
     // The step a running PWM or tone needs (a twentieth of its period), or null.
@@ -643,6 +776,17 @@ export function createEngine(source) {
       if (level == null) delete driven[pin];
       else driven[pin] = level ? 1 : 0;
       d.params = { ...d.params, driven };
+      return rebuildSettled();
+    },
+    // A clocked chip held in a state (its `logic`, as a run's reading gave it; null lets it go): the
+    // review visits the states a run's chips latched (sim/index.js, combinations).
+    hold(id, logic) {
+      const d = program.devices.find((dev) => dev.id === id && !dev.unsupported);
+      if (!d || !deviceOfProgram(d)?.holds) return false;
+      const params = { ...d.params };
+      if (logic == null) delete params.held;
+      else params.held = JSON.parse(JSON.stringify(logic));
+      d.params = params;
       return rebuildSettled();
     },
     resume(id, field) {
@@ -760,10 +904,15 @@ function carryState(old, prep) {
 // Each capacitor and inductor against the rest of the circuit, linearised at the DC operating
 // point: inject 1 A between its two nodes (the element itself left out) and read the voltage,
 // which is the resistance it sees. τ = C·R for a capacitor, L/R for an inductor.
-function timeConstants(prep) {
+// `named`: each as { value, part } (the part whose element it is), for a run's note on what its step
+// is longer than.
+function timeConstants(prep, named = false) {
   const r = solveWithLimits(prep, new Array(prep.system.size).fill(0), {});
   if (!r.ok) return [];
+  const partOf = new Map();
+  for (const [id, list] of prep.owned) for (const el of list) partOf.set(el, id);
   const out = [];
+  const add = (el, value) => out.push(named ? { value, part: partOf.get(el) ?? null } : value);
   for (const own of prep.system.elements.filter((el) => el.memory)) {
     const st = new Stamper(prep.system.size);
     for (let i = 0; i < prep.system.nodeCount; i++) st.add(i, i, GMIN);
@@ -775,13 +924,15 @@ function timeConstants(prep) {
     st.rhs(b, -1);
     const y = solveInPlace(st.A, st.b);
     if (!y) continue;
-    const resistance = (a >= 0 ? y[a] : 0) - (b >= 0 ? y[b] : 0);
+    // With positive feedback around it (an op-amp relaxation oscillator at its unstable DC point) the
+    // resistance it sees is negative: its size is still how fast it moves away from there.
+    const resistance = Math.abs((a >= 0 ? y[a] : 0) - (b >= 0 ? y[b] : 0));
     if (!(resistance > 0) || !Number.isFinite(resistance) || resistance > 1e9) continue;
-    out.push(own.memory.kind === 'C' ? own.memory.value * resistance : own.memory.value / resistance);
+    add(own, own.memory.kind === 'C' ? own.memory.value * resistance : own.memory.value / resistance);
   }
   // An element's own time (a relay's coil L/R and its armature's travel): it changes by itself even
   // while the circuit around it, at rest, leaves its coil open.
-  for (const el of prep.system.elements) if (el.times) out.push(...el.times);
+  for (const el of prep.system.elements) for (const time of el.times ?? []) add(el, time);
   return out;
 }
 
@@ -805,14 +956,18 @@ function dc(prep) {
   const r = settle(prep, solveWithLimits(prep, new Array(prep.system.size).fill(0), ctx), ctx);
   if (!r.ok) return { analysis: 'dc', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
   const reading = readAll(prep, r.x, ctx);
-  // Each part against its limits: { quantity, value, max, unit, ratio, level } (controls.js).
+  withStress(prep, reading);
+  return { analysis: 'dc', model: true, ok: true, iterations: r.iterations, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] };
+}
+
+// Each part against its limits: { quantity, value, max, unit, ratio, level } (controls.js).
+function withStress(prep, reading) {
   for (const p of prep.parts) {
     const part = reading.parts[p.id];
     if (part.floating) continue;
     const list = partStresses(p, part).filter((s) => !s.note);
     if (list.length) part.stress = list.map(({ quantity, value, max, unit, ratio, pin, nearAt }) => ({ quantity, value, max, unit, ratio, level: stressLevel(ratio, nearAt), ...(pin && { pin }), ...(nearAt && { nearAt }) }));
   }
-  return { analysis: 'dc', model: true, ok: true, iterations: r.iterations, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] };
 }
 
 // Transient: capacitors start discharged (start: 'zero', the supply switched on at t = 0)
@@ -857,6 +1012,29 @@ function fixedDrive(prep) {
   };
 }
 
+// An audio amplifier's output against its rails (a reading's state clipHigh or clipLow: the LM386)
+// for at least CLIPPING_SHARE of the samples of a transient or the looks of a run: one note each,
+// with the span of its output, so a gain or an input too large for the supply is said.
+export const CLIPPING_SHARE = 0.2;
+export function clipCounter() {
+  const seen = new Map(); // id → { clipped, n, low, high }
+  return {
+    see(reading) {
+      for (const [id, r] of Object.entries(reading?.parts ?? {})) {
+        if (!r || r.floating || !('state' in r) || !('vout' in r)) continue;
+        if (r.state !== 'clipHigh' && r.state !== 'clipLow' && r.state !== 'linear') continue;
+        const e = seen.get(id) ?? { clipped: 0, n: 0, low: Infinity, high: -Infinity };
+        e.n++;
+        if (r.state !== 'linear') e.clipped++;
+        e.low = Math.min(e.low, r.vout);
+        e.high = Math.max(e.high, r.vout);
+        seen.set(id, e);
+      }
+    },
+    notes: () => [...seen].filter(([, e]) => e.n > 0 && e.clipped / e.n >= CLIPPING_SHARE).map(([part, e]) => issue('info', 'SIM_AMP_CLIPPING', { part, share: Math.round((100 * e.clipped) / e.n), low: q(e.low, 'V'), high: q(e.high, 'V') })),
+  };
+}
+
 function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, drive = fixedDrive(prep)) {
   stop = Number(stop);
   step = Number(step);
@@ -878,12 +1056,35 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, driv
   record(0, { h: step * 1e-6 });
   const ctx = { h: step };
   const warnings = new Map();
+  // Power is thermal: each part's dissipation is averaged over the samples (evenly spaced in time) and
+  // judged at the end; currents and voltages are judged at each sample.
+  const power = new Map(); // "SIM_OVER_POWER:R1" → { sum, n, max, issue }
+  const clips = clipCounter();
   for (let k = 1; k <= steps; k++) {
     if (!drive.step(k * step, step)) return { analysis: 'transient', model: true, ok: false, issues: [...drive.prep().issues, issue('error', 'SIM_NO_CONVERGENCE_AT', { time: q(k * step, 's') })] };
     if (k % every === 0 || k === steps) {
       record(k * step, ctx);
-      for (const w of limitIssues(drive.prep(), samples.at(-1))) warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
+      const sample = samples.at(-1);
+      clips.see(sample);
+      for (const w of limitIssues(drive.prep(), sample)) if (w.code !== 'SIM_OVER_POWER') warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
+      for (const p of drive.prep().parts) {
+        const r = sample.parts[p.id];
+        if (!r || r.floating) continue;
+        for (const s of partStresses(p, r)) {
+          if (s.note || s.code !== 'SIM_OVER_POWER') continue;
+          const key = `${s.code}:${s.pin ? `${p.id}.${s.pin}` : p.id}`;
+          const e = power.get(key) ?? { sum: 0, n: 0, max: s.max, id: p.id, s };
+          e.sum += s.value;
+          e.n += 1;
+          e.s = s;
+          power.set(key, e);
+        }
+      }
     }
+  }
+  for (const [key, e] of power) {
+    const average = e.sum / e.n;
+    if (average > e.max) warnings.set(key, { ...stressIssue(e.id, { ...e.s, value: average }), when: { average: true, from: 0, time: steps * step } });
   }
   prep = drive.prep();
 
@@ -897,6 +1098,6 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, driv
       Object.fromEntries(['voltage', 'current', 'power'].filter((key) => typeof p[key] === 'number').map((key) => [key, series((s) => s.parts[id][key])])),
     ]),
   );
-  return { analysis: 'transient', model: true, ok: true, start, step, stop: steps * step, times, ground: prep.ground, nodes, supplies, parts, issues: [...prep.issues, ...warnings.values()] };
+  return { analysis: 'transient', model: true, ok: true, start, step, stop: steps * step, times, ground: prep.ground, nodes, supplies, parts, issues: [...prep.issues, ...warnings.values(), ...clips.notes()] };
 }
 

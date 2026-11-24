@@ -67,7 +67,7 @@ Pins `VCC`, `GND`, `SCL`, `SDA`; the board lies flat on its four-pin header.
 
 | Part | Board | Senses | Chip id |
 |---|---|---|---|
-| `BME280` | 3.3 V only: VCC is the chip's supply, 1.71 to 3.6 V; over 3.6 V `SIM_IC_SUPPLY`, over 4.25 V (its absolute maximum) the chip does not answer | temperature, humidity, pressure | 0x60 |
+| `BME280` | 3.3 V only: VCC is the chip's supply, 1.71 to 3.6 V; over 3.6 V `SIM_IC_SUPPLY`, which names `BME280-5V` as the board that takes it, over 4.25 V (its absolute maximum) the chip does not answer | temperature, humidity, pressure | 0x60 |
 | `BME280-5V` | regulated: a 3.3 V regulator (its rail `min(3.3, VIN − 0.2)`) feeds the chip and the pull-ups; VIN under 3.4 V `SIM_MODULE_LOW_SUPPLY` | temperature, humidity, pressure | 0x60 |
 | `BMP280` | as `BME280`, no humidity | temperature, pressure | 0x58 |
 
@@ -94,11 +94,13 @@ work.
 
 **The bus on a UNO.** The library starts `Wire`, and on an AVR that turns on the pull-ups of SDA and
 SCL (about 35 kΩ to 5 V). Against a 3.3 V board's own 10 kΩ to 3.3 V the lines idle at
-(5/35k + 3.3/10k)/(1/35k + 1/10k) ≈ 3.68 V, over the chip's VDDIO + 0.3 V = 3.6 V: the note
-`SIM_PIN_OVER_VDDIO`. The bus works (the UNO reads 3.68 V as high), but it is over the chip's maximum:
+(5/35k + 3.3/10k)/(1/35k + 1/10k) ≈ 3.68 V, over the chip's VDDIO + 0.3 V = 3.6 V: the warning
+`SIM_PIN_OVER_VDDIO` (a ⚠ of the review: a pin over its maximum; with a program that runs, only
+when its run still sees it). The bus works (the UNO reads 3.68 V as high), but it is over the chip's maximum:
 a level shifter keeps the lines inside, or the sketch turns the pull-ups off after `begin()` with
 `digitalWrite(A4, LOW); digitalWrite(A5, LOW);` (the `uno-bmp280-altitude` recipe does: the bus then
-idles at 3.3 V; a static solve stops inside `begin()` and still shows 3.68 V). The regulated board has no level shifter either: on a UNO its lines
+idles at 3.3 V; a static solve stops inside `begin()` and still shows 3.68 V, but the review reads the run and the
+recipe ends `DONE`). The regulated board has no level shifter either: on a UNO its lines
 idle at the same 3.68 V. On an ESP32 the bus idles at 3.3 V. `Wire.begin(sda, scl)` on an ESP32
 moves the bus to those two GPIOs. Under 3.4 V the regulated board's regulator is in dropout and the
 chip runs on what is left (3.3 V on VIN gives about 3.1 V): an info note, `SIM_MODULE_LOW_SUPPLY`.

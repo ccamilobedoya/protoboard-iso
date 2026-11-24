@@ -5,6 +5,7 @@
 // in ../i18n so the same issue reads well in every language.
 
 import { distance, sub, length, dot, normalize } from '../core/vec.js';
+import { findPin } from '../parts/pin-names.js';
 
 const issue = (severity, code, params) => ({ severity, code, params });
 const mm = (n) => Math.round(n * 10) / 10;
@@ -112,6 +113,149 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
       const [{ part, pin }] = members;
       out.push(issue('info', 'FLOATING_PIN', { part, pin, node }));
     }
+  }
+  return out;
+}
+
+// Warnings that are doubts, not placement problems: findings about the wiring the person asked for
+// that the kit reports and never blocks on. `check` lists them (severity warning); the review shows
+// them only as doubts, under "The kit cannot confirm these work" (sim/index.js wiringIssues → doubtsOf),
+// never as a ✖ to fix; `apply` saves a change that adds one and marks it ⚠, not ✖. The next such
+// finding is one more code here (and its check in wiringIssues).
+export const DOUBT_CODES = new Set(['BUTTON_PINS_JOINED', 'COIL_NO_FLYBACK', 'SUPPLY_PINS_UNWIRED']);
+
+// A push button's pins 1–2 (and 3–4) are one metal piece: two different nets on two pins of the
+// same side are joined for good, and pressing the button changes nothing. It is a finding about the
+// wiring the person asked for, not about a placement, so it is not among the placement checks (a
+// warning there makes the router and `suggest` refuse every placement that carries it): `check` and
+// the hazard check (sim/index.js) ask for it. Nets are the strips joined by wires.
+export function checkButtonPins(parts, netlist, { netLabels = {} } = {}) {
+  const parent = new Map();
+  const find = (n) => {
+    let x = n;
+    while (parent.has(x) && parent.get(x) !== x) x = parent.get(x);
+    return x;
+  };
+  for (const part of parts) {
+    if (part.type !== 'wire' || part.holes.length < 2) continue;
+    const [a, b] = [find(part.holes[0].node), find(part.holes.at(-1).node)];
+    if (a !== b) parent.set(a, b);
+  }
+  const out = [];
+  for (const part of parts) {
+    if (part.type !== 'button') continue;
+    const sides = part.def.internal ?? [];
+    for (const side of sides) {
+      const wired = side.map((pin) => ({ pin, node: part.holes[part.pinNames.indexOf(pin)]?.node })).filter(({ node }) => node != null && ((netlist.nodes[node]?.length ?? 0) > 1 || netLabels[node.split(':')[0]] !== undefined));
+      if (new Set(wired.map((w) => find(w.node))).size < 2) continue;
+      const other = sides.find((x) => x !== side)?.[0] ?? side.at(-1);
+      out.push(issue('warning', 'BUTTON_PINS_JOINED', { part: part.id, pins: wired.map((w) => w.pin).join(' and '), use: `${wired[0].pin} and ${other}` }));
+    }
+  }
+  return out;
+}
+
+// A relay's coil or a motor switched by a transistor, a MOSFET or a board's pin, with no diode on
+// the node the switch cuts (across the coil, cathode to the supply side, or from that node to a rail
+// as an H-bridge has; driven from both ends, two at each end, one to each rail): when the switch turns off, the coil's current drives that node far past the
+// supply and the switch can be damaged. Read from a compiled circuit (sim/compile.js: devices with
+// their pins' nodes), wires merged into one node. A motor on a plain switch or straight on a battery
+// has no switch to damage: nothing to say. A doubt (DOUBT_CODES), never a placement problem.
+const SWITCH_PINS = { Q: ['C'], M: ['D'] };
+export function checkFlyback(program) {
+  const parent = new Map();
+  const find = (x) => {
+    while (parent.has(x) && parent.get(x) !== x) x = parent.get(x);
+    return x;
+  };
+  const devices = (program?.devices ?? []).filter((d) => !d.unsupported);
+  for (const d of devices) if (d.kind === 'W' && d.pins?.length === 2) {
+    const [a, b] = [find(d.pins[0].node), find(d.pins[1].node)];
+    if (a !== b) parent.set(a, b);
+  }
+  const on = (d, names) => d.pins.filter((p) => !names || names.includes(p.name)).map((p) => find(p.node));
+  // The nodes a switch cuts: a transistor's collector, a MOSFET's drain, a board's GPIO (an emitter or a
+  // source is most often on a rail, which every coil touches).
+  const switched = new Map();
+  for (const d of devices) {
+    const names = SWITCH_PINS[d.kind] ?? (d.kind === 'MCU' ? (d.params?.gpios ?? []).map((g) => g.name) : null);
+    if (names) for (const n of on(d, names)) if (!switched.has(n)) switched.set(n, d.id);
+  }
+  const diodeList = devices.filter((d) => d.kind === 'D').map((d) => on(d));
+  const diodes = new Set(diodeList.flat());
+  const out = checkSupplyPins(program);
+  for (const d of devices) {
+    if (d.kind !== 'RLY' && d.kind !== 'MOT') continue;
+    const ends = on(d, d.kind === 'RLY' ? ['A1', 'A2'] : null);
+    // Driven from both ends (an H-bridge: each end switched): a diode across the load would conduct
+    // when the bridge reverses; each end needs its own to each rail (four), a diode from it to
+    // somewhere else than the load's other end.
+    if (ends.length === 2 && ends[0] !== ends[1] && ends.every((n) => switched.has(n))) {
+      const clamped = (n) => diodeList.filter((pins) => pins.includes(n) && !pins.every((x) => ends.includes(x))).length >= 2;
+      if (!ends.every(clamped)) out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: `${switched.get(ends[0])}, ${switched.get(ends[1])}`, variant: d.kind === 'RLY' ? 'relayBridge' : 'motorBridge' }));
+      continue;
+    }
+    const cut = ends.filter((n) => switched.has(n) && !diodes.has(n));
+    if (!cut.length || ends.some((n) => switched.has(n) && diodes.has(n))) continue;
+    out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: switched.get(cut[0]), variant: d.kind === 'RLY' ? 'relay' : 'motor' }));
+  }
+  // A Darlington array (ULN2003, ULN2803: kind DRV) is a switch at each OUT, with a clamp diode from
+  // each OUT to its COM pin: with COM on the coil's other end (the load's supply) that is the diode;
+  // with COM left open or elsewhere it is not.
+  const drivers = devices.filter((d) => d.kind === 'DRV');
+  for (const u of drivers) {
+    const com = on(u, ['COM'])[0];
+    for (const n of on(u, null).filter((_, i) => /^OUT\d$/.test(u.pins[i].name))) {
+      for (const d of devices.filter((x) => (x.kind === 'RLY' || x.kind === 'MOT') && !out.some((w) => w.params.part === x.id))) {
+        const ends = on(d, d.kind === 'RLY' ? ['A1', 'A2'] : null);
+        if (ends.includes(n) && !ends.includes(com) && !diodes.has(n)) out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: u.id, variant: d.kind === 'RLY' ? 'relay' : 'motor' }));
+      }
+    }
+  }
+  return out;
+}
+
+// A part with supply pins (a chip, a sensor module) wired into the circuit whose supply pins are not
+// both wired to something, or are on one net: it has no supply, so it cannot work. The supply pins are
+// the ones the part declares: its model's `supply` (an op-amp's [VCC, GND] or [V+, V-]), else the pins
+// the kit reads as its positive supply and its ground by name (pin-names.js: VCC, VDD, V+ … and GND,
+// VSS …). A development board has none of those names (5V, 3V3: it has its USB), and a part wired to
+// nothing at all is left to the placement notes. Read from a compiled circuit, wires merged, as
+// checkFlyback reads it. A doubt (DOUBT_CODES), never a placement problem; called from checkFlyback,
+// so it reaches every place the wiring doubts go (sim/index.js wiringIssues).
+export function checkSupplyPins(program) {
+  const parent = new Map();
+  const find = (x) => {
+    while (parent.has(x) && parent.get(x) !== x) x = parent.get(x);
+    return x;
+  };
+  const devices = program?.devices ?? [];
+  for (const d of devices) if (d.kind === 'W' && d.pins?.length === 2) {
+    const [a, b] = [find(d.pins[0].node), find(d.pins[1].node)];
+    if (a !== b) parent.set(a, b);
+  }
+  // Who is on each net: the devices (not wires) and the supplies' terminals.
+  const on = new Map();
+  const put = (node, who) => {
+    const k = find(node);
+    if (!on.has(k)) on.set(k, new Set());
+    on.get(k).add(who);
+  };
+  for (const d of devices) if (d.kind !== 'W') for (const pin of d.pins ?? []) if (pin.node != null) put(pin.node, d.id);
+  for (const sup of program?.supplies ?? []) for (const node of [sup.p, sup.n]) if (node != null) put(node, `supply:${sup.id}`);
+  const others = (node, id) => [...(on.get(find(node)) ?? [])].some((w) => w !== id);
+  const out = [];
+  for (const d of devices) {
+    if (d.kind === 'W' || d.kind === 'MCU' || !d.pins?.length) continue;
+    const names = d.pins.map((p) => p.name);
+    const declared = d.params?.model?.supply;
+    const pair = Array.isArray(declared) && declared.length === 2 ? declared : [findPin(names, 'VCC'), findPin(names, 'GND')];
+    if (!pair.every((n) => n && names.includes(n))) continue;
+    const pins = pair.map((n) => d.pins.find((p) => p.name === n));
+    if (!d.pins.some((p) => p.node != null && others(p.node, d.id))) continue; // wired to nothing at all
+    const open = pins.filter((p) => p.node == null || !others(p.node, d.id)).map((p) => p.name);
+    if (open.length) out.push(issue('warning', 'SUPPLY_PINS_UNWIRED', { part: d.id, pins: pair.join(' and '), open: open.join(' and '), variant: open.length === 2 ? 'both' : 'one' }));
+    else if (find(pins[0].node) === find(pins[1].node)) out.push(issue('warning', 'SUPPLY_PINS_UNWIRED', { part: d.id, pins: pair.join(' and '), variant: 'same' }));
   }
   return out;
 }

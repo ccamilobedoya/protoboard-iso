@@ -102,6 +102,49 @@ export function closestNames(name, count = 3, names = ALL_NAMES) {
     .map(({ candidate }) => candidate);
 }
 
+// Common asks the kit does not have, by name, to what it has that comes nearest
+// (check.UNKNOWN_PART_NAME.<variant>, in every language).
+const NEAR = {
+  speaker: ['SPEAKER', 'LOUDSPEAKER', 'ALTAVOZ', 'PARLANTE', 'BOCINA'],
+  ledstrip: ['LEDSTRIP', 'STRIP', 'TIRALED', 'TIRALEDS', 'TIRADELED', 'TIRADELEDS', 'WS2812', 'WS2812B', 'NEOPIXEL', 'SK6812'],
+  servo: ['SERVO', 'SERVOMOTOR', 'SG90', 'MG90S', 'MG996R'],
+  transformer: ['TRANSFORMER', 'TRANSFORMADOR', 'TRAFO'],
+  lcd: ['LCD', 'LCD1602', 'LCD16X2', 'LCD2004', 'LCD20X4', '1602', 'LCDI2C', 'PANTALLALCD'],
+  stepper: ['STEPPER', 'STEPPERMOTOR', '28BYJ48', '28BYJ', 'NEMA17', 'PASOAPASO', 'MOTORPASOAPASO', 'MOTORDEPASOS', 'MOTORPAP'],
+  oled: ['OLED', 'SSD1306', 'SH1106', 'PANTALLAOLED', 'OLEDI2C'],
+  keypad: ['KEYPAD', 'KEYPAD4X4', 'KEYPAD4X3', 'TECLADO', 'TECLADOMATRICIAL', 'MEMBRANEKEYPAD', 'MATRIXKEYPAD'],
+  joystick: ['JOYSTICK', 'KY023', 'PALANCA', 'PALANCADEMANDO'],
+  bluetooth: ['BLUETOOTH', 'HC05', 'HC06', 'HM10', 'BLE'],
+  wifi: ['WIFI', 'ESP01', 'ESP8266', 'NODEMCU', 'WEMOS', 'D1MINI'],
+  sdcard: ['SD', 'SDCARD', 'MICROSD', 'MICROSDCARD', 'TARJETASD', 'TARJETAMICROSD', 'SDMODULE'],
+  rtc: ['RTC', 'DS1307', 'DS3231', 'PCF8563', 'TINYRTC', 'REALTIMECLOCK', 'RELOJDETIEMPOREAL', 'RELOJRTC'],
+  loadcell: ['LOADCELL', 'HX711', 'CELDADECARGA', 'GALGA', 'STRAINGAUGE', 'BALANZA'],
+};
+// Words that name a common ask only when they are the whole name ("strip" alone; "pin header strip"
+// is no LED strip; "SD" alone, or as "SD card", is the card).
+const WHOLE_ONLY = new Set(['STRIP', 'SD', 'BLE']);
+// Matched on the whole name, then on the words it contains and the runs of words next to each other
+// joined ("LED strip 12V" → LED, STRIP, 12V, LEDSTRIP…; "tira de LED" → TIRADELED), in English and
+// Spanish: a size or a voltage written after the name does not hide what was asked.
+const nearOf = (name) => {
+  const key = norm(name).replace(/[-_.]/g, '');
+  const whole = Object.keys(NEAR).find((k) => NEAR[k].includes(key));
+  if (whole) return whole;
+  const words = String(name ?? '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^A-Z0-9]+/).filter(Boolean);
+  const runs = words.flatMap((_, i) => words.slice(i).map((__, j) => words.slice(i, i + j + 1).join(''))).filter((w) => !WHOLE_ONLY.has(w));
+  return Object.keys(NEAR).find((k) => runs.some((w) => NEAR[k].includes(w)));
+};
+
+// A name the kit does not have: the near part for a common ask, else the closest names, else none
+// (each says what to do: check.UNKNOWN_PART_NAME and its variants).
+function unknownName(part, name) {
+  const params = { part: part.id ?? '?', name: String(name ?? '—') };
+  const near = nearOf(name);
+  if (near) return { severity: 'error', code: 'UNKNOWN_PART_NAME', params: { ...params, suggestions: '—', variant: near } };
+  const suggestions = closestNames(name).join(', ');
+  return { severity: 'error', code: 'UNKNOWN_PART_NAME', params: { ...params, suggestions: suggestions || '—', ...(!suggestions && { variant: 'none' }) } };
+}
+
 // A part as written to a part the kit can build: { part } or { error }.
 export function resolvePart(raw) {
   const part = { ...raw };
@@ -126,7 +169,7 @@ export function resolvePart(raw) {
   if (module) return { part: { ...part, type: 'module', part: module.id } };
   const ldr = Object.keys(LDR_PARTS).find((k) => norm(k) === key);
   if (ldr) return { part: { ...part, type: 'ldr', part: ldr } };
-  return { error: { severity: 'error', code: 'UNKNOWN_PART_NAME', params: { part: part.id ?? '?', name: String(name ?? '—'), suggestions: closestNames(name).join(', ') || '—' } } };
+  return { error: unknownName(part, name) };
 }
 
 // The pin names a resolved part takes; for a switch or a board beside the breadboard, all the

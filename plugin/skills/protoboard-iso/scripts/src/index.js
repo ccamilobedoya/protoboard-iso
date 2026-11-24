@@ -49,6 +49,7 @@ export function formatIssue(issue, lang = 'en') {
   const params = Object.fromEntries(
     Object.entries(issue.params).map(([k, v]) => [k, typeof v === 'number' ? String(v).replace('.', decimal) : v && typeof v === 'object' && 'unit' in v ? formatValue(v.value, v.unit, { decimal }) : v]),
   );
+  closerThanItsLimit(issue.params, params, decimal);
   if (params.node) {
     const n = nodeParams(params.node);
     params.node = t(lang, n.key, n.params);
@@ -62,9 +63,33 @@ export function formatIssue(issue, lang = 'en') {
   return issue.when ? `${text.replace(/\.$/, '')}, ${whenText(issue.when, lang)}.` : text;
 }
 
+// A reading that rounds to its own limit ("carries 50 mA, more than its maximum 50 mA") is shown with
+// more figures, up to six, until the two differ ("50.04 mA, more than its maximum 50 mA").
+function closerThanItsLimit(raw, params, decimal) {
+  const max = raw.max;
+  if (!max || typeof max !== 'object' || !('unit' in max)) return;
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'max' || !v || typeof v !== 'object' || v.unit !== max.unit || v.value === max.value || params[k] !== params.max) continue;
+    for (let digits = 4; digits <= 6 && params[k] === params.max; digits++) params[k] = formatValue(v.value, v.unit, { decimal, digits });
+  }
+}
+
 // "with S1 pressed", "with RV1 at the pin-3 end of its travel", "with D10 high"; a control without words of its own:
 // "with S1 on = false".
-function whenText({ part, field, value, pin, name }, lang) {
+function whenText({ part, field, value, pin, name, end, time, high, rest, held, average, from }, lang) {
+  // A dissipation judged on its average over a run or a transient (sim/run.js, engine.js).
+  if (average) return t(lang, 'hazard.when.average', { from: formatValue(from ?? 0, 's', { decimal: decimalSeparator(lang) }), time: formatValue(time ?? 0, 's', { decimal: decimalSeparator(lang) }) });
+  // A state a run's clocked chips latched, held by the hazard check: "with U2 holding QA…QH 11111111".
+  if (held) return pin ? t(lang, 'hazard.when.heldPin', { held, pin: name ?? pin }) : t(lang, 'hazard.when.held', { held });
+  // A run's warning (sim/run.js): its strongest reading, when, and the pin's level then.
+  if (time != null) {
+    const at = formatValue(time, 's', { decimal: decimalSeparator(lang) });
+    return pin ? t(lang, high ? 'hazard.when.runHigh' : 'hazard.when.runLow', { time: at, pin }) : t(lang, 'hazard.when.run', { time: at });
+  }
+  // A board's pin the program sets high in its first state (the DC point of setup()).
+  if (pin && rest) return t(lang, 'hazard.when.pinRest', { pin: name ?? pin });
+  // An environment field at an end of its range: "with the environment's light at its minimum".
+  if (part === 'environment' && end) return t(lang, `hazard.when.environment.${end}`, { field: t(lang, `sim.env.field.${field}`) });
   // A board's output held high by the hazard check (sim/index.js): "with D10 high".
   if (pin) return t(lang, 'hazard.when.pin', { pin: name ?? pin });
   const key = field === 'position' ? `hazard.when.position.${value > 0.5 ? 3 : 1}` : `hazard.when.${field}.${Boolean(value)}`;

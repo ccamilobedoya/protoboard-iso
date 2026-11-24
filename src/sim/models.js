@@ -205,7 +205,10 @@ export const OPAMPS = {
 // between it is undefined. ADC: `adcBits` over 0…`adcFull` volts (linear here). The board takes
 // `own` amperes from its logic rail (the chip running, no radio); USB gives 5 V behind
 // `usbResistance` (cable and fuse); `regulator`: the 3.3 V regulator's model (REGULATORS or its
-// own numbers). Limits: `maxPin` per pin (absolute maximum), `vdd` + 0.3 V on any pin.
+// own numbers). Limits: `maxPin` per pin (absolute maximum), `vdd` + 0.3 V on any pin; `usbMax`, what
+// the board on USB gives in all, through its 5 V (or VIN) pin and its own rails: a USB 2.0 port's
+// 500 mA (USB 2.0 specification, 7.2.1), and on the UNO its resettable fuse's 500 mA as well
+// (`usbFuse`: Arduino UNO R3 schematic, F1 MF-MSMF050-2); the regulator's own maxCurrent is less.
 // Sources: Espressif ESP32 datasheet v5.3 (VOH 0.8·VDD at 40 mA, VIL 0.25·VDD, VIH 0.75·VDD,
 // pull-ups 45 kΩ, ADC 12 bits up to about 3.1 V at 11 dB); ESP32-C3 datasheet v2.4 (ADC up to
 // 2.5 V at 11 dB); Microchip ATmega328P datasheet (VOH 4.2 V at 20 mA, VIL 0.3·VCC, VIH 0.6·VCC,
@@ -214,9 +217,9 @@ export const OPAMPS = {
 // a little under 5 V behind its cable), not the nominal adcFull: a ratiometric sensor then reads the same
 // count whatever the supply. The ESP32 families keep their fixed reference (adcFull).
 export const MCUS = {
-  esp32: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 3.1, own: 0.04, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1 } },
-  esp32c3: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 2.5, own: 0.02, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 0.1, quiescent: 40e-6, maxCurrent: 0.5, maxPower: 0.5 } },
-  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, adcRef: 'vdd', own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
+  esp32: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 3.1, own: 0.04, maxPin: 0.04, usbResistance: 0.2, usbMax: 0.5, regulator: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1 } },
+  esp32c3: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 2.5, own: 0.02, maxPin: 0.04, usbResistance: 0.2, usbMax: 0.5, regulator: { dropout: 0.1, quiescent: 40e-6, maxCurrent: 0.5, maxPower: 0.5 } },
+  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, adcRef: 'vdd', own: 0.045, maxPin: 0.04, usbResistance: 0.3, usbMax: 0.5, usbFuse: true, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
 };
 // The default I2C pins of each family's Arduino core (Wire with no pins), as GPIO numbers: the UNO's
 // A4 = SDA and A5 = SCL [D]; the ESP32 DevKit's GPIO21 / GPIO22 [D]; the ESP32-C3's GPIO8 / GPIO9 [T]
@@ -286,9 +289,13 @@ export const MOTORS = {
   'RE-140RA-2270': { nominal: 1.5, range: [1.5, 3], noLoad: { rpm: 8100, current: 0.21 }, efficient: { rpm: 6150, current: 0.66, torque: 0.66e-3 }, stall: { torque: 2.74e-3, current: 2.1 }, inertia: 1e-7, inductance: 1e-3 },
 };
 
+// maxInput: the absolute maximum input voltage (IN to GND): 35 V for the 7805 to 7818 and 40 V for
+// the 7824 (TI LM340/LM78xx, ON MC7800 datasheets); maxInputOutput: the LM317's absolute maximum
+// input-to-output differential, 40 V (TI LM317 datasheet).
 export const REGULATORS = {
-  fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2 },
-  LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2 },
+  fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2, maxInput: 35 },
+  7824: { maxInput: 40 },
+  LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2, maxInputOutput: 40 },
   // AMS1117 (SOT-223) on its small module: dropout 1.1 V typical at 800 mA (1.3 V max), 5 mA
   // own current (10 mA max), 800 mA rated. maxPower: the tab soldered to a few mm² of copper,
   // about 90-100 °C/W, so 1 W takes the junction from 25 °C to its 125 °C. Source: Advanced
@@ -438,3 +445,27 @@ export const CLIMATE = {
     BMP280: { chip: 0x58, humidity: false, pressure: true, regulated: false, current: 0.4e-3 },
   },
 };
+
+// Reverse voltage a supply input takes before it is damaged: the supply pin below the ground (or common)
+// pin, in volts. One place for every family, read against the datasheets.
+//   ic         0.5 V [assumed]: an IC's input has a substrate or ESD diode to its ground pin that starts to
+//              conduct near 0.6 V; the datasheets of regulators (78xx, LM317), the 555 and the op-amps
+//              give no reverse rating at all (their absolute maximum is the ground pin as the lowest
+//              potential), so any reverse voltage is outside it and 0.5 V only keeps the solver's noise out.
+//   board      0.5 V [assumed]: a development board's supply pins (its regulator, its USB diode): same reason.
+//   capacitor  1 V [assumed]: aluminium electrolytic datasheets allow a reverse voltage of about 1 V
+//              briefly (the datasheets' "about 1 V"); beyond it the oxide layer reforms and the part heats.
+// A LED counts as lit, for a computed fix, from a tenth of its rated current (brightness 0.1): the
+// look of the page says a tenth of the rated current "still shows clearly" (look.js, glowOpacity).
+// A coil carrying less than this share of its pull-in current is leaking, not driven hard (a
+// transistor's leakage in daylight): no "driven but not pulled in" warning [assumed]. It hides nothing:
+// a relay that never pulls in in any state the review visits is SIM_OUTPUT_NEVER_ON (sim/index.js).
+export const RELAY_DRIVEN_SHARE = 0.25;
+export const LED_LIT = 0.1;
+// Above this share of the rated current (1.5 = the 30 mA an LED's maximum is, against its rated 20 mA [assumed
+// for every family]) a brightness is said in words ("over its maximum"), not as a percentage.
+export const BRIGHTNESS_OVER = 1.5;
+// NOTE: for ic and board the figure is only a noise floor for the solver: no datasheet rates a reverse
+// voltage on a supply pin, so ANY reverse voltage is outside the ratings and the text says that, not
+// "more than N V it withstands".
+export const REVERSE_LIMITS = { ic: 0.5, board: 0.5, capacitor: 1 };

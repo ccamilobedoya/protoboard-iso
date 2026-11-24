@@ -145,7 +145,10 @@ importan de `src/sim` y de módulos sin imports como `src/parts/sensors.js`.
 
 Varios dispositivos pueden compartir un `type` (los circuitos integrados: temporizador,
 amplificadores operacionales): cada uno dice qué componentes toma con `accepts(part)`, y el programa
-guarda su `kind`. **Una placa con microcontrolador nueva** no necesita dispositivo: en
+guarda su `kind` (en un chip, el que `ICS` de `src/parts/types/semiconductors.js` da a su `function`:
+un tipo de chip nuevo lleva su línea ahí). **Lo que cubre el modelo**: `modelText`, la clave de un texto
+`catalog.model.*` en `src/i18n`, dos o tres líneas que imprime `catalog <part>` (qué modela, qué deja
+fuera, sus límites). **Una placa con microcontrolador nueva** no necesita dispositivo: en
 `src/parts/modules.js` se le dan `power` (sus pines de USB, lógica, tierra y reinicio), `gpio` (el
 número de GPIO de cada pin), `adc` e `inputOnly`; los números de su familia van en `MCUS`
 (`src/sim/models.js`), según su hoja de datos ([microcontroladores.md](microcontroladores.md)).
@@ -175,6 +178,13 @@ texto, las etiquetas de resultados, las sondas y la página lo encuentran ahí.
   la página tiempos propios para su ritmo (la L/R de la bobina de un relé y el recorrido de su
   armadura). Un lado mecánico puede ser un nodo propio (el eje de un motor: `motorCore`, un girador, su
   velocidad como el voltaje del nodo).
+- **Un chip con reloj** (un 74HC595, un CD4017) usa `logicCore` (`src/sim/devices/logic.js`): su
+  lógica como tres funciones puras de un estado (`initial`, `step` con los flancos, `outputs`), sus
+  salidas como etapas push-pull. El programa de una placa cambia pines sin tiempo simulado (el pulso de
+  reloj de un `shiftOut`), así que el chip escucha a la placa: el elemento del programa ofrece
+  `watch(fn)`, `gpioNodes()` y `steady(gpio)`, y llama a cada oyente en cada cambio de un pin, en orden,
+  y luego con `{ flush: true }`; un chip ofrece lo mismo a los chips cuyas entradas cuelgan de sus
+  salidas (una cadena). Las entradas que nada de eso maneja se leen de la solución después de cada paso.
 
 ## 6. Una pieza de cerca (un requisito para cada tipo nuevo)
 

@@ -13,8 +13,8 @@ Puntos de entrada; todos llaman a `autoLayout(spec, { profile, checkOnly })`:
 
 | Desde | Llamada |
 |---|---|
-| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`, `fix`) |
-| Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--dry-run] [--json]`, o `--recipe <nombre> [--values '<json>']`, o `layout <objetivo> --fix [--dry-run]` (sale con 0 si queda listo, 2 si hay cambios) |
+| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`, `fix`, `budget_s`) |
+| Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--dry-run] [--json] [--budget <segundos>]`, o `--recipe <nombre> [--values '<json>']`, o `layout <objetivo> --fix [--dry-run]` (sale con 0 si queda listo, 2 si hay cambios) |
 | Código | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; una receta pasa antes a especificación con `resolveRecipe` (`src/recipes/index.js`) |
 | Banco de pruebas | `npm run layout-bench [-- spec.json …]` (corre `examples/layout/*.json` y todas las recetas) |
 
@@ -47,8 +47,12 @@ especificación común antes de que corra todo lo de abajo.
   `"UNO"`, `"resistencia"`): `resolvePart` (`src/parts/resolve.js`) completa el tipo.
 - `nets`: cada una, una lista de patas (`"D1.K"`; el nombre de la pata no distingue mayúsculas) y
   rieles (`"T-"`, `"B+"`), o `{ pins, color }`. Una pata sola (`["D1.A"]`) vale: es donde se
-  conectará una fuente. Dos redes que comparten una pata o un riel son una sola red
-  (`["T-", "B-"]` une las tierras).
+  conectará una fuente. Una pata que aparece en varias redes las une: quedan como una sola red, donde
+  estaba la primera, con sus patas en el orden en que llegaron (nota `LAYOUT_NETS_JOINED`: «Las
+  redes 1, 2, 3 comparten U1.D8»), el mismo circuito que el spec con las patas en una sola lista
+  (desde el 2026-11-20; antes cada una se cableaba aparte y la pata de una placa podía quedarse sin
+  lugar). Dos redes que comparten un riel siguen siendo dos, unidas por el riel (`["T-", "B-"]` une
+  las tierras).
 - `supplies`: como en un circuito, salvo que `positive` y `negative` pueden nombrar una pata; una
   vez ubicada, se vuelve un agujero libre de su tira.
 - `board` (por defecto `auto`: la protoboard elástica, que crece a lo largo, o dos lado a lado cuando
@@ -88,7 +92,9 @@ Los nombres de las patas se leen como los escribe la gente (`findPin`, `src/part
 primero el nombre propio de la pata, sin distinguir mayúsculas; luego sinónimos (`A`/`anode`,
 `K`/`cathode`, `VIN`/`IN`, `VOUT`/`OUT`, `DISCH`/`DIS`, `THRESHOLD`/`THR`, `VDD`/`VCC`, `VSS`/`GND`,
 `3.3V`/`3V3`, `E`/`emitter`, `G`/`gate`…) y números de GPIO en una placa (`GPIO4`, `IO4`, `4` → el
-`D4` del DevKit), solo cuando coincide exactamente una pata. Las redes vuelven con los nombres
+`D4` del DevKit), solo cuando coincide exactamente una pata; en una placa, `TX` y `RX` son sus patas
+serie (`D1`/`D0` del UNO, `GPIO21`/`GPIO20` del C3, `TX0`/`RX0` del DevKit) y `GPIO17`/`GPIO16` del
+DevKit son sus `TX2`/`RX2`. Las redes vuelven con los nombres
 propios (`D1.K` → `D1.cathode`), así los pasos siguientes nunca ven un alias. Los circuitos,
 `query` y `suggest` leen las patas igual.
 
@@ -184,13 +190,36 @@ la protoboard, `HELD_UP`). Antes que todas se prueba donde estaba (al volver a m
 candidatas con un agujero bien adentro de la caja de un cuerpo que ya está en la protoboard ni
 siquiera se construyen.
 
-**`tryOps` (la prueba de aceptación).** Aplica la operación `add`, reconstruye el circuito **solo
-con geometría** (`buildCircuit`: ocupación, largo de las patas, cuerpos que se cruzan, cruces,
-separación; milisegundos, sin dibujar nada) y acepta solo si no agrega un error ni un problema
-bloqueante nuevo respecto al circuito anterior (`blocking` = errores, avisos y notas `TOO_CLOSE`).
+**`tryOps` (la prueba de aceptación).** Agrega el componente y comprueba **solo la geometría**
+(ocupación, largo de las patas, cuerpos que se cruzan, cruces, separación; sin dibujar nada), y
+acepta solo si no agrega un error ni un problema bloqueante nuevo respecto al circuito anterior
+(`blocking` = errores, avisos y notas `TOO_CLOSE`). Desde el 2026-11-20 el componente se construye
+solo y se comprueba con los componentes cuyas cajas le quedan cerca o que comparten una tira con él
+(`addedOnly`): cada comprobación de ubicación trata de un componente o de un par, así que la
+respuesta es la misma que da construir todo, en un tiempo que no crece con el circuito. Si la
+protoboard crece con el componente, se vuelven a dibujar los componentes que están al lado (siguen
+su tamaño).
 `FLOATING_PIN` se tolera porque los cables vienen después. Un lugar que está en `forbid` se salta.
 Las respuestas se recuerdan durante toda la llamada (por circuito y operación), así un reintento
 que repite los primeros pasos no los vuelve a construir.
+
+**Lo que tapa (desde el 2026-11-20).** Un lugar que la geometría acepta se mide luego como la
+revisión mide un dibujo (`src/layout-sight.js`): el componente, los que se le superponen en pantalla
+y lo que tapa a esos, pintados de lejos a cerca en las dos vistas a 2 px/mm, en un marco alrededor
+de ellos. Si se deja a sí mismo, o a un componente que tapa más que antes, por debajo de
+`SEEN_SHARE` (75 %) en su mejor vista, se prueba la candidata siguiente; la primera por costo se usa
+solo si ninguna se libra. Los cables (paso 3) se miden igual. Corre como una segunda búsqueda, solo
+cuando la primera (el ciclo de reintentos sin medir, como siempre ubicó el montaje) termina con algo
+que bloquea, desde una lista de prohibidos vacía; se queda la mejor de las dos, la primera si
+empatan. El ciclo arregla todas las recetas (`laser-uno` deja 5 componentes tapados en su primer
+intento y ninguno en el sexto), así que una receta queda exactamente como antes (las recetas se
+publican y se filman), y un circuito grande que el ciclo no arregla (diez LED de una pata, un UNO con
+un 74HC595 y ocho LED) se mide cuando termina su primera búsqueda. Hasta el 2026-11-20 la segunda
+búsqueda empezaba después del primer intento cuando ese intento dejaba más de 5 componentes tapados
+(`HIDDEN_SETTLED`): una receta estaba justo en 5, así que un componente más en una receta la habría
+movido. La regla ahora depende de cómo termina la primera búsqueda, nunca de una cuenta; su precio
+son los intentos de la primera búsqueda en un circuito grande (diez LED de una pata: 9 intentos y
+4,5 s en vez de 2 y 1,8 s, con carga 2).
 
 Después de cada componente, el cursor de su mitad (las dos mitades si está a caballo del canal; la
 mitad de cada pata si está fuera de la protoboard) pasa a dos columnas más allá de su pata más a la
@@ -308,6 +337,227 @@ zumbador; unos 9 s en la variante con transistor de ese circuito con su arreglo 
 una placa). Sobre todas las recetas barajadas tres veces: 0,26 s en promedio donde el orden dado
 funciona, 2,3 s (a lo sumo 7 s) donde falla.
 
+### Lo que prueba el montaje antes de CHANGES (desde el 2026-11-20)
+
+La misma especificación da siempre el mismo circuito, así que enviarla otra vez no ayuda; lo que
+les sirvió a los asistentes que recibieron `CHANGES` fue una prueba que haría una persona: poner
+otro componente de primero, o llevar el circuito a la protoboard más grande, **montado otra vez
+sobre el circuito ya hecho** (cada componente prueba primero los huecos que tiene ahí, como en un
+segundo montaje de un objetivo). `inAnyOrder` ahora lo hace solo antes de responder `CHANGES`
+(`withTrials`), desde su mejor intento, cada prueba con a lo sumo `TRIAL_TRIES` intentos del ciclo
+de reintentos, en este orden, y se queda con la primera que termina sin `CHANGES` (si no, la mejor
+con el mismo rango):
+
+1. **los órdenes que dan las redes otra vez**, desde el mejor intento (`LAYOUT_ORDER_FROM_NETS`);
+2. **la protoboard doble**, cuando un punto bloqueante nombra una placa de desarrollo (un módulo con
+   GPIO: un UNO, un DevKit) junto con otro componente (lo tapa a él o a una tira suya) y la
+   especificación no nombra su protoboard: en el orden dado y luego en los órdenes de las redes
+   (`LAYOUT_TRIED_DOUBLE`, `LAYOUT_TRIED_DOUBLE_ORDER`: «se montó en la protoboard doble … porque U1
+   tapaba a U2 en una sola»);
+3. **los componentes más altos de primero**, luego **los más anchos** (por el cuerpo en el dibujo
+   del mejor intento; una placa de desarrollo y un componente al lado de la protoboard no se
+   mueven), con las capas empezando por ellos (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`);
+4. **los componentes que no encontraron lugar, de primero**, desde una protoboard vacía
+   (`LAYOUT_TRIED_FIRST`; desde el 2026-11-23), antes de la protoboard doble;
+5. después, mientras el límite alcance, **el cambio que ofrecería a continuación** (un componente de
+   primero, desde una protoboard vacía), como mucho `NEXT_TRIALS` (3): un cambio que la respuesta
+   ofrece nunca es uno que el kit ya probó (desde el 2026-11-23).
+
+Cuando el propio montaje pasó el circuito a la protoboard doble (un pin tapado, abajo), las pruebas
+empiezan allí, no en la protoboard que no podía con él (desde el 2026-11-23).
+
+Nada eléctrico cambia y no se le pregunta a nadie; la respuesta trae una nota que dice qué cambió
+respecto a la especificación escrita. Una prueba corre solo mientras el límite de tiempo alcanza.
+Cuando la respuesta sigue en `CHANGES`, cada línea ✖ va seguida del único cambio de la
+especificación que el kit probaría después (`next` en el punto: la primera prueba que el límite
+dejó sin hacer; si no, la protoboard doble cuando se nombra una placa de desarrollo y el circuito no
+está en una; si no, poner de primero el componente tapado y luego el que lo tapa; si no, «muévelo
+con suggest»), y una línea dice qué se probó (`layout.tried`).
+
+Medido en las tres especificaciones con las que los asistentes recibieron `CHANGES`
+(`test/layout-trials.test.js`, carga 2–3 en una máquina de cuatro núcleos; antes: `CHANGES` en 14,
+38 y 35 s): un cable puente bajo un módulo ultrasónico, `DONE` en 20–27 s (los órdenes de las redes
+desde el mejor intento); un contador de siete segmentos con botón, `DONE` en 36 s (igual); un UNO que
+tapa medio 74HC595, `WARNINGS` (el registro de desplazamiento no se simula) en 32 s, en una sola
+protoboard, con los órdenes de las redes antes de cualquier prueba (con la segunda búsqueda de «Lo
+que tapa»; antes de ella, la prueba de la protoboard doble lo resolvía en 1,3 s). El banco no cambia:
+cada especificación termina `DONE` en su propio orden, así que no corre ninguna prueba.
+
+### Tamaño y límite de tiempo: calcular primero, nunca desbocarse (desde el 2026-11-20)
+
+**El tamaño, antes de ubicar.** `estimateSize` (en `autoLayout`, cuando el spec es válido; también
+con `--check`) acota por abajo las columnas que toma el spec, solo con sus componentes y sus redes,
+en mucho menos de un segundo: una tira lleva patas de una sola red eléctrica, así que una red sin
+riel necesita una tira por cada cinco patas, y una pata sin red una tira para ella sola (`sides`
+tiras por columna: 2, o 4 en la protoboard doble); un chip a caballo del canal (un DIP) toma ahí sus
+columnas enteras. Frente a las columnas hasta las que puede crecer la protoboard
+(`LIMITS.boardColumns`, 600, en `auto` y `double`; las suyas en una fija):
+
+- más que la protoboard: `STATUS: FIX_SPEC`, sale con 1, no se crea nada, una línea con los números
+  (`LAYOUT_TOO_LARGE`: «hacen falta unas 1600 columnas y hay 600 (401 componentes). En una
+  protoboard caben unos 150 componentes: divídelo en dos o más circuitos»);
+- cabe, pero un intento de la búsqueda tarda más que el límite de tiempo (`SECONDS_PER_PART`, 0,12 s
+  por componente sobre la protoboard, medido): una primera nota lo dice (`LAYOUT_SEARCH_LONG`) y lo
+  intenta igual.
+
+Es una cota, no una adivinanza del montaje: nunca rechaza lo que la búsqueda puede ubicar. Todas
+las recetas, los ejemplos de montaje y los circuitos de ejemplo quedan por debajo de media
+protoboard (`test/layout-size.test.js`).
+
+**El límite de tiempo.** `layout` recibe un límite de tiempo de reloj: 60 s por defecto
+(`BUDGET_SECONDS`), en la consola `--budget <segundos>`, en el MCP `budget_s`, como mucho
+`LIMITS.layoutSeconds` (300; más que eso queda en eso, con una nota `LAYOUT_BUDGET_CAPPED`). La
+búsqueda lo mira antes de cada componente, cada cable, cada intento, cada orden y cada reparación, y
+`suggest` antes de cada candidata que mide. Cuando se acaba, la búsqueda se detiene donde está y
+responde con el mejor intento hasta ahí, `STATUS: CHANGES`, y una línea: «La búsqueda se detuvo en
+su límite de tiempo de 60 s con su mejor intento hasta ahí: N componentes sin colocar, M redes sin
+unir, K puntos de la revisión abiertos. Las opciones: un límite mayor … o un circuito más pequeño»
+(`LAYOUT_BUDGET`). El circuito se escribe igual (sale con 2, como todo `CHANGES`). El arreglo
+calculado de sus peligros no se busca entonces (segundos de simulaciones, para un circuito que
+todavía hay que arreglar). El límite se cuenta en trabajo, no en tiempo: cada colocación probada (y
+cada candidata que mide `suggest`) cuenta 1 + los componentes del circuito entre los que se revisa,
+`WORK_PER_SECOND` (5000) por cada segundo de límite, así que el mismo spec se detiene en el mismo
+lugar en cada corrida y máquina (una red de 250 resistencias: unos 45 s en un escritorio ocupado,
+todas colocadas, el mismo circuito dos veces; tardaba 84 s y colocaba 203, y luego 189). El reloj es
+solo la guarda de afuera: una máquina tan lenta que llegue antes a él se detiene ahí, y la línea dice
+que ese corte no se repite (`LAYOUT_BUDGET`, variante `clock`); la respuesta trae `tried: { placements,
+max, byClock? }`.
+Un presupuesto de reloj hace que un resultado dependa de lo ocupada que esté la máquina, así que las
+pruebas que no tratan del presupuesto montan con `test/layout-generous.js` (el presupuesto más grande,
+300 s); solo las pruebas del presupuesto usan el de por defecto.
+
+**Lo que juzga la búsqueda.** Cada intento se juzga por su ubicación: el dibujo y las redes (una
+revisión con `electrical: false`). Los daños en los estados, las dudas, el arreglo calculado, las
+lecturas y la ejecución de Comportamiento se calculan una vez, sobre el circuito que guarda toda la
+búsqueda (`judged` en `src/layout.js`, su tiempo en el `ms` de la respuesta): no dependen de dónde
+quedan los componentes, así que nunca cambian qué intento gana. Juzgar así cada intento y cada ensayo
+había hecho dos veces más lento un circuito grande (el láser y el HC-SR04 en un UNO de
+`test/ultrasonic.test.js`: 29 s, otra vez 15 s).
+
+**El mismo spec, el mismo circuito.** Nada de la búsqueda depende del reloj salvo el límite de
+tiempo: dos corridas de un spec dan el mismo `circuit.json`, y un límite que se acabó es la única
+fuente de diferencia, y su línea lo dice.
+
+**Memoria.** Un componente se agrega sin copiar el circuito (`addOne`; `applyOps` lo copia entero),
+se construye solo en una protoboard que comparten las candidatas del mismo tamaño (`builtAlone`), y
+la memoria de las comprobaciones de geometría guarda como mucho `MEMO_STATES` (1500) estados, y antes
+de cada revisión solo los pasos de ese intento. `buildCircuit` guarda sus dos últimos resultados por
+el texto del circuito (una revisión construía el mismo circuito cinco o seis veces), y la trama del
+inspector guarda las celdas de cada componente en una lista tipada, no en un Set
+(`src/render/coverage.js`); las dos dan las mismas cifras (`test/recipe-sweep.test.js`, la comprobación de visibilidad).
+Doscientas resistencias en serie con una pila de 9 V: `DONE` en un intento, unos 6 s, 0,62 GB; por
+la consola, con su página, unos 1,05–1,1 GB (abajo).
+
+### Costo: lo que hacía lentos los circuitos grandes (medido el 2026-11-20)
+
+Perfilado con `node --cpu-prof` y contadores en la búsqueda, con una pata de un UNO que maneja diez y
+veinte LED con sus resistencias (en la 0.12.1 diez tardaban 59 s y terminaban `CHANGES`, veinte no
+terminaban en 120 s, un spec parecido se quedó sin memoria):
+
+- **Cada candidata reconstruía el circuito entero.** `tryOps` llamaba a `buildCircuit` sobre todo:
+  la geometría 3D de cada componente desde cero (el torneado de una resistencia, la cúpula de un
+  LED) y las comprobaciones de cada par. Diez pares: 2849 comprobaciones de unos 15 componentes cada
+  una en 24 intentos, 34 s de 92 s; el costo de un intento crecía con el cuadrado de los
+  componentes. Ahora, el componente solo frente a los que tiene cerca.
+- **La memoria guardaba una construcción entera por candidata**, con el circuito entero escrito como
+  clave: 2,9 GB de memoria residente para diez pares; además `applyOps` copiaba el circuito entero
+  por cada candidata.
+- **Los intentos no convergían.** Cada intento terminaba con de tres a nueve componentes o cables
+  tapados en las dos vistas (`PART_HIDDEN`), el ciclo movía un lugar por intento, y los órdenes que
+  dan las redes corrían ocho intentos más cada uno, uno de ellos el mismo orden ya montado: 24
+  intentos y el `suggest` de la reparación (cada candidata un dibujo entero, 13 s). Ahora la
+  visibilidad se mide al ubicar cuando el primer intento muestra que el ciclo no lo arregla, y un
+  orden igual al ya montado se salta.
+
+Medido el 2026-11-20, con carga media de 1 a 1,5 (un proceso cada uno, memoria residente máxima),
+antes → después:
+
+| Caso | Antes (código de la 0.12.1) | Después |
+|---|---|---|
+| pata D8 de un UNO → diez LED con 220 Ω, un programa que la maneja | `CHANGES`, 24 intentos, 64 s, 2,9 GB | `WARNINGS` (la pata por encima de su corriente), 2 intentos, 3,0 s, 0,4 GB |
+| lo mismo con veinte | no terminó en 180 s | `WARNINGS`, 3 intentos, 8,3 s, 0,5 GB |
+| UNO + 74HC595 + ocho LED (18 componentes) | `WARNINGS`, 20 intentos, 37 s, 2,8 GB | `WARNINGS`, 12 intentos, 9,4 s, 0,6 GB |
+| doscientas resistencias en serie con una pila de 9 V | sin memoria, salida 134 | `DONE`, 1 intento, 5,6 s, 0,62 GB; la consola con su página 8,8 s, 1,04–1,11 GB |
+| todas las recetas (60) / con los ejemplos de montaje (65) | 16,7 s / 20,9 s | 15,9 s / 17,7 s, todas `DONE` |
+
+Frente al kit justo antes de este trabajo (con las dudas y la línea `Comportamiento`), las recetas
+pasaron de 26,5 s a 15,6 s y ninguna se volvió más lenta en más de 10 %. Ubicaciones: todas las
+recetas y los ejemplos de montaje quedan como en la 0.12.1 salvo los cuatro cuyas redes de tierra
+ahora son una (`uno-button`, `encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
+
+### Casos difíciles: circuitos escritos a mano (2026-11-23)
+
+Tres asistentes con solo la habilidad empaquetada armaron 36 circuitos en un clon limpio. Todas las
+recetas terminaron en `DONE`; estos circuitos escritos a mano no, cada uno medido antes del cambio
+(carga de 3 a 4 en una máquina de cuatro núcleos compartida con otro trabajo):
+
+- **Cuatro relés en un ULN2003 y un ESP32 DevKit** (`test/fixtures/layout-hard/`): `CHANGES`, K2 y
+  K3 «no encontraron lugar» en cada orden que probó el asistente (5,6–10,5 s, 29–40 intentos). Un relé
+  queda sobre la mesa a lo largo del borde delantero, donde cae el promedio de sus dos cables: los
+  cables del segundo y del tercero llegan a las mismas salidas del driver, así que sus cuerpos caían
+  sobre el primero, y ninguna regla le daba al cuerpo otro lugar (`suggest` no puede ubicar un
+  componente cableado pata por pata). Tres arreglos:
+  - un relé o un interruptor (`SLIDES`) que no encuentra lugar tal cual prueba las mismas candidatas
+    con el cuerpo corrido a lo largo de su borde en anchos enteros de sí mismo (`offset`, primero los
+    más cercanos, dentro del largo de la protoboard), solo entonces: lo que ya se ubicaba sigue donde
+    estaba;
+  - la protoboard elástica no crecía por una placa ubicada por su pin 1 (un DevKit nombra una columna
+    y ocupa veinte), así que los componentes de después no tenían columnas (cero candidatas): un
+    componente que no encuentra lugar ahora hace crecer la protoboard más allá de la ventana del cursor
+    y se prueba otra vez, una sola (`floor`);
+  - un cable de un componente al lado de la protoboard ya no escoge un agujero bajo un cuerpo (la
+    placa de un DevKit tapa sus tiras): seguía a ningún agujero.
+  Ahora `DONE` en el orden dado y en los tres órdenes que probó el asistente (16–26 s, 27–44 intentos,
+  en dos protoboards, los relés uno al lado del otro). Las recetas y los ejemplos de montaje conservan
+  cada ubicación.
+- **Un circuito guardado con componentes por fuera lo dice.** El `STATUS: CHANGES` estaba en el
+  montaje, pero el circuito guardado no decía qué componentes de la especificación faltaban, y
+  `simulate` y `review` corrían como si estuviera completo. Ahora su `spec` los guarda,
+  `spec.unplaced` (cada componente como se pidió, sin agujeros), y volver a montar el circuito los
+  pide otra vez (`specFromCircuit`); la línea que `simulate` y `review` escriben primero es
+  `spec.unplaced` en `src/i18n/` («No están en la protoboard: K2, K3. …»).
+- **El orden que funciona es uno que la búsqueda podía encontrar.** Un UNO, un display de 7
+  segmentos y un botón (la receta `uno-seven-segment` y un botón) tardaba 31 s (67 146 colocaciones, 51
+  intentos) donde la receta tarda 1,8 s; con el display de primero terminaba en `DONE` en 10 intentos.
+  El orden dado gastaba 16 intentos (dos búsquedas completas) antes de probar un orden de las redes, y
+  cada uno de esos 16 más. Lo que tiene el orden que funciona: el display (el componente con más pines
+  de señal) de primero y lo demás en capas desde él; su primer intento dejaba 2 puntos por arreglar
+  donde el del orden dado dejaba 7. Así que `inAnyOrder` ahora:
+  - busca el orden dado solo con su primera búsqueda (una especificación que esta resuelve, cada
+    receta y cada ejemplo de montaje, termina exactamente como antes);
+  - cuando deja algo, le da un intento a cada orden de las redes (`scout`) y a un tercer orden: el
+    chip (el componente que no es una placa con al menos `CHIP_PINS` (4) pines en redes de señal) de
+    primero, las capas desde él;
+  - los busca completos según cómo terminó su primer intento, el mejor primero; el orden dado sigue
+    desde su primera búsqueda (solo la segunda, `resume`) y conserva su lugar en un empate. Al volver a
+    montar un circuito que ya existe (`previous`), los órdenes se buscan como antes.
+  Medido (carga de 3 a 11 en una máquina compartida con otro trabajo; las colocaciones son la
+  cifra comparable): el display y el botón en `DONE` en 11 618 colocaciones, 5,1 s con carga 3 (antes
+  67 146, 31 s con carga 3,5); dos 74HC595 con dieciséis LED en la protoboard doble en `DONE` en 109 288
+  y, con los LED de primero, 90 136 colocaciones (antes `CHANGES` en el límite, 300 025 y 279 850); en
+  una sola protoboard sigue en `CHANGES` en el reloj del límite (19 puntos abiertos con carga 11, 18
+  antes); un 555 con un CD4017 y diez LED, `CHANGES` en el límite con 6 puntos abiertos en cada uno de
+  los tres órdenes probados (antes 11 a 14). Las recetas y los ejemplos de montaje conservan cada
+  ubicación; sus colocaciones probadas en el banco, 128 410 → 47 507 (el ejemplo de llenado del 74HC595
+  102 475 → 17 861).
+- **La respuesta en el límite es la mejor vista, y dice qué ayudaría.** Un intento que el límite cortó
+  tiene menos componentes en la protoboard que se tapen entre sí, así que podía quedar mejor que uno
+  completo con las mismas redes sin unir: una corrida detenida en su límite terminaba peor que una de
+  10 s. Un componente que quedó fuera de la protoboard (`left` en un intento: cortado por el límite, o
+  sin lugar) ahora pesa tanto como redes mal hechas, en el puntaje del ciclo de reintentos y en
+  `rankOf`. Cada ✖ de una respuesta `CHANGES` trae el cambio que el kit probaría después, también
+  cuando la detuvo el límite, y un cambio ofrecido nunca es uno que el kit ya probó (los prueba él
+  primero, `NEXT_TRIALS`); la línea «Antes de esta respuesta el kit también probó» vuelve a salir (la
+  lista quedaba tapada por la cuenta del límite, `tried`, desde el 2026-11-20; ahora `changesTried`).
+- **Un componente que el kit no tiene.** `28BYJ-48` (un motor paso a paso) respondía «no tiene ningún
+  componente de nombre parecido». Los pedidos comunes que se reconocen por las palabras del nombre
+  (`nearOf`, `src/parts/resolve.js`) suman un motor paso a paso (un motor DC gira pero no da pasos; un
+  ULN2003 a cuatro bobinas dibujadas como inductores solo como ejercicio de cableado), una pantalla
+  OLED, un teclado, un joystick, un módulo Bluetooth y uno Wi-Fi (con lo que el kit tiene cerca), y una
+  tarjeta SD, un reloj de tiempo real y una celda de carga («Nada cercano»), en inglés y en español
+  (`check.UNKNOWN_PART_NAME.<pedido>`); el altavoz, la tira de LED, el servo, el transformador y la LCD
+  ya estaban.
+
 ### Dos protoboards: un DevKit en las dos filas de pines (desde el 2026-10-31)
 
 El circuito impreso de un ESP32 DevKit mide unos 11 agujeros de ancho y sus filas de pines quedan a
@@ -380,9 +630,13 @@ el circuito con él como una revisión (`fixRequest` en `src/layout.js`, `specWi
 `src/fix.js`): `set`, el valor nuevo de la resistencia (y el de la receta, en un circuito de receta);
 `add-series`, una resistencia nueva con el siguiente número R del circuito entre el pin y la red en
 la que estaba (`["U1.D10", "R3.1"]`, `["R3.2", "BZ1.1"]`), escrita justo antes del componente con
-el que queda en serie. La respuesta es la de cualquier `layout`, con una línea más antes de
-`STATUS:`: `Arreglo aplicado: R3 = 200 Ω en serie con BZ1.` (`Applied the fix: R3 = 200 Ω in series
-with BZ1.`); `--dry-run` lo vuelve un ensayo; `undo` devuelve el circuito (y su aviso). El kit nunca
+el que queda en serie; `swap`, un componente puesto al revés, volteado (sus dos patas intercambiadas
+en las redes); `swap-supply`, los cables de una fuente intercambiados (una fuente de banco sin rieles
+propios recibe los de la protoboard, escritos al revés; una batería como componente, sus dos patas en
+las redes). La respuesta es la de cualquier `layout`, con una línea más antes de `STATUS:`:
+`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.` (`Applied the fix: R3 = 200 Ω in series with
+BZ1.`), `Arreglo aplicado: BZ1 volteado (su 1 y su 2 intercambiados).` o `Arreglo aplicado:
+intercambiados los cables de V1 (su + y su −).`; `--dry-run` lo vuelve un ensayo; `undo` devuelve el circuito (y su aviso). El kit nunca
 aplica un arreglo por su cuenta, solo con esta petición. Donde no hay nada que aplicar lo dice y no
 cambia nada: sin peligro (`LAYOUT_FIX_NONE`, no es un error: sale con 0), sin arreglo calculado
 (`LAYOUT_FIX_NO_FIX`: «El kit no tiene un arreglo calculado para esto.»), un circuito sin `spec`
@@ -406,7 +660,7 @@ línea `Revisado`: lo que la revisión de peligros cubrió en este circuito y lo
 
 ```text
 Tal como está conectado, esto dañaría:
-  ⚠ aviso: Por U1.D10 pasan 88,3 mA, más que su máximo de 40 mA, con D10 en alto.
+  ⚠ aviso: Por U1.D10 pasan 88,3 mA, más que su máximo de 40 mA: el pin se puede dañar, con D9 + D10 en alto.
 Para arreglarlo: una resistencia de 200 Ω en serie con BZ1 deja el pin D10 de U1 en 19,4 mA (máximo 40 mA).
 Déjalo así si mostrar la falla es la idea. Díselo al usuario antes de cambiar nada.
 Revisado: en reposo, 3 salidas del programa. No revisado: picos al conmutar, combinaciones de salidas del programa.
@@ -437,11 +691,18 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
   circuito de receta con `STATUS: DONE` y sus lecturas a la vista, cuyo componente con meta trabaja
   por encima de su valor nominal: cuánto, y el valor estándar que lo dejaría lo más cerca del nominal
   sin pasarlo. Solo información: no se cambia nada.
+- **Difícil de ver** (`review.hidden: [{ part, visible, by }]`): un componente (no un puente) que se ve
+  menos del 50 % en todas las vistas que dejó layout, una línea por componente con lo que se ve en su
+  mejor vista y lo que lo tapa. Solo información: no cambia el estado (las reglas propias de la
+  revisión siguen bloqueando un componente tapado en todas las vistas de una lección).
 - **Lecturas** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
   brightness? }] }`): el punto de operación en DC del simulador, el que imprime `simulate`. Primero
-  las fuentes (una fuente de banco, una batería, el USB de una tarjeta), luego los componentes cuyo
+  las fuentes (una fuente de banco, una batería por su id, el USB de una tarjeta; cada una una vez), luego los componentes cuyo
   trabajo es ser accionados: los LEDs (corriente y brillo), luego zumbadores, motores, bobinas de
-  relé y láseres. A lo sumo cuatro en el texto, y después cuántos más lista `simulate`. Se omiten
+  relé y láseres. A lo sumo cuatro en el texto, y después cuántos más lista `simulate`. Un circuito
+  sin ninguno de ellos (un divisor, un regulador Zener) da en su lugar el voltaje de cada red que no
+  es un riel, nombrada por sus patas (`fuente 5 V · R1.2 = R2.1 3,33 V`; `nets: [{ pins, voltage }]`),
+  a lo sumo cuatro. Se omiten
   cuando el circuito no tiene fuente, el punto en DC no se puede resolver, una tarjeta corre un
   programa (el programa decide qué se enciende; un punto en reposo en el tiempo cero engañaría), una
   fuente es un generador (lo que importa es la señal, no su valor en reposo) o un temporizador está
@@ -451,7 +712,7 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
   los resultados (`page.simulation` o `page.results` en false: un valor que el aprendiz debe
   predecir primero).
 - **Programa** (`programs: [{ part, text, truncated, file?, omitted? }]`): el sketch de cada tarjeta
-  tal como está guardado (el texto, o el archivo `.ino` junto al circuito, leído solo dentro de su
+  tal como está guardado (el texto, o el archivo `.ino` en la carpeta del circuito, junto a `circuit.json`, leído solo dentro de su
   carpeta), cada línea con dos espacios de sangría. Pasadas 80 líneas o 4 000 caracteres, las
   primeras 40 líneas y una línea que dice cuántas se dejaron fuera y dónde está el texto completo.
   Todo salto de línea que pueda ver un lector (`\r`, `\u2028` y parecidos) termina ahí también una
@@ -464,7 +725,9 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
 
 **Un ensayo** (`--dry-run`; en la herramienta MCP `dry_run: true`, la palabra que usa `apply_ops`):
 todo lo anterior, sobre el circuito como quedaría después de la llamada (un objetivo nuevo, o uno que
-ya existe montado otra vez), con la misma respuesta y el mismo `STATUS`, sin escribir nada: ni archivo
+ya existe montado otra vez), con la misma respuesta y el mismo `STATUS` (cuyas palabras dicen que fue
+un ensayo: `DONE · tal como se ensayó, el circuito quedaría listo … no se guardó nada`, y `WARNINGS`
+termina en `Esto fue un ensayo … no se guardó nada`), sin escribir nada: ni archivo
 del circuito, ni historial, ni página, ni revisión, ni carpeta de salidas; en un anfitrión MCP con el
 visor no se muestra tablero (como `try_ops`). Su última línea antes de `STATUS:` lo dice: `Ensayo: no
 se guardó nada.` (`Trial: nothing was saved.`); la línea de la página no va. Así se ensaya una idea que
@@ -479,7 +742,7 @@ quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer
 | `STATUS:` | Significa | Sigue |
 |---|---|---|
 | `DONE` | están todas las redes, nada quedó sin ubicar y la revisión aprueba | reportar |
-| `WARNINGS` | armado y con las redes bien, pero un componente se dañaría tal como está conectado (⚠): la revisión es aprobada con avisos | decirle primero al usuario cuál componente y por qué se quema; dejarlo solo si esa es la idea, si no ofrecer el arreglo del kit (`Para arreglarlo`), o si no hay, ensayar antes una idea con `--dry-run` |
+| `WARNINGS` | armado y con las redes bien, pero cada línea ⚠ de arriba hay que decírsela al usuario antes de decir que funciona: un componente que se dañaría tal como está conectado (un peligro), o algo que el kit no puede confirmar que funcione (una duda, bajo «El kit no puede confirmar que esto funcione»: un componente sin simular, un programa que no corre, un relé que puede no cerrar, un pulsador entre patas unidas, un aviso de la simulación; [simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)); la revisión es aprobada con avisos | decirle primero cada una al usuario, en palabras simples; dejar el circuito como lo pidió salvo que quiera un cambio; para un peligro ofrecer el arreglo del kit (`Para arreglarlo`), o si no hay, ensayar antes una idea con `--dry-run` |
 | `CHANGES` | se creó, pero una red, una ubicación o la revisión dejaron algo (✖); en un ensayo no se creó nada | arreglar solo eso con `suggest` y `apply_ops`, luego `review`; tras un ensayo, probar otra idea o aplicar esta |
 | `FIX_SPEC` | no se creó nada: la especificación tiene errores | arreglar cada ✖ y volver a llamar |
 | `SPEC_OK` | `check_only`: la especificación es coherente | volver a llamar sin él |
@@ -505,6 +768,13 @@ con una red sin conectar. La consola sale con 0 con `DONE` y `WARNINGS` (1 con `
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | pares de agujeros que se miden por par de grupos; rechazos antes de que una red se rinda |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0,3 mm | el costo de un cable por cada cuerpo que cruza; un cable que termina en el borde de un cuerpo no lo cruza |
 | `TRIES`, `REPAIRS` | 8, 4 | reintentos como máximo; cables que la reparación vuelve a trazar como máximo |
+| `NEXT_TRIALS`, `CHIP_PINS` | 3, 4 | cambios que el kit ofrecería, probados primero por él mismo; pines de señal que hacen de un componente el chip desde el que empieza un orden de las redes |
+| `SLIDES`, `SLIDE_STEPS` | relay, switch; 12 | componentes fuera de la protoboard que se corren a lo largo de su borde cuando su cuerpo cae sobre otro; anchos que pueden correrse a cada lado |
+| `TRIAL_TRIES` | 2 | intentos del ciclo de reintentos que recibe cada prueba antes de `CHANGES` («Lo que prueba el montaje antes de CHANGES»); las pruebas que sirvieron tomaron uno o dos |
+| `SEEN_SHARE` | 75 % | un lugar que deja a un componente por debajo de esta parte en su mejor vista se usa solo si ningún otro se libra (`src/layout-sight.js`; la revisión bloquea por debajo de 70 %) |
+| `MEMO_STATES` | 1500 | estados que guarda la memoria de un montaje |
+| `BUDGET_SECONDS`, `LIMITS.layoutSeconds` | 60 s, 300 s | el límite de tiempo de la búsqueda por defecto, y como mucho |
+| `SECONDS_PER_PART` | 0,12 s | un intento por componente sobre la protoboard, para la nota de que un spec pasa del límite |
 | inicio del cursor | 2 | primera columna que se usa, en cada mitad |
 | `clearance` | 1 mm (por defecto en la especificación) | separación entre cuerpos; 3 para una clase más holgada |
 
@@ -519,7 +789,10 @@ El 2026-10-18 lo único que bloqueaba era la visibilidad: el perfil lesson daba 
 las vistas una pieza apenas bajaba del 85 % visible en cada una (el umbral de nota del inspector), y
 contaba como dos vistas dos piezas que la tapaban en la misma. Desde el 2026-10-20 bloquea cuando la
 **mejor vista** de la pieza muestra menos del 70 % (`hiddenBelow` en `PROFILES.lesson`), contado por
-vista. Un 555 que se ve 73 % de frente y 69 % desde atrás ya no bloquea; se lee bien.
+vista. Un 555 que se ve 73 % de frente y 69 % desde atrás ya no bloquea; se lee bien. Una pieza
+oculta en una vista pero bien vista en otra es un consejo: `review` la lista como nota (desde
+2026-11), nunca como aviso junto a un APROBADO, así `review` y `layout` dan un solo veredicto para un
+circuito.
 
 Cuatro circuitos de clase más, probados el 2026-10-20: el NPN como interruptor, el divisor con
 potenciómetro y el 555 astable salen aprobados al primer intento; el ESP32 DevKit con pulsador y LED
@@ -576,9 +849,11 @@ con patas en las dos mitades), `tries`, `ms` y la cantidad de bloqueos y problem
   (`.claude/state/` se ignora), así que cada copia del repositorio tiene la suya.
 - `npm run layout-bench -- --compare [archivo]` corre otra vez e imprime, por caso, lo que cambió
   frente a la línea base (cables, largo de cable, ancho en columnas, agujeros, cruces, intentos,
-  estado) con su signo, los casos nuevos o ausentes y una línea de totales (cables, mm de cable,
-  cruces, casos `DONE`). El tiempo se guarda pero nunca se compara. Si se pasan archivos de
-  especificación, van antes de las banderas.
+  tiempo, estado) con su signo, los casos nuevos o ausentes y una línea de totales (cables, mm de
+  cable, cruces, casos `DONE`, ms). El tiempo se compara desde el 2026-11-20 (antes y después de un
+  cambio en el costo de la búsqueda); en una máquina compartida con otro trabajo es ruidoso, así que
+  hay que comparar con la misma carga. Si se pasan archivos de especificación, van antes de las
+  banderas; `--budget <segundos>` le da a cada montaje ese límite de tiempo.
 - Una especificación de `examples/layout/` puede llevar `"bench": { "expect": "changes", "why": "…" }`:
   un caso que el algoritmo todavía no resuelve. El banco quita la clave antes de montar, imprime el
   caso como `EXPECTED CHANGES` y no lo cuenta como fallido; todo lo demás debe terminar en `DONE`
@@ -593,17 +868,15 @@ en su siguiente llamada.
 
 En orden de lo que más rendiría:
 
-1. **La visibilidad todavía la encuentra sobre todo el ciclo de reintentos.** Un cable paga por cada
-   cuerpo que cruza (paso 3) y una candidata paga por encerrar el camino de una pieza alta a su riel
-   (paso 2b), pero la ubicación todavía no sabe qué tapa qué en el dibujo isométrico: los cables de
-   un UNO que pasan en arco sobre la protoboard, un cable largo que cruza una mitad por encima de
-   una resistencia, un LED alto delante de una pieza baja. El ciclo los encuentra (de uno a cinco
-   intentos en el banco). Una estimación barata de cada vista (qué tan alto es un cuerpo y qué hay
-   detrás), o medir la visibilidad solo de la candidata elegida, haría pasar más primeros intentos.
-2. **Cada candidata construye el circuito entero.** `tryOps` vuelve a construir la geometría de
-   todas las piezas para comprobar una más; eso es casi todo el tiempo (las pruebas se recuerdan
-   entre intentos, lo que ayuda al ciclo, no al primer intento). Una comprobación incremental (solo
-   lo que toca la pieza nueva) dejaría probar muchas más candidatas en el mismo tiempo.
+1. **La visibilidad se mide lugar por lugar solo en circuitos grandes, y gana el primero por costo
+   cuando ninguno se libra** (desde el 2026-11-20, «Lo que tapa»). Un mejor recurso (el menos tapado,
+   sin irse a un lugar raro y lejano: probado, hacía terminar `uno-seven-segment` en `CHANGES`) haría
+   pasar más primeros intentos.
+2. **La página y la revisión de un circuito largo se llevan la mayor parte de su memoria.** Con
+   doscientas resistencias (una protoboard de 400 columnas) la página sola llega a unos 0,6 GB (dos
+   vistas interactivas, 17 MB de HTML), y el proceso de la consola a 1,04–1,11 GB: la geometría de
+   los dibujos es basura que el motor recoge tarde. Se midió una trama más gruesa para marcos anchos
+   y no ahorró nada.
 3. **El ciclo prohíbe un lugar a la vez** y empieza de nuevo. Con varios ítems bloqueantes todavía
    puede gastar sus intentos en una sola zona; prohibir una región pequeña, o rehacer solo los
    componentes posteriores a la víctima, convergería más rápido.
@@ -620,6 +893,12 @@ En orden de lo que más rendiría:
    cambia `junction` en `doubleBoard` (`src/board/board.js`) si es distinta. Los cables entre las
    filas de pines de las dos protoboards todavía pasan por encima del DevKit cuando una red necesita
    las dos (tres en el caso del banco).
+7. **Dos circuitos densos de chips siguen terminando en `CHANGES` en una sola protoboard** (medido
+   el 2026-11-23): dos 74HC595 con dieciséis LED (19 puntos abiertos en el límite de 60 s) y
+   un 555 que da reloj a un CD4017 con diez LED (6 abiertos). Cada intento de un circuito así cuesta
+   unas 16 000 colocaciones, así que el límite permite pocos. El primero termina en `DONE` en la
+   protoboard doble (`"board": "double"`); el segundo todavía no tiene esa salida: un `--budget`
+   mayor, o el circuito en dos partes.
 
 ## Ver también
 

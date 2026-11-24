@@ -33,22 +33,34 @@ import { deviceFor } from './devices/index.js';
 import { issue } from './devices/shared.js';
 import { translateSketch } from './sketch.js';
 import { LIMITS } from '../limits.js';
-import { readBeside, programFile } from '../beside.js';
+import { readBeside, programFile, looksLikeFileName, isFolderBeside, circuitFolder } from '../beside.js';
 import { FIELDS, cleanEnvironment, createEnvironment } from './environment.js';
 
 // A board's program (docs/en/microcontrollers.md, M2): the sketch's text in "program", or the name
 // of a .ino file beside the circuit (read by beside.js, inside the circuit's folder only);
 // translated once here, run by the page and by simulate.
-const SKETCH_SEVERITY = { SIM_PROGRAM_ERROR: 'warning', SIM_PROGRAM_NO_LOOP: 'warning', SIM_PROGRAM_UNSUPPORTED: 'warning', SIM_PROGRAM_LIBRARY: 'info', SIM_PROGRAM_TOO_LARGE: 'warning', SIM_PROGRAM_NOT_IN_KIT: 'warning', SIM_PROGRAM_IGNORED: 'info' };
+const SKETCH_SEVERITY = { SIM_PROGRAM_ERROR: 'warning', SIM_PROGRAM_NO_LOOP: 'warning', SIM_PROGRAM_UNSUPPORTED: 'warning', SIM_PROGRAM_LIBRARY: 'info', SIM_PROGRAM_TOO_LARGE: 'warning', SIM_PROGRAM_NOT_IN_KIT: 'warning', SIM_PROGRAM_IGNORED: 'info', SIM_PROGRAM_ARRAY_DIMENSIONS: 'warning' };
 function sketchOf(circuit, part, issues) {
   const given = part.raw.program;
   if (given == null || given === '') return null;
   let text = String(given);
   const name = programFile(text);
+  const folder = circuitFolder(circuit);
+  const where = folder ? { folder, variant: 'folder' } : { variant: 'noFolder' };
+  // A one-line program that is a file name the kit does not read (not a .ino), or a folder: said so.
+  if (!name && looksLikeFileName(text)) {
+    const file = text.trim();
+    issues.push(issue('warning', isFolderBeside(circuit, file) ? 'SIM_PROGRAM_FOLDER' : 'SIM_PROGRAM_NOT_SKETCH', { part: part.id, file, ...where }));
+    return null;
+  }
   if (name) {
     const read = readBeside(circuit, name, LIMITS.sketchChars);
     if (read.error === 'outside') {
       issues.push(issue('warning', 'SIM_PROGRAM_OUTSIDE', { part: part.id, file: name }));
+      return null;
+    }
+    if (read.error === 'folder') {
+      issues.push(issue('warning', 'SIM_PROGRAM_FOLDER', { part: part.id, file: name, ...where }));
       return null;
     }
     if (read.error === 'size') {
@@ -96,9 +108,16 @@ function supplyList(circuit, board) {
       if (model.error) return { ...common, voltage: NaN };
       return { ...common, voltage: model.emf, internalResistance: model.resistance, battery: model };
     }
-    const voltage = Number(s.voltage);
+    // A negative voltage is the same supply the other way round: its terminals swap and the voltage
+    // is positive (so a part it feeds backwards is judged as such, by its own limits).
+    const asked = Number(s.voltage);
+    const voltage = Math.abs(asked);
+    // `written`: what the circuit says (−5 V), so the readings name it that way; `named`: the rail
+    // written as its + (the lower one in fact) and `high`, the one that is positive.
+    const written = asked < 0 ? { written: asked, named: common.positive, high: common.negative } : {};
+    if (asked < 0) [common.positive, common.negative] = [common.negative, common.positive];
     const cells = Math.max(1, Math.round(voltage / 1.5));
-    return { ...common, voltage, internalResistance: Number(s.internalResistance ?? (kind === 'battery' ? cells * BATTERY_CELL_RESISTANCE : 0)) };
+    return { ...common, ...written, voltage, internalResistance: Number(s.internalResistance ?? (kind === 'battery' ? cells * BATTERY_CELL_RESISTANCE : 0)) };
   });
 }
 

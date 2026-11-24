@@ -86,7 +86,7 @@ export const zener = {
     } else {
       vz = zenerVoltage(part.value);
     }
-    if (!(vz > 0 && vz <= 200)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value ?? part.part), variant: 'zener' } } };
+    if (!(vz > 0 && vz <= 200)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value ?? part.part ?? ''), variant: (part.value ?? part.part) == null || (part.value ?? part.part) === '' ? 'zener.missing' : 'zener' } } };
     return {
       package: 'axial',
       params: {
@@ -175,7 +175,9 @@ function transistor(type, fallback) {
 export const mosfet = transistor('mosfet', 'IRLZ44N');
 
 // Integrated circuits in DIP packages. Place them with "pin1" (e.g. "f10").
-const ICS = { timer: 'TMR', 'op-amp': 'OPA', 'dual op-amp': 'OPA', 'quad op-amp': 'OPA', 'dual comparator': 'OPA' };
+const ICS = { timer: 'TMR', 'op-amp': 'OPA', 'dual op-amp': 'OPA', 'quad op-amp': 'OPA', 'dual comparator': 'OPA', 'shift register': 'SR', 'decade counter': 'CNT' };
+// The analog driver chips (src/sim/devices/darlington.js, optocoupler.js, lm386.js).
+Object.assign(ICS, { 'darlington array': 'DRV', optocoupler: 'OPT', 'audio amplifier': 'AMP' });
 
 export const ic = {
   type: 'ic',
@@ -190,7 +192,8 @@ export const ic = {
       params: { count: found.entry.pins.length, marking: part.marking ?? found.number },
       label: { text: found.number },
       // Simulated: a timer (NE555, src/sim/devices/timer.js), op-amps and comparators
-      // (src/sim/devices/opamp.js). Other ICs are drawn only.
+      // (src/sim/devices/opamp.js), the 74HC595 (shift-register.js), the CD4017 (counter.js). Other ICs
+      // are drawn only.
       electrical: { kind: ICS[found.entry.model?.function] ?? 'IC', part: found.number, ...found.entry.model },
     };
   },

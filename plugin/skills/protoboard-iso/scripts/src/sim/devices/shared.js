@@ -15,15 +15,22 @@ export const positiveNumbers = (o) => Object.fromEntries(Object.entries(o && typ
 // `of`: what the limit belongs to when the quantity alone does not say (the supply, a coil, the
 // output), the key of `catalog.limit.of.*`; only `catalog <part>` reads it.
 // `nearAt`: where "near the limit" starts, when it is not the usual 80 % (controls.js).
-export function stress(code, quantity, value, max, unit, { param = quantity, reportMax = true, pin, nearAt, of } = {}) {
-  return { code, quantity, value, max, unit, ratio: max > 0 ? value / max : 0, param, reportMax, ...(pin && { pin }), ...(nearAt && { nearAt }), ...(of && { of }) };
+export function stress(code, quantity, value, max, unit, { param = quantity, reportMax = true, pin, nearAt, of, extra } = {}) {
+  return { code, quantity, value, max, unit, ratio: max > 0 ? value / max : 0, param, reportMax, ...(pin && { pin }), ...(nearAt && { nearAt }), ...(of && { of }), ...(extra && { extra }) };
 }
+// A supply fed backwards: `value` is how far the `low` pin sits below the `high` one (positive when
+// reversed), against `max`, the most the part takes (models.js, REVERSE_LIMITS). The line names both pins.
+export const reverseSupply = (value, max, low, high, effect = 'maybeDestroyed') => stress('SIM_REVERSE_VOLTAGE', 'reverse', value, max, 'V', { param: 'voltage', of: 'supply', extra: { variant: 'pins', low, high, effect } });
 // Something to say that is not a limit (a buzzer on DC, a regulator out of regulation).
 export const note = (severity, code, params) => ({ note: issue(severity, code, params) });
 
+// What a transistor carries above which it is never called off (bjt.js, mosfet.js) [assumed: its
+// leakage is pA to nA].
+export const CONDUCTING = 10e-6;
+
 // The warning a stress becomes when it is exceeded.
 export function stressIssue(id, s) {
-  return issue('warning', s.code, { part: s.pin ? `${id}.${s.pin}` : id, [s.param]: q(s.value, s.unit), ...(s.reportMax && { max: q(s.max, s.unit) }) });
+  return issue('warning', s.code, { part: s.pin ? `${id}.${s.pin}` : id, [s.param]: q(s.value, s.unit), ...(s.reportMax && { max: q(s.max, s.unit) }), ...s.extra });
 }
 
 // Voltage between the first two pins, the element's current from the first to the second.
@@ -39,7 +46,7 @@ export function twoTerminalLines(p, h) {
   if (p.sensor?.kind === 'thermistor') lines.push(h.q('sensor.temperature', `${String(p.sensor.temperature).replace('.', h.decimal)} °C`), h.q('sensor.resistance', h.f(p.sensor.resistance, 'Ω')));
   if (p.sensor?.kind === 'ldr') lines.push(h.q('sensor.light', `${String(p.sensor.light).replace('.', h.decimal)} lx`), h.q('sensor.resistance', h.f(p.sensor.resistance, 'Ω')));
   lines.push(h.q('voltage', h.f(p.voltage, 'V')), h.q('current', h.f(p.current, 'A')), h.q('power', h.f(p.power, 'W')));
-  if (p.kind === 'LED') lines.push(h.q('brightness', h.t('sim.brightness', { percent: Math.round(p.brightness * 100) })));
+  if (p.kind === 'LED') lines.push(h.q('brightness', h.brightLine(p.brightness)));
   return lines;
 }
 

@@ -10,7 +10,7 @@ import { PART_TYPES } from '../src/parts/types/index.js';
 import { lookupPartNumber } from '../src/parts/db.js';
 import { findPin } from '../src/parts/pin-names.js';
 import { RECIPES, expandRecipe, resolveRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { loadTour, tourIssues } from '../src/tour.js';
 import { compactCatalog, formatCompactCatalog } from '../src/node/catalog.js';
 import { electretPeak, SENSOR_MODULES } from '../src/parts/sensors.js';
@@ -123,7 +123,9 @@ test('voltage sensor: 25 V with S on a 3.3 V board\'s pin is the board\'s over-v
     nets: [['T+', 'U1.VIN'], ['U1.GND', 'U1.-', 'U2.GND', 'T-'], ['U1.S', 'U2.D34']],
     supplies: [{ id: 'V1', kind: 'bench', voltage: 25, positive: 'T+', negative: 'T-' }],
   });
-  assert.equal(r.status, 'done', JSON.stringify(r.problems));
+  // Built; the over-voltage the simulation warns about is told before saying it works (a doubt).
+  assert.equal(r.status, 'warnings', JSON.stringify(r.problems));
+  assert.ok(r.review.doubts.some((d) => d.code === 'SIM_PIN_OVERVOLTAGE'), JSON.stringify(r.review.doubts));
   const s = simulate(r.circuit);
   assert.ok(s.ok, JSON.stringify(s.issues));
   assert.ok(s.parts.U1.vs > 3.6, `S is held up to the board's clamp: ${s.parts.U1.vs}`);
@@ -185,10 +187,11 @@ test('active buzzer: from 2.0 V it is a 167 ohm load and sounds, quieter below 5
   near(buzzer(5).level, 85, 0.3, 'level at 5 V');
   assert.equal(buzzer(1.7).sounding, false);
   assert.ok(buzzer(1.7).current > 0.001 && buzzer(1.7).current < 0.01, 'the ramp is between nothing and the law');
-  // Over 35 mA a current note (never a warning), over 7.5 V the maximum-supply warning, and neither at 5 V.
+  // Over 35 mA a current warning (over its listed maximum; never a stress), over 7.5 V the
+  // maximum-supply warning, and neither at 5 V.
   const six = buzzer(6).issues;
   assert.ok(codes({ issues: six }).includes('SIM_BUZZER_CURRENT') && !codes({ issues: six }).includes('SIM_OVER_CURRENT'));
-  assert.ok(six.every((i) => i.severity === 'info'), JSON.stringify(six));
+  assert.ok(six.every((i) => i.code === 'SIM_BUZZER_CURRENT' && i.severity === 'warning'), JSON.stringify(six));
   assert.ok(!codes({ issues: buzzer(6).issues }).includes('SIM_IC_SUPPLY'));
   assert.ok(codes({ issues: buzzer(8).issues }).includes('SIM_IC_SUPPLY'));
   assert.deepEqual(codes({ issues: buzzer(5).issues }), []);
@@ -465,6 +468,6 @@ test('49E: a note between 6.5 V and the 8 V of the warning, nothing at 5 V', () 
 test('voltage sensor: a note above the 25 V on its label (40 V gives 8 V on S), none at 25 V', () => {
   const over = voltage(40);
   near(over.parts.U1.vs, 8, 0.01, 'S at 40 V');
-  assert.ok(codes(over).includes('SIM_VOLTAGE_SENSOR_RANGE') && over.issues.find((i) => i.code === 'SIM_VOLTAGE_SENSOR_RANGE').severity === 'info');
+  assert.ok(codes(over).includes('SIM_VOLTAGE_SENSOR_RANGE') && over.issues.find((i) => i.code === 'SIM_VOLTAGE_SENSOR_RANGE').severity === 'warning');
   assert.ok(!codes(voltage(25)).includes('SIM_VOLTAGE_SENSOR_RANGE'));
 });

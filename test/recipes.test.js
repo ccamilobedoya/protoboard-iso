@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 import { RECIPES, expandRecipe, resolveRecipe, recipeDefaults } from '../src/recipes/index.js';
 import { goalsOf, QUANTITIES } from '../src/recipes/goals.js';
 import { ESTIMATES } from '../src/recipes/estimates.js';
-import { autoLayout, specFromCircuit } from '../src/layout.js';
-import { simulate } from '../src/sim/index.js';
+import { specFromCircuit } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { resolvePart } from '../src/parts/resolve.js';
 import { catalogEntry, compactCatalog } from '../src/node/catalog.js';
 import { formatIssue, buildCircuit, labelText } from '../src/index.js';
@@ -17,13 +17,8 @@ const layoutOf = (name, values) => {
   return autoLayout(spec);
 };
 
-for (const name of Object.keys(RECIPES)) {
-  test(`recipe ${name}: ready in one layout call, with its defaults`, () => {
-    const r = layoutOf(name);
-    assert.equal(r.status, 'done', why(r));
-    assert.deepEqual(r.circuit.spec.recipe, { name });
-  });
-}
+// Every recipe ready in one layout call with its defaults, and simulating without errors or stress:
+// test/recipe-sweep.test.js (the shared sweep).
 
 // One case per goal a recipe declares (docs/en/recipes.md, "Goals"): its example is reachable at the
 // recipe's defaults, solved into standard values, and the circuit solved ends DONE.
@@ -79,15 +74,6 @@ test('recipes: each value names an item that has that field', () => {
   }
 });
 
-test('recipes with a source simulate without errors and without stressing a part', () => {
-  for (const name of Object.keys(RECIPES)) {
-    const s = simulate(layoutOf(name).circuit);
-    assert.ok(s.ok, `${name}: ${JSON.stringify(s.issues)}`);
-    const over = Object.entries(s.parts).flatMap(([id, p]) => (p.stress ?? []).filter((x) => x.level !== 'fine').map((x) => `${id} ${x.quantity} ${x.level}`));
-    assert.deepEqual(over, [], name);
-  }
-});
-
 test('recipe values: the main field by id, or some allowed fields', () => {
   const { spec } = expandRecipe('npn-switch', { R1: '470', D1: { color: 'green' }, Q1: 'bc547', V1: 9, R2: { value: '220', tolerance: '1%' } });
   const part = (id) => spec.parts.find((p) => p.id === id);
@@ -119,7 +105,7 @@ test('recipe problems: unknown name, item, field, choice and range; never with p
 
 test('a recipe value the kit cannot read is refused before anything is placed, saying what it takes, in both languages', () => {
   const cases = [
-    ['led-resistor', { R1: 'abc' }, 'BAD_VALUE', /^error: R1: the kit does not understand the value "abc"\. It takes a resistance in ohms, such as 330, 4k7 or 1M\.$/, /^error: R1: el kit no entiende el valor «abc»\. Lleva una resistencia en ohmios, como 330, 4k7 o 1M\.$/],
+    ['led-resistor', { R1: 'abc' }, 'BAD_VALUE', /^error: R1: the kit does not understand the value "abc"\. It takes a resistance in ohms, such as 330, 4k7 or 1M: a number with one of the prefixes p, n, u, m, k, M, G and no exponent \(1G, not 1e9\), from 100 mΩ to 99 GΩ\.$/, /^error: R1: el kit no entiende el valor «abc»\. Lleva una resistencia en ohmios, como 330, 4k7 o 1M: un número con uno de los prefijos p, n, u, m, k, M, G y sin exponente \(1G, no 1e9\), de 100 mΩ a 99 GΩ\.$/],
     ['rc-square', { C1: 'xyz' }, 'BAD_VALUE', /^error: C1: the kit does not understand the value "xyz"\. It takes a capacitance in farads, such as 100n/, /^error: C1: el kit no entiende el valor «xyz»\. Lleva una capacidad en faradios, como 100n/],
     ['led-resistor', { V1: 'abc' }, 'RECIPE_VALUE_NUMBER', /^error: V1 = abc is not a number: it takes one from 1\.5 to 15, such as 5\.$/, /^error: V1 = abc no es un número: lleva uno de 1,5 a 15, como 5\.$/],
     ['led-resistor', { D1: 'pink' }, 'UNKNOWN_COLOR', /^error: D1: unknown colour "pink"\. Options: red, green/, /^error: D1: color desconocido/],

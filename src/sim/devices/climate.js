@@ -257,11 +257,17 @@ export const climate = {
     const model = C.boards[entry.part];
     out.push(stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, C.bosch.maxReverse, 'V', { param: 'voltage', of: 'supply' }));
     const max = model.regulated ? C.bosch.maxVin : C.bosch.maxSupply;
-    if (r.vcc > max) out.push(note('warning', 'SIM_IC_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), max: q(max, 'V') }));
+    // The fix the kit knows: the same chip on a board with its own regulator (BME280-5V), from the
+    // simulator's table of boards.
+    const instead = model.regulated ? null : Object.keys(C.boards).find((k) => C.boards[k].regulated && C.boards[k].chip === model.chip) ?? null;
+    const fix = instead ? { variant: 'instead', instead, from: q(C.bosch.minVin, 'V'), to: q(C.bosch.maxVin, 'V') } : {};
+    if (r.vcc > max) out.push(note('warning', 'SIM_IC_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), max: q(max, 'V'), ...fix }));
     // A bus line over the chip's VDDIO + 0.3 V (its pins' absolute maximum): an AVR's own pull-ups to
-    // 5 V against the board's 10 kΩ to 3.3 V idle at about 3.68 V. The bus still works: a note.
+    // 5 V against the board's 10 kΩ to 3.3 V idle at about 3.68 V (on the regulated board too: its
+    // pull-ups go to its own 3.3 V). The bus still works, but a pin is over its maximum: a warning (the
+    // review's doubt; with a program that runs, only when its run still sees it, sim/index.js).
     for (const [pin, v] of [['SDA', r.vsda], ['SCL', r.vscl]]) {
-      if (r.state === 'ready' && v > r.rail + C.bosch.overIo) out.push(note('info', 'SIM_PIN_OVER_VDDIO', { part: entry.id, pin, voltage: q(v, 'V'), max: q(r.rail + C.bosch.overIo, 'V') }));
+      if (r.state === 'ready' && v > r.rail + C.bosch.overIo) out.push(note('warning', 'SIM_PIN_OVER_VDDIO', { part: entry.id, pin, voltage: q(v, 'V'), max: q(r.rail + C.bosch.overIo, 'V') }));
     }
     const min = model.regulated ? C.bosch.minVin : C.bosch.minSupply;
     // The regulated board under 3.4 V: its regulator is in dropout and the chip runs on what is left

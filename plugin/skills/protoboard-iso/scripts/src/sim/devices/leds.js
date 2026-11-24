@@ -82,7 +82,7 @@ export const leds = {
       return [
         stress('SIM_OVER_CURRENT', 'current', ch.current, m.maxCurrent, 'A', { pin: c.pin }),
         ...(m.maxPower ? [stress('SIM_OVER_POWER', 'power', Math.abs(ch.power), m.maxPower, 'W', { pin: c.pin })] : []),
-        stress('SIM_REVERSE_VOLTAGE', 'reverse', -ch.voltage, m.maxReverse, 'V', { param: 'voltage', pin: c.pin }),
+        stress('SIM_REVERSE_VOLTAGE', 'reverse', -ch.voltage, m.maxReverse, 'V', { param: 'voltage', pin: c.pin, extra: { effect: 'canBurn' } }),
       ];
     });
   },
@@ -90,7 +90,7 @@ export const leds = {
   lines(p, h) {
     const lines = Object.entries(p.channels).map(([pin, c]) => ({
       key: 'leds.channel',
-      text: `${h.t(`sim.leds.${pin}`)}: ${h.f(c.voltage, 'V')} · ${h.f(c.current, 'A')} · ${Math.round(c.brightness * 100)} %`,
+      text: `${h.t(`sim.leds.${pin}`)}: ${h.f(c.voltage, 'V')} · ${h.f(c.current, 'A')} · ${h.bright(c.brightness)}`,
     }));
     lines.push(h.q('leds.common', h.f(Math.abs(p.current), 'A')), h.q('power', h.f(p.power, 'W')));
     return lines;

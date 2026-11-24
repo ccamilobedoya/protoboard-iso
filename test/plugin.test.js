@@ -30,8 +30,10 @@ export function frontmatter(text) {
   if (!m) return null;
   return { fields: Object.fromEntries([...m[1].matchAll(/^([a-z-]+): (.*)$/gm)].map((x) => [x[1], x[2]])), body: m[2] };
 }
-// The text inside code: fenced blocks and `spans`.
-const codeOf = (md) => [...md.matchAll(/^```[^\n]*\n([\s\S]*?)^```/gm), ...md.replace(/^```[\s\S]*?^```/gm, '').matchAll(/`([^`\n]+)`/g)].map((m) => m[1]).join('\n');
+// The text inside code: fenced blocks and `spans`. A `text` block quotes what the kit printed (its
+// sentences say "the kit takes…"), never a command to run, so its words are not read as commands.
+const withoutQuotes = (md) => md.replace(/^```text\b[^\n]*\n[\s\S]*?^```\n?/gm, '');
+const codeOf = (md) => [...withoutQuotes(md).matchAll(/^```[^\n]*\n([\s\S]*?)^```/gm), ...md.replace(/^```[\s\S]*?^```/gm, '').matchAll(/`([^`\n]+)`/g)].map((m) => m[1]).join('\n');
 const proseOf = (md) => md.replace(/^```[\s\S]*?^```/gm, '');
 const docs = () => ['SKILL.md', ...files.filter((f) => f.startsWith(`skills/${SKILL}/references/`)).map((f) => f.slice(`skills/${SKILL}/`.length))].map((f) => [f, readFileSync(join(skillDir, f), 'utf8')]);
 

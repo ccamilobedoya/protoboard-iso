@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { translateSketch } from '../src/sim/sketch.js';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { resolveTarget, loadCircuit } from '../src/node/workspace.js';
 
@@ -33,11 +33,11 @@ void loop() {
 }`);
   assert.deepEqual(r.issues, []);
   assert.match(r.js, /function\* \$loop\(\)/, 'names of the sketch get a $');
-  assert.match(r.js, /\(yield \(\(\$WAIT\) \/ 1e3\)\)/, 'delay waits in seconds');
+  assert.match(r.js, /\(yield __ms\(\$WAIT\)\)/, 'delay waits (in seconds: __ms)');
   assert.match(r.js, /yield\* \$half\(5\)/, 'a call to its own function');
   // Run it with a stub API and look at what it computes.
   const seen = {};
-  const api = new Proxy({ HIGH: 1, LOW: 0, OUTPUT: 1, __int: Math.trunc, Serial: { begin() {} }, digitalWrite: (p, v) => (seen[p] = v), pinMode() {} }, { get: (o, k) => (k in o ? o[k] : () => 0) });
+  const api = new Proxy({ HIGH: 1, LOW: 0, OUTPUT: 1, __int: Math.trunc, __w: Math.trunc, __u: (v) => v, __div: (a, b) => Math.trunc(a / b), __ms: (ms) => ms / 1e3, Serial: { begin() {} }, digitalWrite: (p, v) => (seen[p] = v), pinMode() {} }, { get: (o, k) => (k in o ? o[k] : () => 0) });
   const program = run(`${r.js.replace('return {', 'globalThis.__probe = () => ({ count: $count }); return {')}`)(api);
   [...program.setup()];
   const steps = [...program.loop()];
@@ -131,6 +131,11 @@ test('analogWrite on an ESP32: 1 kHz, its duty in 8 bits; 0 and 255 are plain le
   const full = simulate(ledWith('void setup() { analogWrite(13, 255); }\nvoid loop() { delay(10); }'));
   assert.ok(full.parts.D1.current > 5e-3);
   assert.equal(full.parts.U1.pins[0].pwm, undefined, 'no wave to step through');
+});
+
+test('a comparison stored in an int is 1 or 0, as C++ makes it (int on = digitalRead(2) == LOW)', () => {
+  const r = simulate(ledWith('void setup() { pinMode(13, OUTPUT); }\nvoid loop() { int on = 3 > 2; int off = 2 > 3; digitalWrite(13, on - off); delay(10); }'));
+  assert.ok(r.parts.D1.current > 5e-3, 'the LED is lit by a true comparison');
 });
 
 test('ESP32 LEDC, core 3 and core 2; tone with a duration, then quiet', () => {
@@ -241,7 +246,7 @@ test('pulseIn: the timeout is clamped (not a number, negative, huge) to LIMITS.p
 test('sketch: pulseIn waits (yield*), returns an integer, and is a name of the runtime', () => {
   const r = translateSketch('void setup() {}\nvoid loop() { long cm = pulseIn(10, HIGH) / 58; }');
   assert.deepEqual(r.issues, []);
-  assert.match(r.js, /__int\(__int\(\(\(yield\* pulseIn\(10 , HIGH\)\)\) \/ 58\)\)/);
+  assert.match(r.js, /__w\(__div\(\(\(yield\* pulseIn\(10 , HIGH\)\)\), 58\), 8\)/);
 });
 
 test('SKETCH_API and the runtime give the same names (constants apart)', () => {
@@ -249,11 +254,11 @@ test('SKETCH_API and the runtime give the same names (constants apart)', () => {
   createRunner(js, { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
   const names = globalThis.__names;
   delete globalThis.__names;
-  const constants = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN'];
+  const constants = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN'];
   const helpers = names.filter((n) => n.startsWith('__'));
   const functions = names.filter((n) => !constants.includes(n) && !helpers.includes(n));
   assert.deepEqual([...functions].sort(), [...SKETCH_API].sort());
-  assert.deepEqual(helpers.sort(), ['__array', '__idx', '__int', '__lib', '__missing', '__new', '__wire']);
+  assert.deepEqual(helpers.sort(), ['__array', '__at', '__deepSleep', '__div', '__fmt', '__idx', '__int', '__lib', '__missing', '__mod', '__ms', '__new', '__post', '__serial', '__strm', '__tostr', '__u', '__upd', '__us', '__w', '__wire']);
 });
 
 test('delayMicroseconds: the engine ends a step on the program waking, so a 10 µs pulse lasts 10 µs', () => {

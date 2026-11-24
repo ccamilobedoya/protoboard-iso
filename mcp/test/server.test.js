@@ -283,7 +283,7 @@ test('layout check_only reads parts by name and reports every problem without cr
   assert.ok((await call('get_circuit', { target: 'circuits/checked' })).isError, 'nothing created');
 });
 
-test('layout dry_run: the same answer and STATUS, a trial line, nothing written, new or existing', async () => {
+test('layout dry_run: the same answer, a trial line, a STATUS that says nothing was saved, nothing written, new or existing', async () => {
   const trial = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 }, dry_run: true });
   assert.ok(!trial.isError, textOf(trial));
   assert.match(textOf(trial), /\nTrial: nothing was saved\.\nSTATUS: DONE · [^\n]*$/);
@@ -291,8 +291,11 @@ test('layout dry_run: the same answer and STATUS, a trial line, nothing written,
   assert.equal(trial._meta, undefined);
   assert.ok(!existsSync(join(root, 'trial-led')), 'no folder');
   const made = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 } });
-  const steady = (text) => text.replace(/ \d+ ms /, ' … ms ').split('\n').filter((l) => !/^(Trial: |trial-led · rev |Page: )/.test(l)).join('\n');
+  // The STATUS words differ on purpose: a trial says nothing was saved.
+  const steady = (text) => text.replace(/ \d+ ms /, ' … ms ').split('\n').filter((l) => !/^(Trial: |trial-led · rev |Page: |STATUS: )/.test(l)).join('\n');
   assert.equal(steady(textOf(trial)), steady(textOf(made)));
+  assert.match(textOf(trial), /STATUS: DONE · as tried, the circuit would be ready[^\n]*nothing was saved/);
+  assert.match(textOf(made), /STATUS: DONE · the circuit is ready/);
   const file = join(root, 'trial-led', 'circuit.json');
   const before = [readFileSync(file, 'utf8'), readFileSync(join(root, 'trial-led', 'history.jsonl'), 'utf8')];
   const again = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9, R1: '10' }, dry_run: true, lang: 'es' });
@@ -340,7 +343,7 @@ test('layout with a goal: the kit picks the standard value and says so; without 
 
 test('a part that burns only with the button pressed: layout ends WARNINGS saying so, review has the state in JSON', async () => {
   const made = await call('layout', { target: 'pressed-burns', recipe: 'npn-switch', values: { R2: '47', V1: 12 } });
-  assert.match(textOf(made), /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA, with S1 pressed\./);
+  assert.match(textOf(made), /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA: it burns out, with S1 pressed\./);
   assert.match(textOf(made), /STATUS: WARNINGS/);
   const r = jsonOf(await call('review', { target: 'pressed-burns', format: 'json' }));
   assert.equal(r.verdict, 'approved-with-warnings');
@@ -377,4 +380,43 @@ test('layout with a recipe: ready in one call, the catalog lists it, bad values 
   const both = await call('layout', { target: 'recipe-bad', recipe: 'divider', nets: [['R1.1', 'T+']] });
   assert.ok(both.isError);
   assert.ok((await call('get_circuit', { target: 'recipe-bad' })).isError, 'nothing created');
+});
+
+test('simulate run_s: the same run, text and structure as simulate --run on the command line', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const laid = await call('layout', { target: 'run-button', recipe: 'uno-button' });
+  assert.ok(!laid.isError, textOf(laid));
+  const args = { target: 'run-button', run_s: 1, press: ['S1@0.3+0.4'] };
+  const json = jsonOf(await call('simulate', { ...args, format: 'json' }));
+  const d1 = json.outputs.find((o) => o.id === 'D1');
+  assert.equal(d1.intervals.length, 1);
+  assert.ok(Math.abs(d1.intervals[0][1] - d1.intervals[0][0] - 0.4) < 0.02);
+  const bin = new URL('../../bin/protoboard-iso.js', import.meta.url).pathname;
+  const target = join(root, 'run-button');
+  const cli = (extra) => spawnSync(process.execPath, [bin, 'simulate', target, '--run', '1', '--press', 'S1@0.3+0.4', ...extra], { encoding: 'utf8' });
+  assert.deepEqual(JSON.parse(cli(['--json']).stdout), json);
+  assert.equal(textOf(await call('simulate', args)), cli([]).stdout.trimEnd());
+  // Errors are tool errors with the line.
+  const bad = await call('simulate', { target: 'run-button', run_s: 1, environment: { nonsense: 1 } });
+  assert.ok(bad.isError);
+  assert.match(textOf(bad), /"nonsense" is not a field of the environment/);
+});
+
+test('simulate serial: text typed to a board in a run, as simulate --run … --serial; only with run_s', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const menu = "void setup() { Serial.begin(9600); pinMode(8, OUTPUT); Serial.println(\"Type 1 or 2\"); }\nvoid loop() { if (Serial.available() > 0) { char c = Serial.read(); if (c == '1') { digitalWrite(8, HIGH); Serial.println(\"LED 1 on\"); } } }";
+  const laid = await call('layout', { target: 'run-serial', parts: [{ id: 'U1', part: 'UNO', program: menu }, { id: 'R1', type: 'resistor', value: '220' }, { id: 'D1', type: 'led', color: 'red' }], nets: [['U1.D8', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'U1.GND']] });
+  assert.ok(!laid.isError, textOf(laid));
+  const args = { target: 'run-serial', run_s: 1, serial: ['1\\n@0.5'] };
+  const json = jsonOf(await call('simulate', { ...args, format: 'json' }));
+  assert.deepEqual(json.serial.lines.map((l) => l.text), ['Type 1 or 2', 'LED 1 on']);
+  const bin = new URL('../../bin/protoboard-iso.js', import.meta.url).pathname;
+  const cli = spawnSync(process.execPath, [bin, 'simulate', join(root, 'run-serial'), '--run', '1', '--serial', '1\\n@0.5'], { encoding: 'utf8' });
+  assert.equal(textOf(await call('simulate', args)), cli.stdout.trimEnd());
+  const dc = await call('simulate', { target: 'run-serial', serial: ['1@0.5'] });
+  assert.ok(dc.isError);
+  assert.match(textOf(dc), /serial works with --run/);
+  const bad = await call('simulate', { target: 'run-serial', run_s: 1, serial: ['1'] });
+  assert.ok(bad.isError);
+  assert.match(textOf(bad), /--serial/);
 });

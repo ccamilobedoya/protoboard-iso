@@ -19,7 +19,7 @@ npm run examples -- --lang es                                             # todo
 |---|---|---|
 | **A mano**: cada componente con sus agujeros (`pins`) | Quieres cada agujero justo donde está en tu protoboard | [`led-resistor.json`](led-resistor.json) |
 | **Montaje automático**: componentes sin agujeros y las redes que los unen; `layout` los ubica y cablea | Cualquier otro circuito nuevo | [`layout/regulator-led.json`](layout/regulator-led.json): `node bin/protoboard-iso.js layout mi-regulador examples/layout/regulator-led.json` |
-| **Receta**: un circuito de lección habitual por su nombre, solo con los valores que cambian | El circuito es una de las [37 recetas](../docs/es/recetas.md) | `node bin/protoboard-iso.js layout mi-divisor --recipe divider --values '{"R2":"4k7"}'` |
+| **Receta**: un circuito de lección habitual por su nombre, solo con los valores que cambian | El circuito es una de las [60 recetas](../docs/es/recetas.md) | `node bin/protoboard-iso.js layout mi-divisor --recipe divider --values '{"R2":"4k7"}'` |
 
 El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 
@@ -30,6 +30,7 @@ El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 | <img src="../docs/img/examples/led-resistor.png" width="280" alt="LED con resistencia"> | **[led-resistor.json](led-resistor.json)**: un LED con su resistencia limitadora a 5 V. El circuito más pequeño con simulación; las imágenes del README salen de él. |
 | <img src="../docs/img/examples/voltage-divider.png" width="280" alt="Divisor de voltaje"> | **[voltage-divider.json](voltage-divider.json)**: dos resistencias de 10 kΩ parten 9 V por la mitad; la página muestra el voltaje donde se unen. |
 | <img src="../docs/img/examples/controls-and-ics.png" width="280" alt="Pulsadores, potenciómetros y chips"> | **[controls-and-ics.json](controls-and-ics.json)**: pulsadores a caballo del canal central, potenciómetros y chips DIP (NE555, LM358) ubicados por su pata 1. Solo dibujo, sin fuente. |
+| <img src="../docs/img/examples/555-cd4017-chaser.png" width="280" alt="555 dando el reloj a un CD4017 con cinco LED"> | **[555-cd4017-chaser.json](555-cd4017-chaser.json)**: un 555 astable da el reloj a un contador de décadas CD4017; cinco LED en Q0…Q4 se encienden uno tras otro y Q5 conectada a MR lo reinicia en la sexta cuenta. Hecho por `layout` desde [layout/555-cd4017-chaser.json](layout/555-cd4017-chaser.json). |
 | <img src="../docs/img/examples/npn-switch.png" width="280" alt="Interruptor con transistor NPN"> | **[npn-switch.json](npn-switch.json)**: la receta `npn-switch` tal como la monta `layout`, con un recorrido ([tours/npn-switch.json](tours/npn-switch.json)): *Ver cómo funciona* en el menú ⋯ de la página aprieta S1 y sigue la corriente hasta el LED. |
 
 ## Fuentes de alimentación
@@ -68,6 +69,7 @@ El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 | <img src="../docs/img/examples/esp32-two-boards.png" width="280" alt="ESP32 sobre dos protoboards"> | **[esp32-two-boards.json](esp32-two-boards.json)**: un ESP32 DevKit con redes en las dos filas de pines, montado en dos protoboards lado a lado (board `double`), sobre la unión, así cada fila de pines conserva una tira libre: un LED en D4, un pulsador en D15 y un potenciómetro en D34. Lo hizo `layout` a partir de [layout/esp32-both-headers.json](layout/esp32-both-headers.json). |
 | <img src="../docs/img/examples/uno-led.png" width="280" alt="Arduino UNO encendiendo un LED"> | **[uno-led.json](uno-led.json)**: un Arduino UNO al lado de la protoboard, con cables Dupont hasta un LED en D13. |
 | <img src="../docs/img/examples/epaper-esp32.png" width="280" alt="ESP32 con un panel e-paper"> | **[epaper-esp32.json](epaper-esp32.json)**: un ESP32 que maneja un panel e-paper de 7,5" a través del adaptador DESPI-C02. |
+| <img src="../docs/img/examples/uno-74hc595-fill.png" width="280" alt="UNO con un 74HC595 y ocho LED"> | **[uno-74hc595-fill.json](uno-74hc595-fill.json)**: un Arduino UNO llena ocho LED a través de un registro de desplazamiento 74HC595 con `shiftOut` (tres pines para ocho salidas: SER, SRCLK, y RCLK para fijar). Hecho por `layout` desde [layout/uno-74hc595-fill.json](layout/uno-74hc595-fill.json). |
 
 Los programas (sketches de Arduino que corren en la simulación) están en las recetas de
 microcontroladores: [microcontroladores.md](../docs/es/microcontroladores.md).
@@ -78,6 +80,14 @@ microcontroladores: [microcontroladores.md](../docs/es/microcontroladores.md).
 |---|---|
 | <img src="../docs/img/examples/parts-showcase.png" width="280" alt="Todos los componentes del kit"> | **[parts-showcase.json](parts-showcase.json)**: resistencias (5 % y 1 %), diodos, LED (uno RGB), condensadores, transistores, un módulo AMS1117, un display de 7 segmentos, interruptores deslizante y de inclinación, un LM35 y, al lado de la protoboard, un relé y un motor DC, con cables. Sus notas sobre patas sin conectar son esperadas. |
 | <img src="../docs/img/examples/more-parts.png" width="280" alt="Más componentes"> | **[more-parts.json](more-parts.json)**: trimmer, Zener, inductor, termistor, LDR, zumbador, pines de cabecera, LM324, LM317, PC817 y celdas de litio. |
+
+## Chips analógicos
+
+| | |
+|---|---|
+| <img src="../docs/img/examples/uln2003-relay.png" width="280" alt="Un UNO conmuta un relé con un ULN2003"> | **[uln2003-relay.json](uln2003-relay.json)**: el D8 de un UNO maneja el canal 1 de un ULN2003, cuyo OUT1 recibe la corriente de la bobina del relé desde 5 V; COM en los mismos 5 V es el diodo de protección de la bobina. El relé se activa un segundo y se suelta otro. |
+| <img src="../docs/img/examples/pc817-isolated-led.png" width="280" alt="Un optoacoplador PC817 entre un lado de 9 V y uno de 5 V"> | **[pc817-isolated-led.json](pc817-isolated-led.json)**: un botón en una batería de 9 V enciende el LED infrarrojo del PC817 con 680 Ω; su fototransistor recibe la corriente de un LED verde desde una fuente de 5 V. Los dos lados no comparten ningún cable y cada uno tiene su propia tierra; presiona el botón en la página. |
+| <img src="../docs/img/examples/lm386-amplifier.png" width="280" alt="Un LM386 amplifica una señal de 1 kHz sobre 8 ohmios"> | **[lm386-amplifier.json](lm386-amplifier.json)**: la onda de 1 kHz y 50 mV del generador entra por 10 µF a un LM386 con las patas 1 y 8 al aire (ganancia 20); la carga de 8 Ω recibe cerca de 1 V de pico a través de 220 µF, alrededor de los 4,5 V en que descansa la salida. La resistencia de 8 Ω hace de parlante, que el kit todavía no tiene. |
 
 ## Mal a propósito
 

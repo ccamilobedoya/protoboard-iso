@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { createBoard, boardLayout, boardSides, channelPairs, BOARDS, parseHole, railName } from '../src/board/board.js';
 import { devboardHoles } from '../src/parts/packages/devboard.js';
 import { buildCircuit } from '../src/circuit/build.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { renderCircuit, checkCircuit } from '../src/index.js';
 import { MODULES } from '../src/parts/modules.js';

@@ -10,17 +10,63 @@
 //   { revision, time, author, note, ops, inverse, undoes? }
 // Outputs (SVG, page, report.json) are derived and can be deleted at any time.
 
-import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync, rmSync, renameSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { applyOps, CIRCUIT_FIELDS } from '../ops.js';
-import { evaluate, diffEvaluations } from '../diff.js';
-import { renderCircuit, inspectCircuit } from '../index.js';
+import { judge, diffEvaluations, newErrorCount, isInputMistake } from '../diff.js';
+import { renderCircuit, inspectCircuit, formatIssue } from '../index.js';
 import { renderPage } from '../page.js';
 import { pickLanguage, t } from '../i18n/index.js';
 import { circuitTooLarge, fileTooLarge } from '../limits.js';
 import { CIRCUIT_FOLDER } from '../beside.js';
 
 const error = (code, params) => ({ severity: 'error', code, params });
+
+// A file the user names that cannot be used (missing, empty, not JSON, wrong shape): an error with an
+// issue (code + params), so every front end says the same thing in the person's language.
+export function inputIssueFor(issue, lang = 'en') {
+  const { what, shape } = issue.params;
+  if (!what) return issue; // a cap (src/limits.js): its params are numbers
+  return { ...issue, params: { ...issue.params, what: t(lang, `input.what.${what}`), ...(shape && { shape: t(lang, `input.shape.${shape}`) }), ...(issue.params.got && { got: t(lang, `input.got.${issue.params.got}`) }) } };
+}
+export const inputErrorText = (issue, lang = 'en') => formatIssue(inputIssueFor(issue, lang), lang);
+export class InputError extends Error {
+  constructor(issue) {
+    super(inputErrorText(issue, 'en'));
+    this.issue = issue;
+  }
+}
+const inputError = (code, params) => new InputError(error(code, params));
+const gotWord = (v) => (v === null ? 'null' : Array.isArray(v) ? 'list' : typeof v === 'object' ? 'object' : typeof v === 'string' ? 'text' : typeof v === 'number' ? 'number' : 'boolean');
+
+// Text that must hold JSON: what it is ('spec' | 'ops' | 'circuit' | 'history' | 'timeline'), where it
+// came from (a file name, "standard input"), the shape wanted ('object', or 'objects': one or a list).
+export function parseJsonInput(text, { what, file, shape = 'object' }) {
+  if (!String(text).trim()) throw inputError('INPUT_EMPTY', { what, file, shape });
+  let value;
+  try {
+    value = JSON.parse(text);
+  } catch (e) {
+    throw inputError('INPUT_NOT_JSON', { what, file, shape, reason: String(e.message).replace(/^JSON\.parse: /, '') });
+  }
+  const object = value !== null && typeof value === 'object';
+  if (!object || (shape === 'object' && Array.isArray(value)) || (shape === 'objects' && Array.isArray(value) && !value.every((v) => v && typeof v === 'object' && !Array.isArray(v)))) {
+    throw inputError('INPUT_BAD_SHAPE', { what, file, shape, got: gotWord(value) });
+  }
+  return value;
+}
+
+// Reads a file (or standard input when `file` is "-") and parses it as above.
+export function readJsonInput(file, { what, shape = 'object' }) {
+  const label = file === '-' ? 'standard input' : file;
+  let text;
+  try {
+    text = readFileSync(file === '-' ? 0 : file, 'utf8');
+  } catch (e) {
+    throw inputError(e.code === 'ENOENT' ? 'INPUT_MISSING' : 'INPUT_UNREADABLE', { what, file: label, shape, reason: e.code ?? e.message });
+  }
+  return parseJsonInput(text, { what, file: label, shape });
+}
 
 export function resolveTarget(target) {
   if (existsSync(target) && statSync(target).isDirectory()) {
@@ -34,18 +80,68 @@ export function resolveTarget(target) {
 // program file ("program": "blink.ino") is read from there when it is simulated. A file over
 // the size cap is not read at all (src/limits.js).
 export function loadCircuit(paths) {
+  if (!existsSync(paths.circuitFile)) throw inputError('INPUT_MISSING', { what: 'circuit', file: paths.circuitFile, shape: 'object', reason: 'ENOENT' });
   const large = fileTooLarge(statSync(paths.circuitFile).size);
-  if (large) throw Object.assign(new Error(t('en', `check.${large.code}`, large.params)), { issue: large });
-  return withFolder(JSON.parse(readFileSync(paths.circuitFile, 'utf8')), paths);
+  if (large) throw new InputError(large); // a cap is a mistake of the input, said in the person's language
+  const circuit = readJsonInput(paths.circuitFile, { what: 'circuit' });
+  checkCircuitShape(circuit, paths.circuitFile);
+  return withFolder(circuit, paths);
+}
+
+// The shape of a circuit read from disk, checked once here for every command: the fields the kit
+// walks must be what it expects, so no command meets a list that is text and fails inside.
+const FIELD_SHAPES = { parts: 'objectList', supplies: 'list', spec: 'object', netLabels: 'object', environment: 'object', page: 'object' };
+function checkCircuitShape(circuit, file) {
+  for (const [field, shape] of Object.entries(FIELD_SHAPES)) {
+    const value = circuit[field];
+    if (value === undefined || value === null) continue;
+    const isObject = typeof value === 'object' && !Array.isArray(value);
+    const ok = shape === 'object' ? isObject : Array.isArray(value) && (shape === 'list' || value.every((v) => v && typeof v === 'object' && !Array.isArray(v)));
+    if (!ok) throw inputError('INPUT_BAD_FIELD', { what: 'circuit', file, field, shape, got: gotWord(value) });
+  }
 }
 const withFolder = (circuit, paths) => Object.defineProperty(circuit, CIRCUIT_FOLDER, { value: dirname(paths.circuitFile), enumerable: false, configurable: true });
 
+// The history, one entry per line. A line that is not an entry (garbage, random bytes, a cut write)
+// is HISTORY_DAMAGED: undo and history cannot go on from it, and apply refuses to add to it (a
+// revision saved after it could never be undone). The circuit itself is a separate file, intact.
 export function readHistory(paths) {
-  if (!existsSync(paths.historyFile)) return [];
-  return readFileSync(paths.historyFile, 'utf8')
-    .split('\n')
-    .filter((line) => line.trim())
-    .map((line) => JSON.parse(line));
+  const { entries, damage } = scanHistory(paths);
+  if (damage) throw new InputError(damage);
+  return entries;
+}
+
+function scanHistory(paths) {
+  if (!existsSync(paths.historyFile)) return { entries: [], damage: null };
+  const entries = [];
+  const lines = readFileSync(paths.historyFile, 'utf8').split('\n');
+  for (const [i, line] of lines.entries()) {
+    if (!line.trim()) continue;
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      entry = null;
+    }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry) || !Number.isInteger(entry.revision) || !Array.isArray(entry.ops ?? [])) {
+      return { entries, damage: error('HISTORY_DAMAGED', { file: paths.historyFile, line: i + 1, option: NEW_HISTORY_OPTION }) };
+    }
+    entries.push(entry);
+  }
+  return { entries, damage: null };
+}
+// The CLI's name for starting again (the MCP tools say theirs); the message names it.
+const NEW_HISTORY_OPTION = '--new-history';
+
+// A new history from the circuit as it is: the damaged file is kept beside it (history.jsonl.damaged,
+// .damaged-2, …) and the new one starts with the current revision, so undo stops there.
+function restartHistory(paths, circuit, author) {
+  let kept = `${paths.historyFile}.damaged`;
+  for (let n = 2; existsSync(kept); n++) kept = `${paths.historyFile}.damaged-${n}`;
+  renameSync(paths.historyFile, kept);
+  const revision = circuit.revision ?? 0;
+  writeFileSync(paths.historyFile, `${JSON.stringify({ revision, time: new Date().toISOString(), author, note: `new history (the damaged one is ${basename(kept)})`, created: true, ops: [], inverse: [] })}\n`);
+  return kept;
 }
 
 // The circuit as it was at an earlier revision: the current one with the inverse of every later
@@ -141,7 +237,8 @@ function withLock(paths, fn) {
   }
 }
 
-// options: dryRun, author, note, expectRevision, views, lang (default), outputLang (asked for), outputs (default true)
+// options: refuse (default true: input mistakes refuse the batch; layout passes false), newHistory (a
+// damaged history is kept aside and a new one starts from the current circuit), dryRun, author, note, expectRevision, views, lang (default), outputLang (asked for), outputs (default true)
 export function applyToTarget(target, ops, options = {}) {
   const paths = resolveTarget(target);
   if (!existsSync(paths.circuitFile)) return applyLocked(target, ops, options);
@@ -156,15 +253,23 @@ function applyLocked(target, ops, options) {
   if (expectRevision !== undefined && Number(expectRevision) !== revision) {
     return { applied: false, revision, errors: [error('REVISION_MISMATCH', { expected: Number(expectRevision), actual: revision })] };
   }
+  // A history it cannot read is refused before anything is measured, in a dry run too (the real run
+  // would be refused), unless the caller asked to start a new one (options.newHistory).
+  const { damage } = scanHistory(paths);
+  if (damage && !options.newHistory) return { applied: false, revision, errors: [damage] };
   const result = applyOps(current, ops);
   if (result.errors.length) return { applied: false, revision, errors: result.errors };
 
-  const diff = diffEvaluations(evaluate(current, { views, lang }), evaluate(result.circuit, { views, lang }));
+  const diff = diffEvaluations(judge(current, { views, lang }), judge(withFolder(result.circuit, paths), { views, lang }));
+  // Input mistakes (diff.js) refuse the whole batch, in a dry run too (it says the real run would).
+  const mistakes = options.refuse === false ? [] : diff.introduced.filter(isInputMistake);
+  if (mistakes.length) return { applied: false, refused: true, ...(dryRun && { dryRun: true }), revision, errors: mistakes, diff };
   if (dryRun) return { applied: false, dryRun: true, revision, nextRevision: revision + 1, errors: [], diff, circuit: result.circuit };
 
+  const damagedKept = damage ? restartHistory(paths, current, author) : null;
   const saved = commit(paths, result.circuit, { author, note, ops, inverse: result.inverse });
   const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
-  return { applied: true, revision: saved.revision, errors: [], diff, files };
+  return { applied: true, revision: saved.revision, errors: [], diff, newErrors: newErrorCount(diff), files, ...(damagedKept && { newHistory: { kept: damagedKept, from: revision } }) };
 }
 
 // Creates a circuit folder (circuit.json, history.jsonl, out/). Refuses to overwrite.
@@ -190,7 +295,7 @@ export function relayoutTarget(target, circuit, options = {}) {
   const current = loadCircuit(resolveTarget(target));
   const fields = Object.fromEntries(CIRCUIT_FIELDS.filter((k) => k !== 'view').map((k) => [k, circuit[k] ?? null]).filter(([k, v]) => v !== null || k in current));
   const ops = [...(current.parts ?? []).map((p) => ({ op: 'remove', part: p.id })), ...(Object.keys(fields).length ? [{ op: 'circuit', ...fields }] : []), ...circuit.parts.map((part) => ({ op: 'add', part }))];
-  return applyToTarget(target, ops, options);
+  return applyToTarget(target, ops, { ...options, refuse: false });
 }
 
 // Undoes the most recent change that has not been undone yet.
@@ -200,7 +305,7 @@ export function undoTarget(target, options = {}) {
   return withLock(paths, () => undoLocked(target, options));
 }
 
-function undoLocked(target, { author = 'unknown', views, lang = 'en', outputLang, outputs = true }) {
+function undoLocked(target, { author = 'unknown', views, lang = 'en', outputLang, outputs = true, dryRun = false }) {
   const paths = resolveTarget(target);
   const history = readHistory(paths);
   const undone = new Set(history.filter((h) => h.undoes).map((h) => h.undoes));
@@ -210,7 +315,9 @@ function undoLocked(target, { author = 'unknown', views, lang = 'en', outputLang
   const current = loadCircuit(paths);
   const result = applyOps(current, last.inverse);
   if (result.errors.length) return { applied: false, errors: result.errors };
-  const diff = diffEvaluations(evaluate(current, { views, lang }), evaluate(result.circuit, { views, lang }));
+  const diff = diffEvaluations(judge(current, { views, lang }), judge(withFolder(result.circuit, paths), { views, lang }));
+  // A dry run: what the undo would change, nothing saved (it used to undo for real: the option was read by apply only).
+  if (dryRun) return { applied: false, dryRun: true, revision: current.revision ?? 0, nextRevision: (current.revision ?? 0) + 1, undoes: last.revision, errors: [], diff };
   const saved = commit(paths, result.circuit, { author, note: `undo ${last.revision}`, ops: last.inverse, inverse: last.ops, undoes: last.revision });
   const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
   return { applied: true, revision: saved.revision, undid: last.revision, errors: [], diff, files };

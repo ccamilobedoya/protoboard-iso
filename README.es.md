@@ -63,7 +63,7 @@ Y una respuesta franca. Un Arduino que alimenta un zumbador directo desde un pin
 ```text
 Revisión (lesson): APROBADO CON AVISOS.
 Tal como está conectado, esto dañaría:
-  ⚠ aviso: Por U1.D10 pasan 88,3 mA, más que su máximo de 40 mA, con D10 en alto.
+  ⚠ aviso: Por U1.D10 pasan 88,3 mA, más que su máximo de 40 mA: el pin se puede dañar, con D9 + D10 en alto.
 Para arreglarlo: una resistencia de 200 Ω en serie con BZ1 deja el pin D10 de U1 en 19,4 mA (máximo 40 mA).
 ```
 

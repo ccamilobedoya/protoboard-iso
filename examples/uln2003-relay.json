@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "title": {
+    "en": "A UNO switching a relay through a ULN2003",
+    "es": "Un UNO conmuta un relé con un ULN2003"
+  },
+  "board": "auto",
+  "clearance": 3,
+  "description": {
+    "en": "D8 drives channel 1 of a ULN2003; its OUT1 sinks the relay coil's current from 5 V, and COM on the same 5 V is the coil's flyback diode. The relay pulls in for a second and drops for a second.",
+    "es": "D8 maneja el canal 1 de un ULN2003; su OUT1 recibe la corriente de la bobina del relé desde 5 V, y COM en los mismos 5 V es el diodo de protección de la bobina. El relé se activa un segundo y se suelta otro."
+  },
+  "parts": [
+    {
+      "id": "U2",
+      "part": "ULN2003",
+      "type": "ic",
+      "pins": [
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7",
+        "e8",
+        "e9",
+        "f9",
+        "f8",
+        "f7",
+        "f6",
+        "f5",
+        "f4",
+        "f3",
+        "f2"
+      ]
+    },
+    {
+      "id": "U1",
+      "part": "UNO",
+      "program": "// D8 drives the ULN2003's IN1; OUT1 sinks the relay coil's current from 5 V.\nvoid setup() {\n  pinMode(8, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(8, HIGH);  // channel 1 on: the relay pulls in\n  delay(1000);\n  digitalWrite(8, LOW);   // channel 1 off: the clamp diode to COM takes the coil's current\n  delay(1000);\n}\n",
+      "type": "module",
+      "pins": {
+        "d8": "d2",
+        "5v": "g9",
+        "gnd": "d9"
+      }
+    },
+    {
+      "id": "K1",
+      "part": "SRD-05VDC-SL-C",
+      "type": "relay",
+      "pins": {
+        "a2": "g2",
+        "a1": "h9"
+      }
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "a9",
+        "B-8"
+      ]
+    }
+  ],
+  "spec": {
+    "nets": [
+      [
+        "U1.D8",
+        "U2.IN1"
+      ],
+      [
+        "U2.OUT1",
+        "K1.A2"
+      ],
+      {
+        "pins": [
+          "U1.5V",
+          "K1.A1",
+          "U2.COM"
+        ],
+        "color": "red"
+      },
+      {
+        "pins": [
+          "U2.GND",
+          "U1.GND"
+        ],
+        "color": "black"
+      }
+    ],
+    "wires": [
+      "W1"
+    ]
+  }
+}

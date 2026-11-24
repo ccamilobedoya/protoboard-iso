@@ -12,8 +12,8 @@ Entry points, all calling `autoLayout(spec, { profile, checkOnly })`:
 
 | From | Call |
 |---|---|
-| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`, `fix`) |
-| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--dry-run] [--json]`, or `--recipe <name> [--values '<json>']`, or `layout <target> --fix [--dry-run]` (exit 0 done, 2 changes) |
+| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`, `fix`, `budget_s`) |
+| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--dry-run] [--json] [--budget <seconds>]`, or `--recipe <name> [--values '<json>']`, or `layout <target> --fix [--dry-run]` (exit 0 done, 2 changes) |
 | Code | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; a recipe is turned into a spec first by `resolveRecipe` (`src/recipes/index.js`) |
 | Bench | `npm run layout-bench [-- spec.json …]` (runs `examples/layout/*.json` and every recipe) |
 
@@ -45,7 +45,11 @@ by name with only the values that change; it becomes an ordinary spec before any
   `resolvePart` (`src/parts/resolve.js`) fills in the type.
 - `nets`: each one a list of pin references (`"D1.K"`, case-insensitive pin names) and rails
   (`"T-"`, `"B+"`), or `{ pins, color }`. A pin alone (`["D1.A"]`) is fine: it is where a supply
-  will connect. Two nets that share a pin or a rail are one net (`["T-", "B-"]` bridges the grounds).
+  will connect. A pin listed in several nets joins them: they become one net, where the first of
+  them was, its pins in the order they came (note `LAYOUT_NETS_JOINED`: "Nets 1, 2, 3 share U1.D8"),
+  the same circuit as the spec with the pins in one list (since 2026-11-20; before, each was routed
+  apart and a board's pin could find no place). Two nets that share a rail stay two nets, joined
+  through the rail (`["T-", "B-"]` bridges the grounds).
 - `supplies`: as in a circuit, except that `positive` and `negative` may name a pin; it becomes a
   free hole of that pin's strip once placed.
 - `board` (`auto` by default: the elastic board that grows in length, or two side by side when a
@@ -82,7 +86,8 @@ Pin names are read as people write them (`findPin`, `src/parts/pin-names.js`): t
 first, ignoring case, then synonyms (`A`/`anode`, `K`/`cathode`, `VIN`/`IN`, `VOUT`/`OUT`,
 `DISCH`/`DIS`, `THRESHOLD`/`THR`, `VDD`/`VCC`, `VSS`/`GND`, `3.3V`/`3V3`, `E`/`emitter`, `G`/`gate`…)
 and GPIO numbers on a board (`GPIO4`, `IO4`, `4` → the DevKit's `D4`), only when exactly one pin
-matches. The nets come back with the part's own names (`D1.K` → `D1.cathode`), so the steps below
+matches; on a board, `TX` and `RX` are its serial pins (the UNO's `D1`/`D0`, the C3's `GPIO21`/`GPIO20`,
+the DevKit's `TX0`/`RX0`) and the DevKit's `GPIO17`/`GPIO16` its `TX2`/`RX2`. The nets come back with the part's own names (`D1.K` → `D1.cathode`), so the steps below
 never see an alias. Circuits, `query` and `suggest` read pins the same way.
 
 ### 1. Layers: signal order from the source
@@ -168,12 +173,32 @@ not for bodies held up off the board, `HELD_UP`), wins. Where it was before (lay
 first of all; candidates with a hole well inside the box of a body already on the board are not
 built at all.
 
-**`tryOps` (the acceptance test).** Apply the `add` operation, rebuild the circuit **geometry only**
-(`buildCircuit`: occupancy, lead lengths, body overlap, crossings, clearance; milliseconds, nothing
-is drawn) and accept only if it adds no error and no new blocking problem compared to the circuit
-before (`blocking` = errors, warnings and `TOO_CLOSE` notes). `FLOATING_PIN` is tolerated because the
+**`tryOps` (the acceptance test).** Add the part and check the **geometry only** (occupancy, lead
+lengths, body overlap, crossings, clearance; nothing is drawn), and accept only if it adds no error
+and no new blocking problem compared to the circuit before (`blocking` = errors, warnings and
+`TOO_CLOSE` notes). Since 2026-11-20 the part is built alone and checked with the parts whose boxes
+come near it or that share a strip with it (`addedOnly`): every placement check is about one part
+or a pair, so the answer is the one a whole build gives, in a time that does not grow with the
+circuit. A board that grows with the part draws again the parts lying beside it (they follow its
+size). `FLOATING_PIN` is tolerated because the
 jumpers come later. A place in `forbid` is skipped. The answers are remembered for the whole call
 (by circuit and operation), so a relayout that repeats the first steps does not build them again.
+
+**What it hides (since 2026-11-20).** A place the geometry accepts is then measured as the review
+measures a drawing (`src/layout-sight.js`): the part, the parts it overlaps on screen and what covers
+those, painted far to near in both views at 2 px/mm in a frame around them. If it leaves itself, or
+a part it covers more than before, under `SEEN_SHARE` (75 %) in its best view, the next candidate is
+tried; the first one by cost is used only when none is free of it. Jumpers (step 3) are measured the
+same way. It runs as a second search, only when the first (the relayout loop without it, as layout
+always placed) ends with something blocking, from an empty forbid list; the better of the two is
+kept, the first on a tie. The loop settles every recipe (`laser-uno` leaves 5 parts hidden on its
+first try and none on its sixth), so a recipe is placed exactly as before (recipes are published
+and filmed), and a large circuit the loop cannot settle (ten LEDs from one pin, an UNO with a
+74HC595 and eight LEDs) is measured once its first search is over. Until 2026-11-20 the second
+search started after the first try when that try left more than 5 parts hidden (`HIDDEN_SETTLED`):
+one recipe sat at exactly 5, so one part more in a recipe would have moved it. The rule now depends
+on how the first search ends, never on a count; its price is the first search's tries on a large
+circuit (ten LEDs from one pin: 9 tries and 4.5 s instead of 2 and 1.8 s, load 2).
 
 After each part the cursor of its half (both halves for a part across the channel; the half of each
 lead for a part off the board) moves to two columns past its rightmost lead, or past the right edge
@@ -282,6 +307,203 @@ given failing), against 0.6 s with the resistor listed before the buzzer; about 
 variant of that circuit with its fix (nine parts and a board). Over every recipe shuffled three
 times: 0.26 s on average where the order given works, 2.3 s (at most 7 s) where it fails.
 
+### What layout tries before CHANGES (since 2026-11-20)
+
+The same spec always gives the same circuit, so sending it again does not help; what helped the
+assistants who got `CHANGES` was a trial a person would make: list another part first, or put the
+circuit on the larger board, **laid out again on the circuit already made** (every part first tries
+the holes it has there, as a second layout of a target does). `inAnyOrder` now does that itself
+before it answers `CHANGES` (`withTrials`), from its best try so far, each trial with at most
+`TRIAL_TRIES` tries of the relayout loop, in this order, and keeps the first that ends without
+`CHANGES` (else the best by the same rank):
+
+1. **the orders the nets give again**, from the best try (`LAYOUT_ORDER_FROM_NETS`);
+2. **the double board**, when a development board (a module with GPIO: an UNO, a DevKit) is named by
+   a blocking item with another part (it covers it or a strip of it) and the spec does not name its
+   board: in the order given, then in the orders of the nets (`LAYOUT_TRIED_DOUBLE`,
+   `LAYOUT_TRIED_DOUBLE_ORDER`: "placed on the double board … because U1 covered U2 on one board");
+3. **the tallest parts first**, then **the widest** (by the body on the best try's drawing; a
+   development board and a part lying beside the board are not moved), with the layers starting
+   from them (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`);
+4. **the parts that found no place first**, from an empty board (`LAYOUT_TRIED_FIRST`; since
+   2026-11-23), before the double board;
+5. then, while the budget lasts, **the change it would offer next** (a part listed first, from an
+   empty board), at most `NEXT_TRIALS` (3): a change the answer offers is never one the kit already
+   tried (since 2026-11-23).
+
+When layout itself moved the circuit to the double board (a covered pin, below), the trials start
+there, not on the board that could not hold it (since 2026-11-23).
+
+Nothing electrical changes and nobody is asked; the answer carries one note saying what changed
+from the spec as written. A trial runs only while the budget allows. When the answer is still
+`CHANGES`, every ✖ line is followed by the one spec change the kit would try next (`next` on the
+item: the first trial the budget left, else the double board when a development board is named
+and the circuit is not on one, else listing the hidden part, then what hides it, first; else
+"move it with suggest"), and a line says what was tried (`layout.tried`).
+
+Measured on the three specs assistants got `CHANGES` for (`test/layout-trials.test.js`, load 2–3
+on a four-core machine; before: `CHANGES` in 14, 38 and 35 s): a jumper under an ultrasonic module
+`DONE` in 20–27 s (the orders of the nets from the best try); a seven-segment counter with a button
+`DONE` in 36 s (the same); an UNO covering half of a 74HC595 `WARNINGS` (the shift register is not
+simulated) in 32 s, on one board, by the orders of the nets before any trial (with the second search
+above, "What it hides"; before it, the double board trial solved it in 1.3 s). The bench is
+unchanged: every spec of it ends `DONE` in its own order, so no trial runs.
+
+### Size and budget: calculate first, never run away (since 2026-11-20)
+
+**The size, before placing.** `estimateSize` (in `autoLayout`, after the spec is valid; also with
+`--check`) bounds from below the columns the spec takes, from its parts and nets alone, in well
+under a second: a strip holds pins of one electrical net, so a net without a rail needs a strip for
+every five pins and a pin in no net one of its own (`sides` strips per column: 2, or 4 on the double
+board); a chip across the channel (a DIP) takes its columns there whole. Against the columns the
+board can grow to (`LIMITS.boardColumns`, 600, on `auto` and `double`; a fixed board's own):
+
+- more than the board: `STATUS: FIX_SPEC`, exit 1, nothing created, one line with the numbers
+  (`LAYOUT_TOO_LARGE`: "about 1600 columns needed, 600 available (401 parts). About 150 parts fit
+  one board: split it into two or more circuits");
+- it fits, but one try of the search takes longer than the budget (`SECONDS_PER_PART`, 0.12 s per
+  part on the board, measured): a first note says so (`LAYOUT_SEARCH_LONG`) and it tries anyway.
+
+It is a bound, not a guess of the layout: it never refuses what the search can place. Every recipe,
+layout example and example circuit stays under half the board (`test/layout-size.test.js`).
+
+**The budget.** `layout` takes a wall-clock budget: 60 s by default (`BUDGET_SECONDS`), CLI
+`--budget <seconds>`, MCP `budget_s`, at most `LIMITS.layoutSeconds` (300; more is that, with a note
+`LAYOUT_BUDGET_CAPPED`). The search checks it before each part, each jumper, each try, each order
+and each repair, and `suggest` before each candidate it measures. When it runs out the search stops
+where it is and answers with the best try so far, `STATUS: CHANGES`, and one line: "The search
+stopped at its budget of 60 s with its best try so far: N parts not placed, M nets not joined, K
+review items open. The options: a larger budget … or a smaller circuit" (`LAYOUT_BUDGET`). The
+circuit is still written (exit 2, as any `CHANGES`). The computed fix of its hazards is not searched
+then (seconds of simulations, for a circuit still to fix). The budget is counted in work, not in
+time: each placement tried (and each candidate `suggest` measures) counts 1 + the parts of the circuit
+it is checked among, `WORK_PER_SECOND` (5000) for each second of budget, so the same spec stops at the
+same place on every run and machine (a net of 250 resistors: about 45 s on a busy desktop, every part
+placed, the same circuit twice; it took 84 s and placed 203, then 189). The wall clock is only the
+outer guard: a machine slow enough to reach it first stops there, and the line says that cut is not
+repeatable (`LAYOUT_BUDGET`, variant `clock`); the answer has `tried: { placements, max, byClock? }`.
+The tests that are not about the budget lay out through
+`test/layout-generous.js` (the largest budget, 300 s); only the budget's own tests use the default.
+
+**What the search judges.** Each try is judged by its placement: the drawing and the nets (a
+review with `electrical: false`). Hazards over states, doubts, the computed fix, the readings and
+the Behaviour run are worked out once, on the circuit the whole search keeps (`judged` in
+`src/layout.js`, its time in the answer's `ms`): they do not depend on where the parts sit, so they
+never change which try wins. Judging every try and every trial so had made a large circuit twice
+as slow (the laser and HC-SR04 on an UNO of `test/ultrasonic.test.js`: 29 s, 15 s again).
+
+**The same spec, the same circuit.** Nothing in the search depends on the clock except the budget:
+two runs of a spec give the same `circuit.json`, and a budget that ran out is the only source of
+difference, which its line says.
+
+**Memory.** A part is added without copying the circuit (`addOne`; `applyOps` copies all of it),
+built alone on a board shared by the candidates of the same size (`builtAlone`), and the memo of the
+geometry checks keeps at most `MEMO_STATES` (1500) states, and before each review only that try's
+own steps. `buildCircuit` keeps its last two results by the circuit's text (one review built the
+same circuit five or six times), and the inspector's raster keeps each part's cells in a typed list,
+not a Set (`src/render/coverage.js`); both give the same figures (`test/recipe-sweep.test.js`, the visibility check).
+Two hundred resistors in series on a 9 V battery: `DONE` in one try, about 6 s, 0.62 GB; through the
+CLI, with its page, about 1.05–1.1 GB (below).
+
+### Cost: what made large circuits slow (measured 2026-11-20)
+
+Profiled with `node --cpu-prof` and counters in the search, on an UNO pin driving ten and twenty
+LEDs with their resistors (on 0.12.1 ten took 59 s and ended
+`CHANGES`, twenty did not end in 120 s, a similar spec ran out of memory):
+
+- **Every candidate rebuilt the whole circuit.** `tryOps` called `buildCircuit` on all of it: every
+  part's 3D geometry from the start (a resistor's lathe, an LED's dome) and the pairwise checks over
+  every pair. Ten pairs: 2849 checks of about 15 parts each in 24 tries, 34 s of 92 s; the cost of a
+  try grew with the square of the parts. Now the part alone, against the parts near it.
+- **The memo kept a whole build per candidate**, keyed by the whole circuit written out: 2.9 GB of
+  resident memory for ten pairs; `applyOps` also copied the whole circuit for each candidate.
+- **The tries never converged.** Each try ended with three to nine parts or jumpers hidden in both
+  views (`PART_HIDDEN`), the relayout loop moved one place per try, and the orders the nets give ran
+  eight tries more each, one of them the very order already placed: 24 tries and the repair's
+  `suggest` (each candidate a full drawing, 13 s). Now visibility is measured while placing once the
+  first try shows the loop cannot settle it, and an order equal to the one already placed is skipped.
+
+Measured on 2026-11-20, load average 1 to 1.5 (one process each, peak resident memory), before →
+after:
+
+| Case | Before (0.12.1 code) | After |
+|---|---|---|
+| UNO pin D8 → ten LEDs with 220 Ω, a program driving it | `CHANGES`, 24 tries, 64 s, 2.9 GB | `WARNINGS` (the pin over its current), 2 tries, 3.0 s, 0.4 GB |
+| the same with twenty | did not end in 180 s | `WARNINGS`, 3 tries, 8.3 s, 0.5 GB |
+| UNO + 74HC595 + eight LEDs (18 parts) | `WARNINGS`, 20 tries, 37 s, 2.8 GB | `WARNINGS`, 12 tries, 9.4 s, 0.6 GB |
+| two hundred resistors in series on a 9 V battery | out of memory, exit 134 | `DONE`, 1 try, 5.6 s, 0.62 GB; the CLI with its page 8.8 s, 1.04–1.11 GB |
+| every recipe (60) / with the layout examples (65) | 16.7 s / 20.9 s | 15.9 s / 17.7 s, all `DONE` |
+
+Against the kit just before this work (with the doubts and the `Behaviour` line), the recipes went
+from 26.5 s to 15.6 s and none got slower by more than 10 %. Placements: every recipe and layout
+example is placed as on 0.12.1 except the four whose ground nets are now one (`uno-button`,
+`encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
+
+### Hard cases: circuits written by hand (2026-11-23)
+
+Three assistants with only the packed skill built 36 circuits on a clean clone. Every recipe ended
+`DONE`; these hand-written circuits did not, each measured before the change (load 3 to 4 on a
+four-core machine shared with other work):
+
+- **Four relays on a ULN2003 and an ESP32 DevKit** (`test/fixtures/layout-hard/`): `CHANGES`, K2 and
+  K3 "found no place" in every order the assistant tried (5.6–10.5 s, 29–40 tries). A relay lies on
+  the table along the front edge where the mean of its two leads is: the second and the third relay's
+  leads land on the same driver outputs, so their bodies landed on the first, and no rule gave the
+  body another place (`suggest` cannot place a part wired lead by lead). Three fixes:
+  - a relay or a switch (`SLIDES`) that finds no place as it is tries the same candidates again with
+    its body slid along its edge by whole widths of itself (`offset`, nearer first, within the
+    board's length), only then: whatever was placed before stays where it was;
+  - the elastic board did not grow for a board placed by pin 1 (a DevKit names one column and takes
+    twenty), so the parts after it had no columns left (zero candidates): a part that finds no place
+    now makes the board grow past the cursor's window and is tried again, once (`floor`);
+  - a lead beside the board no longer picks a hole under a body (a DevKit's PCB covers its strips):
+    it went on to no hole at all.
+  Now `DONE` in the order given and in the three orders the assistant tried (16–26 s, 27–44 tries, on
+  two boards, the relays side by side). Recipes and layout examples keep every placement.
+- **A circuit saved with parts left out says so.** `STATUS: CHANGES` was there at layout, but the
+  saved circuit did not say which parts of the spec were missing, and `simulate` and `review` ran as
+  if it were whole. Now its `spec` keeps them, `spec.unplaced` (each part as asked, without holes),
+  and a layout again on the circuit asks for them again (`specFromCircuit`); the line `simulate` and
+  `review` print first is `spec.unplaced` in `src/i18n/` ("Not on the board: K2, K3. …").
+- **The order that works is one the search could have found.** An UNO, a 7-segment display and a
+  button (the `uno-seven-segment` recipe and one button) took 31 s (67 146 placements, 51 tries) where
+  the recipe takes 1.8 s; listed with the display first it ended `DONE` in 10 tries. The order given
+  spent 16 tries (two whole searches) before any order of the nets was tried, and each of those 16
+  more. What the working order has: the display (the part with most signal pins) placed first and the
+  rest laid out in layers from it; its first try left 2 items to fix where the order given's left 7.
+  So `inAnyOrder` now:
+  - searches the order given with its first search only (a spec it settles, every recipe and layout
+    example, ends exactly as before);
+  - when that leaves something, gives each order of the nets one try (`scout`), and a third order:
+    the chip (the part that is not a board with at least `CHIP_PINS` (4) pins in signal nets) first,
+    the layers from it;
+  - searches them whole by how their first try ended, best first; the order given goes on from its
+    first search (its second search only, `resume`) and keeps its place on a tie. Laid out again on a
+    circuit already made (`previous`), the orders are searched as before.
+  Measured (load 3 to 11 on a machine shared with other work; placements are the comparable
+  figure): the display and button `DONE` in 11 618 placements, 5.1 s at load 3 (before 67 146, 31 s
+  at load 3.5); two 74HC595 with sixteen LEDs on the double board `DONE` in 109 288 and, listed LEDs
+  first, 90 136 placements (before `CHANGES` at the budget, 300 025 and 279 850); on one board still
+  `CHANGES` at the budget's clock (19 items open at load 11, 18 before); a 555 with a CD4017 and ten
+  LEDs `CHANGES` at the budget with 6 items open in each of the three orders tried (11 to 14 before).
+  Recipes and layout examples keep every placement; their placements tried over the bench, 128 410 →
+  47 507 (the 74HC595 fill example 102 475 → 17 861).
+- **The budget's answer is the best seen, and says what would help.** A try the budget cut short has
+  fewer parts on the board to hide each other, so it could rank better than a whole try with the same
+  nets left apart: a run stopped at its budget ended worse-looking than one of 10 s. A part left off
+  the board (`left` on a try: cut by the budget, or no place found) now weighs as much as nets left
+  wrong, in the relayout loop's score and in `rankOf`. Every ✖ of a `CHANGES` answer carries the change
+  the kit would try next, also when the budget stopped it, and a change offered is never one the kit
+  tried (it tries them itself first, `NEXT_TRIALS`); the line "Before this answer the kit also tried"
+  is printed again (the list was overwritten by the budget's count, `tried`, since 2026-11-20; now
+  `changesTried`).
+- **A part the kit lacks.** `28BYJ-48` (a stepper motor) answered "has no part with a close name".
+  The common asks matched by the words in a name (`nearOf`, `src/parts/resolve.js`) gain a stepper (a
+  DC motor turns but does not step; a ULN2003 to four coils drawn as inductors only as a wiring
+  exercise), an OLED, a keypad, a joystick, a Bluetooth and a Wi-Fi module (with what the kit has near
+  them), and an SD card, a real-time clock and a load cell ("Nothing near"), in English and Spanish
+  (`check.UNKNOWN_PART_NAME.<ask>`); the speaker, LED strip, servo, transformer and LCD were there.
+
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 
 An ESP32 DevKit's PCB is about 11 holes wide with its headers 9 to 11 holes apart: on one board it
@@ -347,9 +569,13 @@ On a circuit made by `layout`, the kit takes the fix its review prints for the c
 revision (`fixRequest` in `src/layout.js`, `specWithFix` in `src/fix.js`): `set`, the resistor's
 new value (and the recipe's value, for a recipe circuit); `add-series`, a new resistor with the
 next R number of the circuit between the pin and the net it was on (`["U1.D10", "R3.1"]`,
-`["R3.2", "BZ1.1"]`), listed just before the part it is in series with. The answer is any
-`layout`'s, with one line more before `STATUS:`: `Applied the fix: R3 = 200 Ω in series with BZ1.`
-(`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.`); `--dry-run` makes it a trial; `undo` brings
+`["R3.2", "BZ1.1"]`), listed just before the part it is in series with; `swap`, a part in
+backwards turned round (its two leads exchanged in the nets); `swap-supply`, a supply's leads
+exchanged (a bench supply with no rails of its own gets the board's, written the other way round;
+a battery part, its two leads in the nets). The answer is any `layout`'s, with one line more
+before `STATUS:`: `Applied the fix: R3 = 200 Ω in series with BZ1.` (`Arreglo aplicado: R3 = 200 Ω
+en serie con BZ1.`), `Applied the fix: turned BZ1 round (its 1 and 2 swapped).` or `Applied the
+fix: swapped the leads of V1 (its + and −).`; `--dry-run` makes it a trial; `undo` brings
 the circuit (and its warning) back. The kit never applies a fix by itself, only on this request.
 Where there is nothing to apply it says so and changes nothing: no hazard (`LAYOUT_FIX_NONE`, not an
 error: exit 0), no computed fix (`LAYOUT_FIX_NO_FIX`: "The kit has no computed fix for this."), a
@@ -373,7 +599,7 @@ computed fix of the hazards (`To fix it: …`, or "The kit has no computed fix f
 
 ```text
 As wired, this would damage:
-  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA, with D10 high.
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D9 + D10 high.
 To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
 Keep it if showing the failure is the point. Say so to the user before changing anything.
 Checked: at rest, 3 program outputs. Not checked: peaks while switching, combinations of program outputs.
@@ -404,11 +630,17 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
   recipe circuit with `STATUS: DONE` and its readings shown, whose part with a goal runs above its
   rated value: by how much, and the standard value that would bring it nearest to the rating without
   passing it. Information only: nothing is changed.
+- **Hard to see** (`review.hidden: [{ part, visible, by }]`): a part (not a jumper) under 50 %
+  visible in every view layout kept, one line each with its best view's share and what covers it.
+  Information only: it does not change the status (the review's own rules still block a part hidden
+  in every view of a lesson).
 - **Readings** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
   brightness? }] }`): the simulator's DC point, the one `simulate` prints. The sources first (a
-  supply, a battery, a board's USB), then the parts whose job is to be driven: LEDs (current and
+  supply, a battery by its id, a board's USB; each once), then the parts whose job is to be driven: LEDs (current and
   brightness), then buzzers, motors, relay coils and lasers. At most four parts in the text, then how
-  many more `simulate` lists. Left out when the circuit has no source, the DC point cannot be solved,
+  many more `simulate` lists. A circuit with none of those (a divider, a Zener regulator) gives instead
+  the voltage of each net that is not a rail, named by its pins (`supply 5 V · R1.2 = R2.1 3.33 V`;
+  `nets: [{ pins, voltage }]`), at most four. Left out when the circuit has no source, the DC point cannot be solved,
   a board runs a program (the program decides what is lit, a rest point at time zero would mislead),
   a supply is a generator (the signal is the point, not its rest value) or a timer is wired as an
   astable (it never rests: its TRIG and THR share a net with a capacitor, and its DIS or OUT is on that
@@ -416,7 +648,7 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
   detector keeps its readings), and when the page hides the
   results (`page.simulation` or `page.results` false: a value a learner must predict first).
 - **Program** (`programs: [{ part, text, truncated, file?, omitted? }]`): each board's sketch as it
-  is stored (the text, or the `.ino` file beside the circuit, read only inside its folder), each line
+  is stored (the text, or the `.ino` file in the circuit's folder, beside `circuit.json`, read only there), each line
   indented two spaces. Past 80 lines or 4 000 characters, the first 40 lines and a line saying how
   many were left out and where the whole text is. Every line break a reader may see (`\r`, `\u2028`
   and the like) ends a line there too, so no line of a sketch can pass for the `STATUS:` line.
@@ -428,7 +660,9 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
 
 **A trial** (`--dry-run`; the MCP tool's `dry_run: true`, the word `apply_ops` uses): everything
 above, on the circuit as it would be after the call (a new target, or an existing one laid out
-again), with the same answer and `STATUS`, and nothing written: no circuit file, no history, no page,
+again), with the same answer and `STATUS` (whose words say it was a trial: `DONE · as tried, the
+circuit would be ready … nothing was saved`, and `WARNINGS` ends `This was a trial … nothing was
+saved`), and nothing written: no circuit file, no history, no page,
 no revision, no outputs folder; in an MCP host with the viewer no board is shown (as `try_ops`). Its
 last line before `STATUS:` says so: `Trial: nothing was saved.` (`Ensayo: no se guardó nada.`); the
 page line is left out. It is how an idea the kit did not compute (a fix of an assistant's own) is
@@ -442,7 +676,7 @@ a caller (above all a small model) that reads only the last line knows what to d
 | `STATUS:` | Means | Next |
 |---|---|---|
 | `DONE` | every net is there, nothing failed to place, the review approves | report |
-| `WARNINGS` | built and the nets are right, but a part would be damaged as wired (⚠): the review is approved with warnings | tell the user first which part and why it burns; keep it only if that is the point, else offer the kit's fix (`To fix it`), or with none try an idea with `--dry-run` first |
+| `WARNINGS` | built and the nets are right, but each ⚠ line above must be told to the user before saying it works: a part that would be damaged as wired (a hazard), or something the kit cannot confirm works (a doubt, under "The kit cannot confirm these work": a part not simulated, a program that does not run, a relay that may not pull in, a button across joined pins, a warning of the simulation; [simulation.md](simulation.md#what-it-could-not-tell-doubts)); the review is approved with warnings | tell the user each one first, in plain words; keep the circuit as asked unless they want a change; for a hazard offer the kit's fix (`To fix it`), or with none try an idea with `--dry-run` first |
 | `CHANGES` | created, but a net, a placement or the review left something (✖); in a trial nothing was created | fix only those, with `suggest` and `apply_ops`, then `review`; after a trial, try another idea or apply this one |
 | `FIX_SPEC` | nothing created: the spec has errors | fix every ✖ and call again |
 | `SPEC_OK` | `check_only`: the spec is consistent | call again without it |
@@ -468,6 +702,13 @@ missing. The CLI exits 0 for `DONE` and `WARNINGS` (1 for `FIX_SPEC`, 2 for `CHA
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | jumper pairs measured per pair of groups; rejections before a net gives up |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0.3 mm | a jumper's cost per body it crosses; a jumper ending at a body's edge does not cross it |
 | `TRIES`, `REPAIRS` | 8, 4 | relayouts at most; jumpers the repair routes again at most |
+| `NEXT_TRIALS`, `CHIP_PINS` | 3, 4 | changes the kit would offer, tried by itself first; signal pins that make a part the chip an order of the nets starts from |
+| `SLIDES`, `SLIDE_STEPS` | relay, switch; 12 | parts off the board that slide along their edge when their body lands on another; widths they may slide each way |
+| `TRIAL_TRIES` | 2 | tries of the relayout loop each trial before `CHANGES` gets ("What layout tries before CHANGES"); the trials that worked took one or two |
+| `SEEN_SHARE` | 75 % | a place that leaves a part under this share in its best view is used only when no other is free of it (`src/layout-sight.js`; the review blocks under 70 %) |
+| `MEMO_STATES` | 1500 | states the memo of one layout keeps |
+| `BUDGET_SECONDS`, `LIMITS.layoutSeconds` | 60 s, 300 s | the search's budget by default, and at most |
+| `SECONDS_PER_PART` | 0.12 s | one try per part on the board, for the note that a spec is beyond the budget |
 | cursor start | 2 | first column used, on each half |
 | `clearance` | 1 mm (spec default) | gap between bodies; 3 for a roomier lesson |
 
@@ -482,7 +723,9 @@ On 2026-10-18 what blocked was only visibility: the lesson profile took a part a
 view as soon as it was below 85 % visible in each (the inspector's note threshold), and counted two
 parts covering it in one view as two views. Since 2026-10-20 it blocks when the part's **best view**
 shows less than 70 % of it (`hiddenBelow` in `PROFILES.lesson`), counted per view. A 555 seen 73 %
-from the front and 69 % from the back no longer blocks; it reads well.
+from the front and 69 % from the back no longer blocks; it reads well. A part hidden in one view
+but seen well enough in another is advice: `review` lists it as a note (since 2026-11), never as a
+warning beside an APPROVED, so `review` and `layout` give one verdict for one circuit.
 
 Four more lesson circuits tried on 2026-10-20: an NPN switch, a potentiometer divider and a 555
 astable come out approved at the first try; an ESP32 DevKit with a button and an LED was left with
@@ -538,9 +781,11 @@ half (`B`, rows a–e) and the rails, `channelCrossings` (asked nets with pins i
   Node version) to a baseline: `.claude/state/layout-bench.json` by default, which is not in git
   (`.claude/state/` is ignored), so each clone keeps its own.
 - `npm run layout-bench -- --compare [file]` runs again and prints, per case, what changed against
-  the baseline (jumpers, wire length, column span, holes, crossings, tries, status) with its sign,
-  the cases new or missing, and a totals line (jumpers, wire mm, crossings, cases `DONE`). Time is
-  saved but never compared. With spec files as arguments, put them before the flags.
+  the baseline (jumpers, wire length, column span, holes, crossings, tries, time, status) with its
+  sign, the cases new or missing, and a totals line (jumpers, wire mm, crossings, cases `DONE`,
+  ms). Time is compared since 2026-11-20 (before and after a change to the search's cost); on a
+  machine shared with other work it is noisy, so compare at the same load. With spec files as
+  arguments, put them before the flags; `--budget <seconds>` gives each layout that budget.
 - A spec in `examples/layout/` may carry `"bench": { "expect": "changes", "why": "…" }`: a case the
   algorithm cannot solve yet. The bench removes the key before laying out, prints the case as
   `EXPECTED CHANGES` and does not count it as failed; everything else must be `DONE` for exit
@@ -554,17 +799,14 @@ next call.
 
 In order of what would pay most:
 
-1. **Visibility is still found mostly by the relayout loop.** A jumper pays for each body it
-   crosses (step 3), and a candidate pays for enclosing a tall part's way to its rail (step 2b), but
-   placement still does not know what hides what in the isometric drawing: an UNO's leads arching
-   over the board, a long jumper across a half over a resistor, a tall LED in front of a low part.
-   The loop finds them (one to five tries in the bench). A cheap estimate of each view (how tall a
-   body is and what lies behind it), or measuring the visibility of the chosen candidate only,
-   would make more first tries pass.
-2. **Each candidate builds the whole circuit.** `tryOps` rebuilds every part's geometry to check
-   one more; that is most of the time (the checks are remembered across tries, which helps the
-   loop, not the first try). An incremental check (only what the new part touches) would let the
-   algorithm try many more candidates in the same time.
+1. **Visibility is measured place by place only for large circuits, and the first place by cost wins
+   when none is free of it** (since 2026-11-20, "What it hides"). A better fallback (the least
+   hidden, without a strange place far away: tried, it made `uno-seven-segment` end `CHANGES`) would
+   make more first tries pass.
+2. **A long circuit's page and review take most of its memory.** For two hundred resistors (a board
+   400 columns long) the page alone peaks at about 0.6 GB (two interactive views, 17 MB of HTML),
+   and the CLI process at 1.04–1.11 GB: the drawings' geometry is garbage the engine collects late.
+   A coarser raster for wide frames was measured and saved nothing.
 3. **The loop forbids one place at a time** and starts over. With several blocking items it can
    still spend its tries in one area; forbidding a small region, or retrying only the parts after
    the victim, would converge faster.
@@ -579,6 +821,11 @@ In order of what would pay most:
    block ending one pitch past its outer row): measure two real boards and change `junction` in
    `doubleBoard` (`src/board/board.js`) if it differs. Jumpers between the two boards' headers
    still arch over the DevKit when a net needs both (three in the bench case).
+7. **Two dense chip circuits still end `CHANGES` on one board** (measured 2026-11-23): two
+   74HC595 with sixteen LEDs (19 items open at the 60 s budget) and a 555 clocking a CD4017 with
+   ten LEDs (6 open). Each try of such a circuit costs about 16 000 placements, so the budget allows
+   few. The first ends `DONE` on the double board (`"board": "double"`); the second has no such way
+   out yet: a larger `--budget`, or the circuit in two parts.
 
 ## See also
 

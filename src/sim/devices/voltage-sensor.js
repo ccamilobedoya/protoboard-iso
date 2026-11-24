@@ -45,7 +45,7 @@ export const voltageSensor = {
   },
   limits(entry, r) {
     const out = [stress('SIM_OVER_POWER', 'power', r.power30k, entry.model.maxPower, 'W')];
-    if (r.vin > entry.model.rated) out.push(note('info', 'SIM_VOLTAGE_SENSOR_RANGE', { part: entry.id, voltage: q(r.vin, 'V'), max: q(entry.model.rated, 'V') }));
+    if (r.vin > entry.model.rated) out.push(note('warning', 'SIM_VOLTAGE_SENSOR_RANGE', { part: entry.id, voltage: q(r.vin, 'V'), max: q(entry.model.rated, 'V') }));
     return out;
   },
   lines(p, h) {

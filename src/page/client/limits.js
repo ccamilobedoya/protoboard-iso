@@ -13,6 +13,7 @@ import { stressLevel } from '../../sim/controls.js';
 import { quote } from './focus.js';
 import { select } from './card.js';
 import { iconSvg } from './icons.js';
+import { ownValue } from './own.js';
 
 function el(parent, tag, text, cls) {
   const e = document.createElement(tag);
@@ -83,7 +84,7 @@ export function setupLimits(page, { engine, t, f, now = () => (typeof performanc
       }
     }
     for (const [key, s] of latched) {
-      const item = (stresses[s.id] ?? []).find((x) => keyOf(s.id, x) === key);
+      const item = (ownValue(stresses, s.id) ?? []).find((x) => keyOf(s.id, x) === key);
       s.now = item ? { value: item.value, ratio: item.ratio } : null;
     }
     near = now;

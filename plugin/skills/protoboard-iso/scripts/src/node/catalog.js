@@ -9,7 +9,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { PART_TYPES, FAMILIES } from '../parts/types/index.js';
 import { PART_NUMBERS, lookupPartNumber } from '../parts/db.js';
 import { PACKAGES } from '../parts/packages/index.js';
-import { MODULES } from '../parts/modules.js';
+import { MODULES, lookupModule } from '../parts/modules.js';
+import { MCUS } from '../sim/models.js';
 import { BATTERY_FORMATS } from '../parts/batteries.js';
 import { LDR_PARTS } from '../parts/types/more.js';
 import { BOARDS, createBoard, boardLayout } from '../board/board.js';
@@ -23,7 +24,8 @@ import { buildSchemas } from '../schema.js';
 import { recipeSummary, recipeEntry, RECIPE_GROUPS, valueLimits } from '../recipes/index.js';
 import { describePart } from '../parts/describe.js';
 import { pinRoles } from '../pinout.js';
-import { partRatings } from '../sim/ratings.js';
+import { partRatings, partControls } from '../sim/ratings.js';
+import { deviceFor } from '../sim/devices/index.js';
 import { formatValue } from '../core/units.js';
 
 export { COMMON_FIELDS, TYPE_FIELDS } from '../parts/fields.js';
@@ -31,8 +33,19 @@ import { TYPE_FIELDS } from '../parts/fields.js';
 
 const EXAMPLES = new URL('../../examples/', import.meta.url);
 
-// The first part of that type (and part number, when given) in the kit's examples.
+// The first part of that type (and part number, when given) in the kit's examples. With no example
+// of that number, one of the same type whose pins are the same, in the same order (a 2N3904 shows
+// a 2N2222A); none otherwise: a ULN2803 is never shown a 555's pins.
 function exampleOf(type, number) {
+  const pinsOf = (n) => String(lookupPartNumber(String(n ?? ''))?.entry.pins ?? '');
+  const pins = number ? pinsOf(number) : '';
+  return (
+    firstExample((p) => p.type === type && (!number || String(p.part).toUpperCase() === number.toUpperCase())) ??
+    (number && pins ? firstExample((p) => p.type === type && pinsOf(p.part) === pins) : null)
+  );
+}
+
+function firstExample(match) {
   let files = [];
   try {
     files = readdirSync(EXAMPLES).filter((f) => f.endsWith('.json')).sort();
@@ -46,18 +59,24 @@ function exampleOf(type, number) {
     } catch {
       continue;
     }
-    const part = (circuit.parts ?? []).find((p) => p.type === type && (!number || String(p.part).toUpperCase() === number.toUpperCase()));
+    const part = (circuit.parts ?? []).find(match);
     if (part) {
       const { description, ...plain } = part;
       return { file: `examples/${file}`, part: plain };
     }
   }
-  return number ? exampleOf(type) : null;
+  return null;
 }
 
+// The schema's words point to the kit's sources and docs ("see src/parts/db.js", "(docs/en/…)"),
+// which a user of the plugin does not have: the catalog says the thing without them.
+export const withoutPaths = (text) =>
+  String(text)
+    .replace(/\s*\((?:see )?(?:src|docs)\/[^)]*\)/g, '')
+    .replace(/\s*(?:see )?(?:src|docs)\/\S+/g, '');
 const fieldsOf = (type) => {
   const props = buildSchemas()['circuit.schema.json'].$defs.part.properties;
-  return Object.fromEntries((TYPE_FIELDS[type] ?? []).filter((f) => props[f]).map((f) => [f, props[f].description ?? (props[f].enum ? props[f].enum.join(' | ') : '')]));
+  return Object.fromEntries((TYPE_FIELDS[type] ?? []).filter((f) => props[f]).map((f) => [f, withoutPaths(props[f].description ?? (props[f].enum ? props[f].enum.join(' | ') : ''))]));
 };
 
 // A part as the type resolves it, not placed: what describePart, pinRoles and partRatings read.
@@ -93,12 +112,33 @@ function facts(raw, lang) {
     part = unplaced(Object.fromEntries(Object.entries(part.raw).filter(([k]) => !follow.includes(k)))) ?? part;
     ratings = partRatings(part);
   }
-  const about = describePart(part, lang);
+  // A type with a passive and an active kind says which is which (the part number decides).
+  const about = [describePart(part, lang), raw.type === 'buzzer' && !raw.part ? t(lang, 'catalog.buzzer.kinds') : null].filter(Boolean).join(' ');
   const roles = pinRoles(part, lang);
-  return { ...(about && { about }), ...(roles.length && { pinRoles: Object.fromEntries(roles.map((r) => [r.name, r.text])) }), ...(ratings && { limits: ratings.limits, ...(ratings.fields && { limitFields: ratings.fields }) }) };
+  // A development board's output pin as the simulator drives it: its rail behind a resistance, with
+  // where that figure comes from (sim/models.js MCUS) or that it is assumed.
+  const family = raw.part ? lookupModule(raw.part)?.module.family : null;
+  const mcu = MCUS[family];
+  const pinOutput = mcu && { voltage: mcu.vdd, resistance: mcu.outputResistance, source: t(lang, `catalog.pinOutput.source.${family}`) };
+  // What a chip's model covers and leaves out, when its device says (devices/index.js, `modelText`).
+  const modelKey = deviceFor(part)?.modelText;
+  const model = modelKey ? t(lang, `catalog.model.${modelKey}`) : null;
+  return { ...(about && { about }), ...(model && { model }), ...(pinOutput && { pinOutput }), ...(roles.length && { pinRoles: Object.fromEntries(roles.map((r) => [r.name, r.text])) }), ...(ratings && { limits: ratings.limits, ...(ratings.fields && { limitFields: ratings.fields }) }) };
 }
 
 const pinsOfModule = (m) => m.pins ?? m.headers.flatMap((h) => h.pins.map(([n]) => n));
+
+// Whether the simulator has a model for a part (`raw`: a type, a part number or a module): false
+// for one it only draws (a 74HC595, an LM386: its pins are left open in the simulation, and a circuit
+// with it ends WARNINGS), so an assistant knows before building. Null when it cannot be resolved
+// without more fields.
+export function simulates(raw) {
+  const part = unplaced({ id: 'X1', ...raw });
+  return part ? Boolean(deviceFor(part)) : null;
+}
+
+// Part numbers of a type the simulator only draws.
+const drawnOnly = (type, numbers) => numbers.filter((n) => simulates({ type, part: n }) === false);
 
 // Everything, in short: what an agent reads before building a circuit.
 export function compactCatalog(lang = 'en') {
@@ -107,9 +147,12 @@ export function compactCatalog(lang = 'en') {
   numbers.ldr = Object.keys(LDR_PARTS); // photoresistors are not in the part-number table
   return {
     types: Object.fromEntries(
-      Object.entries(PART_TYPES).map(([k, v]) => [k, { name: t(lang, `type.${k}`), family: v.family, pins: v.pins ?? null, ...(numbers[k] && { parts: numbers[k] }) }]),
+      Object.entries(PART_TYPES).map(([k, v]) => {
+        const drawn = drawnOnly(k, numbers[k] ?? []);
+        return [k, { name: t(lang, `type.${k}`), family: v.family, pins: v.pins ?? null, ...(numbers[k] && { parts: numbers[k] }), ...(simulates({ type: k }) === false && { simulated: false }), ...(drawn.length && { notSimulated: drawn }) }];
+      }),
     ),
-    modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount }])),
+    modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount, ...(simulates({ type: 'module', part: k }) === false && { simulated: false }) }])),
     batteries: Object.keys(BATTERY_FORMATS),
     boards: Object.keys(BOARDS),
     views: Object.keys(VIEWS),
@@ -139,6 +182,8 @@ function catalogEntryExact(name, lang = 'en') {
       ...(key === 'module' && { modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount, pins: pinsOfModule(m) }])) }),
       ...(key === 'battery' && { formats: Object.fromEntries(Object.entries(BATTERY_FORMATS).map(([k, f]) => [k, { default: f.default, chemistries: Object.keys(f.chemistries) }])) }),
       ...(key === 'ldr' && { parts: Object.keys(LDR_PARTS) }),
+      ...(simulates({ type: key }) === false && { simulated: false }),
+      ...((drawn) => drawn.length && { notSimulated: drawn })(drawnOnly(key, numbers.map(([n]) => n))),
       ...facts({ id: 'X1', type: key }, lang),
       example,
     };
@@ -147,13 +192,13 @@ function catalogEntryExact(name, lang = 'en') {
   if (moduleKey) {
     const m = MODULES[moduleKey];
     const example = exampleOf('module', moduleKey);
-    return { kind: 'module', type: 'module', part: moduleKey, name: m.label, mount: m.mount, pins: pinsOfModule(m), fields: fieldsOf('module'), ...facts({ id: 'X1', type: 'module', part: moduleKey }, lang), example };
+    return { kind: 'module', type: 'module', part: moduleKey, name: m.label, mount: m.mount, pins: pinsOfModule(m), fields: fieldsOf('module'), ...(simulates({ type: 'module', part: moduleKey }) === false && { simulated: false }), ...facts({ id: 'X1', type: 'module', part: moduleKey }, lang), example };
   }
   const found = lookupPartNumber(key);
   if (found) {
     const { number, entry } = found;
     const example = exampleOf(entry.type, number);
-    return { kind: 'part', type: entry.type, part: number, package: entry.package, pins: entry.pins, fields: fieldsOf(entry.type), ...facts({ id: 'X1', type: entry.type, part: number }, lang), example };
+    return { kind: 'part', type: entry.type, part: number, package: entry.package, pins: entry.pins, fields: fieldsOf(entry.type), ...(simulates({ type: entry.type, part: number }) === false && { simulated: false }), ...facts({ id: 'X1', type: entry.type, part: number }, lang), example };
   }
   const ldr = Object.keys(LDR_PARTS).find((k) => k.toUpperCase() === key.toUpperCase());
   if (ldr) return { kind: 'part', type: 'ldr', part: ldr, pins: PART_TYPES.ldr.pins, fields: fieldsOf('ldr'), ...facts({ id: 'X1', type: 'ldr', part: ldr }, lang), example: exampleOf('ldr') };
@@ -177,6 +222,21 @@ export function catalogEntry(name, lang = 'en') {
 // The closest names to one the catalog does not know.
 export const catalogSuggestions = (name) => closestNames(name);
 
+// What catalog answers for a name it does not have: for a common ask (a servo, a speaker, an LED
+// strip…) the same "the kit does not know … Nearest it has: …" text layout gives for that part
+// (check.UNKNOWN_PART_NAME.<variant>, without the part's id); otherwise the types and the closest names.
+export function unknownText(name, lang = 'en') {
+  const mark = '@part@';
+  const asked = resolvePart({ id: mark, part: String(name) }).error;
+  const variant = asked?.code === 'UNKNOWN_PART_NAME' ? asked.params?.variant : null;
+  if (variant && variant !== 'none') {
+    const text = t(lang, `check.UNKNOWN_PART_NAME.${variant}`, { ...asked.params, part: mark }).replace(`${mark}: `, '');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+  const close = catalogSuggestions(name);
+  return `${t(lang, 'catalog.unknown', { name, types: Object.keys(PART_TYPES).join(', ') })}${close.length ? ` ${t(lang, 'catalog.closest', { names: close.join(', ') })}` : ''}`;
+}
+
 // Every registry in full (the catalog's former answer), for tools that want it all.
 export function fullCatalog(lang = 'en') {
   return {
@@ -192,6 +252,21 @@ export function fullCatalog(lang = 'en') {
     annotations: ANNOTATION_LAYERS,
     languages: Object.keys(LANGUAGES),
   };
+}
+
+// The part types one per line, as `catalog` without a name prints them (the CLI): its pins and
+// part numbers, each type or part number the simulator only draws marked so where it is named
+// ("74HC595 (drawn, not simulated)"), so a reader of one entry cannot miss it.
+export function partTypeLines(lang = 'en') {
+  const c = compactCatalog(lang);
+  return Object.entries(c.types).map(([type, v]) => {
+    const pins = v.pins ? v.pins.join(', ') : '—';
+    const parts = Object.entries(PART_NUMBERS).filter(([, e]) => e.type === type).map(([n]) => n);
+    const only = new Set(v.notSimulated ?? []);
+    const named = parts.map((n) => (only.has(n) ? `${n} ${t(lang, 'catalog.typeNotSimulated')}` : n));
+    const drawn = v.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : '';
+    return `${type.padEnd(10)} ${v.name.padEnd(20)} pins: ${pins}${named.length ? `  parts: ${named.join(', ')}` : ''}${drawn}`;
+  });
 }
 
 // One recipe in a line: its name, title and (unless `values` is false, as in the compact catalog,
@@ -240,10 +315,11 @@ export function formatCompactCatalog(c, lang = 'en') {
     lines.push(family);
     for (const [k, v] of types) {
       const pins = v.pins ? v.pins.join(' ') : t(lang, 'catalog.pinsPerPart');
-      lines.push(`  ${k}: ${pins}${v.parts ? ` · ${shortParts(v.parts, lang)}` : ''}`);
+      const drawn = v.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : v.notSimulated ? ` · ${t(lang, 'catalog.notSimulated', { parts: v.notSimulated.join(', ') })}` : '';
+      lines.push(`  ${k}: ${pins}${v.parts ? ` · ${shortParts(v.parts, lang)}` : ''}${drawn}`);
     }
   }
-  lines.push(`${t(lang, 'catalog.modules')} ${Object.entries(c.modules).map(([k, m]) => `${k} (${m.mount})`).join(', ')}`);
+  lines.push(`${t(lang, 'catalog.modules')} ${Object.entries(c.modules).map(([k, m]) => `${k} (${m.mount})${m.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : ''}`).join(', ')}`);
   lines.push(`${t(lang, 'catalog.batteries')} ${c.batteries.join(', ')}`);
   lines.push(`${t(lang, 'catalog.boards')} ${c.boards.join(', ')} · ${t(lang, 'catalog.views')} ${c.views.join(', ')} · ${t(lang, 'catalog.operations')} ${c.operations.join(', ')}`);
   if (c.recipes) {
@@ -286,10 +362,17 @@ export function formatCatalogEntry(e, lang = 'en') {
   const head = e.kind === 'type' ? `${e.type} (${e.name})` : `${e.part} → ${e.type}${e.package ? ` · ${e.package}` : ''}${e.mount ? ` · ${e.mount}` : ''}`;
   const lines = [head];
   if (e.about) lines.push(`  ${t(lang, 'catalog.about')} ${e.about}`);
+  if (e.simulated === false) lines.push(`  ${t(lang, 'catalog.simulation.none')}`);
+  else if (e.notSimulated) lines.push(`  ${t(lang, 'catalog.simulation.some', { parts: e.notSimulated.join(', ') })}`);
+  if (e.model) lines.push(`  ${e.model}`);
   if (e.pins) lines.push(`  ${t(lang, 'catalog.pins')} ${e.pins.join(' ')}`);
   else lines.push(`  ${t(lang, 'catalog.pins')} ${t(lang, 'catalog.pinsFromPart')}`);
   if (e.pinRoles) lines.push(`  ${t(lang, 'catalog.pinRoles')} ${Object.values(e.pinRoles).join('; ')}`);
   if (e.limits) lines.push(`  ${t(lang, 'catalog.limits')} ${limitsText(e, lang)}`);
+  if (e.pinOutput) {
+    const f = (v, u) => formatValue(v, u, { decimal: decimalSeparator(lang) });
+    lines.push(`  ${t(lang, 'catalog.pinOutput', { voltage: f(e.pinOutput.voltage, 'V'), resistance: f(e.pinOutput.resistance, 'Ω'), source: e.pinOutput.source })}`);
+  }
   if (Array.isArray(e.parts)) lines.push(`  ${t(lang, 'catalog.parts')} ${e.parts.join(', ')}`);
   else if (e.parts) for (const [n, p] of Object.entries(e.parts)) lines.push(`  ${n} · ${p.package} · ${p.pins.join(' ')}`);
   if (e.modules) for (const [n, m] of Object.entries(e.modules)) lines.push(`  ${n} (${m.name}, ${m.mount}) · ${m.pins.join(' ')}`);
@@ -301,4 +384,28 @@ export function formatCatalogEntry(e, lang = 'en') {
   }
   if (e.example) lines.push(`  ${t(lang, 'catalog.example', { file: e.example.file })} ${JSON.stringify(e.example.part)}`);
   return `${lines.join('\n')}${aliasLine}`;
+}
+
+// What each part takes, for the skill's reference written by scripts/parts-reference.js: per type its
+// pins, the fields a spec and a `set` operation take (the schema's words), and for the bare type and
+// each part number or module: its pins, whether it is simulated, what a run changes on it
+// (`simulate --set`, the page's sliders) and the environment's fields it reads. All from src/.
+export function partReference(lang = 'en') {
+  const numbersOf = (type) => (type === 'ldr' ? Object.keys(LDR_PARTS) : type === 'module' ? Object.keys(MODULES) : Object.entries(PART_NUMBERS).filter(([, e]) => e.type === type).map(([n]) => n));
+  return Object.keys(PART_TYPES).map((type) => {
+    const variants = [null, ...numbersOf(type)].map((number) => {
+      const part = unplaced({ id: 'X1', type, ...(number && { part: number }) });
+      if (!part) return { part: number, pins: null, simulated: null };
+      const device = deviceFor(part);
+      const run = device ? partControls(part) : null;
+      return { part: number, pins: part.pinNames, simulated: Boolean(device), ...(run && { controls: run.controls, senses: run.senses }) };
+    });
+    // A type with fixed pins: what each pin does (catalog's pin roles), and what a spec must know
+    // about it that no field says (`reference.<type>` in src/i18n: which way a knob runs, which pin
+    // is +, which pins make the switch), checked against a run in test/parts-reference.test.js.
+    const bare = PART_TYPES[type].pins && unplaced({ id: 'X1', type });
+    const roles = bare ? pinRoles(bare, lang).map((r) => r.text) : [];
+    const note = `reference.${type}` in LANGUAGES.en ? t(lang, `reference.${type}`) : null;
+    return { type, name: t(lang, `type.${type}`), family: PART_TYPES[type].family, pins: PART_TYPES[type].pins ?? null, fields: fieldsOf(type), variants, ...(roles.length && { roles }), ...(note && { note }) };
+  });
 }

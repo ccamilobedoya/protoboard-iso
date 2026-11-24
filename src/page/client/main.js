@@ -25,6 +25,7 @@ import { tapTag, setupTooltip } from './tooltip.js';
 import { setupBar } from './bar.js';
 import { setupInspector } from './inspector.js';
 import { THEMES, THEME_KEY } from './themes.js';
+import { parseData } from './own.js';
 
 // The theme: ?theme= in the link wins, then the reader's choice in the ⋯ menu (kept in the
 // browser for every page of the same site), then the circuit's page.theme (<html data-theme>, written
@@ -54,7 +55,7 @@ export function startPage(extensions = []) {
   applyTheme(document, location.search);
   const main = document.querySelector('main');
   const svgs = [...main.querySelectorAll(':scope > svg')]; // the views (icons are svg too)
-  const data = JSON.parse(document.getElementById('page-data').textContent);
+  const data = parseData(document.getElementById('page-data').textContent);
   const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: false, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), node: null, ghost: new Set() };
   const page = {
     main,

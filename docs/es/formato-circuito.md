@@ -28,6 +28,7 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 | `supplies` | no | Simulación: de dónde sale la energía, por ejemplo `[{ "id": "V1", "voltage": 5 }]` (entre T+ y T-). Una [batería](#battery-batería) también es una fuente. Ver [simulacion.md](simulacion.md). |
 | `environment` | no | Lo que leen los sensores, compartido por todas las piezas que lo sienten: `{ "light": 300, "temperature": 25 }`, cada campo un número o `{ value, program }` (un programa lo cambia con el tiempo). Un sensor sin valor propio lo sigue. Ver [ambiente.md](ambiente.md). |
 | `page` | no | La página para embeber. Con fuente, la simulación corre por defecto; `simulation: false` la apaga toda (un valor por predecir), `results: false` solo los valores del componente tocado (y los LED encendidos), `flow: false` solo el botón Corriente; `focus` (componentes en foco al abrirla), `start` (`dc` o `zero`: cómo arranca la simulación en vivo), `theme` (`auto`, por defecto, sigue al sistema; `light` o `dark` lo fija; `?theme=` en el enlace gana), `controls` (un panel de deslizadores y botones: componente o fuente, campo, rango y etiqueta opcionales; o `{ "environment": "light" }`, un campo del ambiente con su indicador), `environment` (`true` o `false`: todos los campos del ambiente en el panel; por defecto cuando una pieza sigue uno), `tour` (una línea de tiempo: el nombre de un archivo JSON junto al circuito, leído solo desde su carpeta, o la línea de tiempo misma; *Ver cómo funciona* en el menú ⋯ la reproduce, ver [escena-y-video.md](escena-y-video.md)). Ver [foco-y-corriente.md](foco-y-corriente.md). |
+| `spec` | no | Lo escribe `layout`: lo que se le pidió (`nets`, `supplies`, `recipe`), los ids de los puentes que agregó (`wires`) y, cuando no encontró lugar para algunos componentes, esos componentes como se pidieron (`unplaced`, sin agujeros). Entonces `simulate` y `review` dicen primero `No están en la protoboard: …`, y `layout` otra vez sobre el circuito los pide. No se edita a mano. |
 | `parts` | sí | Lista de componentes. |
 
 ## Agujeros
@@ -349,7 +350,7 @@ los 2,0 V; no hay histéresis.
 Tiene polaridad: la pata `1` es la larga y el `+` de su carcasa; al revés es un circuito abierto de 100 kΩ,
 en silencio, y por encima de 1 V lo dice (`SIM_REVERSE_VOLTAGE`). Por encima de 7,5 V avisa con
 `SIM_IC_SUPPLY` (el código «más de su máximo» del kit); por encima de 35 mA (desde unos 5,8 V, dentro de los 3 a 7 V de sus
-listados) solo anota `SIM_BUZZER_CURRENT`. Entre 1,5 y 2,0 V toma corriente sin sonar todavía, y su tarjeta lo dice;
+listados) avisa `SIM_BUZZER_CURRENT` (pasa su máximo listado, no es un esfuerzo). Entre 1,5 y 2,0 V toma corriente sin sonar todavía, y su tarjeta lo dice;
 `SIM_BUZZER_DC` no le aplica. Su tarjeta dice *sonando · 2,3 kHz* y el nivel como «unos» N dB, o *en silencio*. Se distingue del pasivo por el fondo sellado
 de la carcasa (una banda de resina en su base en el dibujo) y porque pita apenas se alimenta; las recetas
 `rain-alarm` y `obstacle-buzzer` lo usan, a través de un PNP.

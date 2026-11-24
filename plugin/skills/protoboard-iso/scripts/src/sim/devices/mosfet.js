@@ -2,7 +2,7 @@
 
 import { mosfet as mosfetEl } from '../mna.js';
 import { MOSFETS, MOSFET_DEFAULT } from '../models.js';
-import { issue, stress } from './shared.js';
+import { issue, stress, CONDUCTING } from './shared.js';
 
 export const mosfet = {
   types: ['mosfet'],
@@ -22,7 +22,8 @@ export const mosfet = {
     const m = entry.model;
     const sign = m.channel === 'p' ? -1 : 1;
     const vov = sign * vgs - Math.abs(m.vth);
-    const region = vov <= 0 ? 'off' : sign * vds < vov ? 'linear' : 'saturation';
+    // Under its threshold but carrying current (reversed through its channel), it is not off.
+    const region = vov <= 0 ? (Math.abs(id) > CONDUCTING ? 'saturation' : 'off') : sign * vds < vov ? 'linear' : 'saturation';
     return { currents: { D: id, G: 0, S: -id }, vgs, vds, power: vds * id, region };
   },
   // Falstad's MOSFET: the same square law, with a sharp turn-on at Vth and no λ.

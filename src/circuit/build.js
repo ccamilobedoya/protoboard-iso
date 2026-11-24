@@ -51,7 +51,33 @@ function mapPins(part, names) {
 }
 
 // headroom: extra columns for an elastic board beyond the ones the circuit uses (suggest).
+//
+// The last few results are kept, by the circuit's text: one review builds the same circuit five or
+// six times (each view's drawing, the checks, the wiring doubts, the simulation), and for a long
+// circuit (two hundred resistors) each build is 120 MB of geometry, so the garbage of those copies
+// was most of a layout's memory. A result is shared: callers read it and never change it.
+const BUILT_KEPT = 2;
+const kept = new Map(); // text of the circuit and headroom → result
 export function buildCircuit(circuit, { headroom = 0 } = {}) {
+  let key;
+  try {
+    key = `${headroom}|${JSON.stringify(circuit)}`;
+  } catch {
+    return buildFresh(circuit, { headroom });
+  }
+  const hit = kept.get(key);
+  if (hit) {
+    kept.delete(key);
+    kept.set(key, hit);
+    return hit;
+  }
+  const r = buildFresh(circuit, { headroom });
+  kept.set(key, r);
+  if (kept.size > BUILT_KEPT) kept.delete(kept.keys().next().value);
+  return r;
+}
+
+function buildFresh(circuit, { headroom = 0 } = {}) {
   const issues = [];
   if (!circuit || typeof circuit !== 'object' || !Array.isArray(circuit.parts)) {
     return { board: null, parts: [], issues: [err('INVALID_CIRCUIT', {})], netlist: { nodes: {} } };

@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout, checkNets, formatLayout } from '../src/layout.js';
+import { checkNets, formatLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { formatIssue, t, checkCircuit } from '../src/index.js';
 
 test('a part whose value or colour the kit cannot read is refused before placing anything, with what it takes', () => {
   const nets = (id, a, b) => [[`${id}.${a}`, 'T+'], [`${id}.${b}`, 'T-']];
   const cases = [
-    [{ id: 'R1', type: 'resistor', value: 'abc' }, ['1', '2'], /It takes a resistance in ohms, such as 330, 4k7 or 1M\./, /Lleva una resistencia en ohmios/],
+    [{ id: 'R1', type: 'resistor', value: 'abc' }, ['1', '2'], /It takes a resistance in ohms, such as 330, 4k7 or 1M: a number with one of the prefixes/, /Lleva una resistencia en ohmios/],
     [{ id: 'C1', type: 'capacitor', value: '10 apples' }, ['1', '2'], /It takes a capacitance in farads, such as 100n/, /Lleva una capacidad en faradios/],
     [{ id: 'L1', type: 'inductor', value: 'x' }, ['1', '2'], /It takes an inductance in henries/, /Lleva una inductancia en henrios/],
     [{ id: 'D1', type: 'zener', value: 'five' }, ['A', 'K'], /It takes a Zener voltage/, /Lleva una tensión de Zener/],
@@ -402,7 +403,9 @@ test('layout answer: a long program is cut to its first lines and says where the
   const { expandRecipe } = await import('../src/recipes/index.js');
   const long = `void setup() {}\nvoid loop() {\n${Array.from({ length: 100 }, (_, i) => `  delay(${i + 1});`).join('\n')}\n}\n`;
   const r = autoLayout(expandRecipe('uno-blink', { U1: long }).spec);
-  assert.equal(r.status, 'done');
+  // A sketch of delays only never lights the LED: a doubt (SIM_OUTPUT_NEVER_ON), the only one.
+  assert.equal(r.status, 'warnings');
+  assert.deepEqual(r.review.doubts.map((d) => d.code), ['SIM_OUTPUT_NEVER_ON']);
   assert.deepEqual([r.programs[0].truncated, r.programs[0].text.split('\n').length, r.programs[0].omitted], [true, 40, 63]);
   const lines = formatLayout(r, 'en', { t, formatIssue }).split('\n');
   const at = lines.indexOf('Program U1 (Arduino sketch):');

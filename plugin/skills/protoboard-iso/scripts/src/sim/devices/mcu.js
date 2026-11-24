@@ -11,13 +11,125 @@
 // adapter) stay unsupported: `accepts` takes only boards whose family has a model.
 
 import { resistor, junction, regulatorElement, partSource, gpioStage } from '../mna.js';
-import { MCUS, I2C_PINS } from '../models.js';
+import { MCUS, I2C_PINS, REVERSE_LIMITS } from '../models.js';
 import { createRunner, levelAt } from '../program.js';
-import { issue, stress, note, q } from './shared.js';
+import { issue, stress, reverseSupply, note, q } from './shared.js';
 
 const ESD = { is: 1e-14, n: 1 }; // the protection diodes on every pin
 const RESET_PULL = 10e3; // EN / RESET pull-up on the board
 const MODES = { high: { mode: 'output', level: 1 }, low: { mode: 'output', level: 0 }, input: { mode: 'input' }, input_pullup: { mode: 'input', pull: 'up' }, input_pulldown: { mode: 'input', pull: 'down' } };
+
+// Over this current (1 mA) an output pin's reading names its output resistance [assumed].
+const LOADED_PIN = 1e-3;
+
+// A serial link from a TX node to an RX node (devices/mcu.js, linkOf): the RX node's DC voltage with
+// the TX node held at its high and at its low, the rest of the circuit as the solution x has it. The
+// path is made of the linear two-terminal elements (resistors, wires; at DC a capacitor is open and an
+// inductor a short): each is probed for its conductance. A node with anything else on it (a source, a
+// pin, a chip) keeps the voltage x gives it; the RX pin's own stage counts only by its pull. Returns
+// null without both nodes, { ok, reaches, high, low, vih, vil } otherwise: `reaches` whether the TX
+// node is on the RX node's passive path at all, `ok` whether its two levels read as a high and a low.
+function serialLink({ rx, tx, net, x, elements, own, pull, vdd, gnd, levels, m }) {
+  if (rx == null || tx == null) return null;
+  const at = (i) => (i >= 0 ? (x[i] ?? 0) : 0);
+  const rail = at(vdd) - at(gnd);
+  // Volts to the millivolt: a level is said as a pin reads it (2 µV is 0 V).
+  const mv = (v) => Math.round(v * 1e3) / 1e3 || 0;
+  const judge = (high, low) => ({ ok: (high - at(gnd)) / rail > m.vih && (low - at(gnd)) / rail < m.vil, reaches: true, high: mv(high - at(gnd)), low: mv(low - at(gnd)), vih: m.vih * rail, vil: m.vil * rail });
+  if (net(rx) === net(tx)) return judge(levels.high, levels.low);
+  const size = x.length;
+  const probe = (el, a, b, va) => {
+    const v = new Array(size).fill(0);
+    if (a >= 0) v[a] = va;
+    return el.currents(v, {})[0];
+  };
+  const edges = [];
+  const fixed = new Set([-1]);
+  const skip = new Set(own);
+  for (const el of elements) {
+    if (skip.has(el) || !el.nodes?.length || typeof el.currents !== 'function') continue;
+    let linear = false;
+    if (el.nodes.length === 2 && el.nodes[0] !== el.nodes[1]) {
+      const [a, b] = el.nodes;
+      try {
+        const g = probe(el, a, b, 1);
+        linear = Number.isFinite(g) && Math.abs(probe(el, a, b, 2) - 2 * g) <= 1e-9 * Math.abs(g) + 1e-18 && Math.abs(probe(el, a, b, -1) + g) <= 1e-9 * Math.abs(g) + 1e-18 && a >= 0;
+        if (linear && g > 0) edges.push([a, b, g]);
+      } catch {
+        linear = false;
+      }
+    }
+    if (!linear) for (const n of el.nodes) fixed.add(n);
+  }
+  fixed.add(tx);
+  fixed.delete(rx);
+  const near = new Map();
+  for (const [a, b, g] of edges) {
+    for (const [u, w] of [[a, b], [b, a]]) {
+      if (!near.has(u)) near.set(u, []);
+      near.get(u).push([w, g]);
+    }
+  }
+  // The nodes whose voltage the TX level moves: from the RX node through the path, up to fixed nodes.
+  const unknown = [rx];
+  const index = new Map([[rx, 0]]);
+  let reaches = false;
+  for (let k = 0; k < unknown.length; k++) {
+    for (const [w] of near.get(unknown[k]) ?? []) {
+      if (w === tx) reaches = true;
+      if (fixed.has(w) || index.has(w)) continue;
+      index.set(w, unknown.length);
+      unknown.push(w);
+    }
+  }
+  if (!reaches) return { ok: false, reaches: false };
+  const solveAt = (level) => {
+    const n = unknown.length;
+    const G = Array.from({ length: n }, () => new Array(n).fill(0));
+    const rhs = new Array(n).fill(0);
+    const value = (node) => (node === tx ? level : at(node));
+    for (const [a, b, g] of edges) {
+      const ia = index.get(a);
+      const ib = index.get(b);
+      if (ia != null) {
+        G[ia][ia] += g;
+        if (ib != null) G[ia][ib] -= g;
+        else rhs[ia] += g * value(b);
+      }
+      if (ib != null) {
+        G[ib][ib] += g;
+        if (ia != null) G[ib][ia] -= g;
+        else rhs[ib] += g * value(a);
+      }
+    }
+    if (pull?.pull === 'up' || pull?.pull === 'down') {
+      G[0][0] += 1 / m.pull;
+      rhs[0] += (1 / m.pull) * at(pull.pull === 'up' ? vdd : gnd);
+    }
+    // Gaussian elimination with partial pivoting (a few nodes).
+    for (let c = 0; c < n; c++) {
+      let best = c;
+      for (let r = c + 1; r < n; r++) if (Math.abs(G[r][c]) > Math.abs(G[best][c])) best = r;
+      [G[c], G[best]] = [G[best], G[c]];
+      [rhs[c], rhs[best]] = [rhs[best], rhs[c]];
+      if (Math.abs(G[c][c]) < 1e-30) continue;
+      for (let r = c + 1; r < n; r++) {
+        const f = G[r][c] / G[c][c];
+        if (!f) continue;
+        for (let j = c; j < n; j++) G[r][j] -= f * G[c][j];
+        rhs[r] -= f * rhs[c];
+      }
+    }
+    const v = new Array(n).fill(0);
+    for (let r = n - 1; r >= 0; r--) {
+      let sum = rhs[r];
+      for (let j = r + 1; j < n; j++) sum -= G[r][j] * v[j];
+      v[r] = Math.abs(G[r][r]) < 1e-30 ? 0 : sum / G[r][r];
+    }
+    return v[0];
+  };
+  return judge(solveAt(levels.high), solveAt(levels.low));
+}
 
 export const mcu = {
   types: ['module'],
@@ -43,7 +155,9 @@ export const mcu = {
     const gpios = part.pinNames
       .filter((name) => board.gpio[name] !== undefined)
       .map((name) => ({ name, gpio: board.gpio[name], adc: board.adc?.includes(board.gpio[name]) ?? false, state: io[name] ?? null, used: Boolean(io[name]) || !alone(name) }));
-    return { model, family: e.family, power: board.power, gpios, wired: part.pinNames, usb: part.raw.usb !== false, ground: `~${part.id}:GND`, sketch: c.sketch ?? null };
+    // Every GPIO number the board has (a program's call with another is warned, program.js).
+    const numbers = [...new Set(Object.values(board.gpio))].sort((a, b) => a - b);
+    return { model, family: e.family, power: board.power, gpios, numbers, wired: part.pinNames, usb: part.raw.usb !== false, ground: `~${part.id}:GND`, sketch: c.sketch ?? null };
   },
   elements(p, h) {
     const m = p.model;
@@ -60,6 +174,9 @@ export const mcu = {
     if (p.usb) {
       const top = h.inner();
       entry.usb = add(partSource(top, gnd, 5));
+      // On USB the board is a reference of its own: a circuit isolated from the other supplies (the
+      // output side of an optocoupler) is measured from its GND, never left floating (engine.js).
+      entry.usb.reference = h.id;
       add(resistor(top, vbus, m.usbResistance));
     }
     const regulator = (out) => add(regulatorElement(vbus, gnd, out, { vref: 3.3, ...m.regulator }));
@@ -74,6 +191,8 @@ export const mcu = {
     // pin states reach the stages before they stamp. It runs when a step is accepted, from that
     // step's voltages; `settle` runs it at t = 0 (setup, then loop until it waits).
     const byGpio = new Map();
+    const pinParts = new Map(); // gpio → its stage and protection diodes (a link's RX side, serialLink)
+    const early = new Map(); // a library sensor read while it was still powering up → when (ms)
     if (p.sketch) {
       const states = Object.fromEntries(p.gpios.filter((g) => g.state).map((g) => [g.gpio, g.state]));
       // A pin held by engine.drive (the hazard check's "with D10 high") keeps its level whatever the
@@ -123,17 +242,102 @@ export const mcu = {
           if (!answer) continue;
           if (!answer.mine) misses.push([el, answer.miss]);
           else if (!best || (answer.ok && !best.ok)) best = answer;
+          // Read before it is ready (a DHT11 in its first second): the library gives NaN; limits() says why.
+          if (answer.mine && !answer.ok && el.memo?.verdict?.reason === 'warmup' && !early.has(el.library.id)) early.set(el.library.id, el.memo.verdict.at);
         }
         // Nobody it was for: each sensor of the class that missed notes why (another pin, address…).
         if (!best) for (const [el, miss] of misses) el.note?.(miss);
         return best;
       };
-      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
+      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, typed: p.serialInput, pins: p.numbers, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
+      // Serial lines to other boards: each port of this board hears what another board's TX pin sends
+      // (program.js `hear`), both programs in the same run, when the TX pin's two levels arrive at its RX
+      // pin as a high and a low for this board: on one net, or through a passive path (a series
+      // resistor, a divider), judged once per link from the DC solution with the TX pin held at each
+      // level (linkOf). No bit is simulated.
+      let peers = [];
+      let everything = [];
+      const links = new Map();
+      const linkOf = (rxGpio, peer, txGpio) => {
+        const key = `${rxGpio}|${peers.indexOf(peer)}|${txGpio}`;
+        if (!links.has(key)) {
+          const x = entry.ctrl.x;
+          if (!x) return null;
+          links.set(key, serialLink({ rx: nodeOfGpio(rxGpio), tx: peer.nodeOfTx(txGpio), net, x, elements: everything, own: pinParts.get(Math.trunc(Number(rxGpio))) ?? [], pull: byGpio.get(Math.trunc(Number(rxGpio))), vdd: entry.vdd, gnd, levels: peer.txLevels(), m }));
+        }
+        return links.get(key);
+      };
+      // Each port's links: [{ peer, port, link }] for every port of another board that has a TX pin.
+      const linksOf = (runner, k) => {
+        const port = runner.ports?.[k];
+        if (port?.rx == null || nodeOfGpio(port.rx) == null) return [];
+        const out = [];
+        for (const peer of peers) {
+          (peer.runner?.ports ?? []).forEach((theirs, j) => {
+            if (theirs.tx == null) return;
+            const link = linkOf(port.rx, peer, theirs.tx);
+            if (link) out.push({ peer, port: j, theirs, link });
+          });
+        }
+        return out;
+      };
+      const hearPeers = (runner) => {
+        if (!peers.length || !runner.ports) return;
+        runner.ports.forEach((_, k) => {
+          for (const { theirs, link } of linksOf(runner, k)) if (link.ok) runner.hear(k, theirs);
+        });
+      };
       entry.ctrl = h.add({
         nodes: [],
         links: [],
         x: null,
+        serialBoard: true,
+        boardId: h.id,
+        early,
+        netOfTx: (gpio) => netOfGpio(gpio),
+        nodeOfTx: (gpio) => nodeOfGpio(gpio),
+        // A TX pin's two levels: the board's rail and its ground, now.
+        txLevels: () => ({ high: volt(entry.vdd), low: volt(gnd) }),
+        // The ports this board's program reads whose RX pin gets no data (limits() says why).
+        deaf() {
+          const out = [];
+          (this.runner.ports ?? []).forEach((port, k) => {
+            if (!port.reads || port.typed) return;
+            const all = linksOf(this.runner, k);
+            if (all.some((l) => l.link.ok)) return;
+            const wired = port.rx != null && p.gpios.find((g) => g.gpio === port.rx)?.used;
+            const bad = all.find((l) => l.link.reaches);
+            if (bad) out.push({ k, rx: port.rx, peer: bad.peer.boardId, link: bad.link });
+            else if (wired) out.push({ k, rx: port.rx, peer: null, link: null });
+            // Nothing wired and nothing typed: it waits for input that never comes (a note).
+            else out.push({ k, rx: port.rx, waits: true });
+          });
+          return out;
+        },
         runner: fresh(),
+        // Clocked chips listening to this board's pins (devices/logic.js): each change of a pin the
+        // program makes reaches them at once, in order, with the volts it puts on the pin (a shiftOut's
+        // clock pulse takes no simulated time, so a chip that only read the solved voltages would miss
+        // it); a restart (the program run again from setup at t = 0) tells them to forget what they heard.
+        watchers: [],
+        watch(fn) {
+          this.watchers.push(fn);
+        },
+        gpioNodes: () => new Map([...byGpio].map(([gpio, stage]) => [gpio, stage.nodes[0]])),
+        // The volts a pin holds now as a steady output (not a PWM, not held by engine.drive), or null.
+        steady(gpio) {
+          const st = this.runner.pins[gpio];
+          if (held.has(gpio) || !byGpio.has(gpio) || !st || st.mode !== 'output' || st.pwm) return null;
+          return volt(st.level ? entry.vdd : gnd);
+        },
+        heard(gpio) {
+          const volts = this.steady(gpio);
+          if (volts == null) return;
+          // Every listener takes the edge first, then passes on what it changed (a chip's QH' to the
+          // next one's SER): two chips on one clock both see the instant before it.
+          for (const fn of this.watchers) fn({ gpio, volts, x: this.x });
+          for (const fn of this.watchers) fn({ flush: true });
+        },
         stamp() {
           sync();
           return false;
@@ -149,6 +353,9 @@ export const mcu = {
           if (!this.memos) this.memos = sensors.map((el) => JSON.stringify(el.memo ?? null));
           else sensors.forEach((el, k) => (el.memo = JSON.parse(this.memos[k])));
           this.runner = fresh();
+          for (const fn of this.watchers) fn({ restart: true, x });
+          for (const fn of this.watchers) fn({ flush: true });
+          this.runner.onSet = (gpio) => this.heard(gpio);
           this.runner.advance?.(0);
           sync();
           return JSON.stringify(this.runner.pins) !== before;
@@ -157,8 +364,16 @@ export const mcu = {
           this.x = x;
           this.runner.read = read;
           this.runner.ask = ask;
+          hearPeers(this.runner);
+          this.runner.onSet = (gpio) => this.heard(gpio);
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
+        },
+        // What the program printed (engine.serial): the lines kept, the time each ended, and how many
+        // lines it has ended since setup.
+        serial() {
+          const r = this.runner;
+          return { printed: r.printed ?? 0, lines: r.log ?? [], stamps: r.stamps ?? [] };
         },
         // When the program wants to run again (a delay ending, pulseIn's timeout): the engine ends a
         // step there, so a delayMicroseconds(10) is a pulse of 10 µs (engine.advance).
@@ -168,6 +383,9 @@ export const mcu = {
         // The engine hands every element of the circuit over once they are all built (engine.js).
         connect(elements) {
           sensors = elements.filter((el) => el.library && typeof el.answer === 'function');
+          peers = elements.filter((el) => el.serialBoard && el !== this);
+          everything = elements;
+          links.clear();
           root.clear();
           for (const el of elements) {
             if (!el.joins) continue;
@@ -194,11 +412,13 @@ export const mcu = {
       }
       const stage = gpioStage({ pin: node, vdd: entry.vdd, gnd }, m, pin.state ?? {});
       byGpio.set(pin.gpio, stage);
-      return {
+      const parts = {
         stage: add(stage),
         up: add(junction(node, entry.vdd, ESD)),
         down: add(junction(gnd, node, ESD)),
       };
+      pinParts.set(pin.gpio, [parts.stage, parts.up, parts.down]);
+      return parts;
     });
     return entry;
   },
@@ -275,19 +495,45 @@ export const mcu = {
         const read = voltage < m.vil * vdd ? 0 : voltage > m.vih * vdd ? 1 : null;
         const full = m.adcRef === 'vdd' && vdd > 0 ? vdd : m.adcFull;
         const adc = info.adc ? Math.round(Math.min(1, Math.max(0, voltage / full)) * (2 ** m.adcBits - 1)) : null;
-        return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, ...(s.stage.pwm && { pwm: s.stage.pwm }), voltage, current, read, adc };
+        // A loaded output says the resistance its current comes through (part of every pin-current figure).
+        const loaded = s.stage.mode === 'output' && Math.abs(current) > LOADED_PIN;
+        return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, ...(s.stage.pwm && { pwm: s.stage.pwm }), voltage, current, read, adc, ...(loaded && { behind: m.outputResistance }) };
       });
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);
     const run = entry.ctrl?.runner;
-    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-12), notes: [...run.notes] } : null;
-    return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vdd: v(entry.vdd), rail, pins, power, currents, ...(program && { program }) };
+    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-12), notes: [...run.notes], ...(run.warnings?.length && { warnings: run.warnings.map((w) => ({ ...w })) }), ...(run.stuck && { stuck: true }), ...(run.sleeping && { sleeping: { ...run.sleeping } }) } : null;
+    return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vbus: v(entry.vbus), vdd: v(entry.vdd), rail, pins, power, currents, ...(program && { program }) };
   },
   limits(entry, r) {
     const m = entry.model;
     // Each pin by its name (U1.D10), so the warning says which one and two pins are two hazards.
     const out = r.pins.map((x) => stress('SIM_OVER_CURRENT', 'current', Math.abs(x.current), m.maxPin, 'A', { pin: x.name }));
     for (const ids of entry.ctrl?.shared ?? []) out.push(note('warning', 'SIM_LIBRARY_SHARED', { part: entry.id, parts: ids.join(', '), first: ids[0] }));
+    // What the program did that a real board would show (program.js `warn`): each a warning with its
+    // line, a pin by the board's name for it (GPIO13 is D13 on an UNO).
+    const nameOf = (gpio) => entry.gpios.find((g) => g.gpio === gpio)?.name ?? `GPIO${gpio}`;
+    for (const w of r.program?.warnings ?? []) {
+      const { code, pin, ...rest } = w;
+      out.push(note('warning', code, { part: entry.id, ...rest, ...(pin != null && { pin: typeof pin === 'number' && code !== 'SIM_PROGRAM_PIN_UNKNOWN' ? nameOf(pin) : String(pin) }), ...(rest.variant == null && { variant: entry.family }) }));
+    }
+    // A port the program reads whose RX pin gets no byte: a TX reaches it with levels this board does
+    // not read as a high and a low (SIM_SERIAL_LEVELS), or nothing that sends is wired to it.
+    for (const [sensor, at] of entry.ctrl?.early ?? []) out.push(note('info', 'SIM_LIBRARY_EARLY', { part: entry.id, sensor: String(sensor), time: q(at / 1000, 's') }));
+    for (const d of entry.ctrl?.deaf?.() ?? []) {
+      const port = d.k === 0 ? 'Serial' : `Serial${d.k}`;
+      if (d.waits) out.push(note('info', 'SIM_SERIAL_WAITS', { part: entry.id, port }));
+      else if (d.link) out.push(note('warning', 'SIM_SERIAL_LEVELS', { part: entry.id, port, pin: nameOf(d.rx), peer: String(d.peer), high: q(d.link.high, 'V'), low: q(d.link.low, 'V'), vih: q(d.link.vih, 'V'), vil: q(d.link.vil, 'V') }));
+      else out.push(note('warning', 'SIM_SERIAL_NO_TX', { part: entry.id, port, pin: nameOf(d.rx) }));
+    }
     if (r.rail != null && entry.power.logic !== entry.power.usb) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A', { of: 'regulator' }));
+    // A supply pin below the ground pin (a battery the wrong way round): the board's power pin of the USB
+    // rail and its logic rail, each named with the ground pin.
+    const gnd = entry.power.ground?.find((n) => entry.wired.includes(n)) ?? 'GND';
+    const rails = [[entry.power.usb, r.vbus], ...(entry.power.logic !== entry.power.usb ? [[entry.power.logic, r.vdd]] : [])].filter(([name]) => name && entry.wired.includes(name));
+    if (rails.length) {
+      const [name, volts] = rails.reduce((a, b) => (Number(b[1]) < Number(a[1]) ? b : a));
+      out.push(reverseSupply(-volts, REVERSE_LIMITS.board, name, gnd, 'board'));
+    }
     for (const x of r.pins) {
       if (x.voltage > r.vdd + 0.3 || x.voltage < -0.3) out.push(note('warning', 'SIM_PIN_OVERVOLTAGE', { part: entry.id, pin: x.name, voltage: q(x.voltage, 'V'), max: q(r.vdd, 'V') }));
     }
@@ -298,6 +544,7 @@ export const mcu = {
     if (p.program) {
       const pr = p.program;
       if (pr.error) lines.push(h.raw('mcu.program', h.t('sim.mcu.programError', { error: pr.error })));
+      else if (pr.sleeping) lines.push(h.raw('mcu.program', pr.sleeping.until == null ? h.t('sim.mcu.programSleepsForever', { time: h.f(pr.time, 's') }) : h.t('sim.mcu.programSleeps', { time: h.f(pr.time, 's'), left: h.f(pr.sleeping.until - pr.time, 's') })));
       else lines.push(h.raw('mcu.program', h.t(pr.until > pr.time + 1e-9 ? 'sim.mcu.programWaits' : 'sim.mcu.programRuns', { time: h.f(pr.time, 's'), left: h.f(pr.until - pr.time, 's') })));
       if (pr.notes.length) lines.push(h.raw('mcu.notYet', h.t('sim.mcu.notYet', { names: pr.notes.join(', ') })));
       for (const text of pr.serial) lines.push(h.raw('mcu.serial', `› ${text}`));

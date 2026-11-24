@@ -1,0 +1,355 @@
+{
+ "parts": [
+  {
+   "id": "U1",
+   "part": "UNO"
+  },
+  {
+   "id": "U2",
+   "part": "74HC595"
+  },
+  {
+   "id": "U3",
+   "part": "74HC595"
+  },
+  {
+   "id": "R1",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D1",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R2",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D2",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R3",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D3",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R4",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D4",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R5",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D5",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R6",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D6",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R7",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D7",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R8",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D8",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R9",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D9",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R10",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D10",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R11",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D11",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R12",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D12",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R13",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D13",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R14",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D14",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R15",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D15",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R16",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D16",
+   "type": "led",
+   "color": "red"
+  }
+ ],
+ "nets": [
+  [
+   "U1.5V",
+   "U2.VCC",
+   "U2.SRCLR",
+   "U3.VCC",
+   "U3.SRCLR"
+  ],
+  [
+   "U1.D11",
+   "U2.SER"
+  ],
+  [
+   "U1.D12",
+   "U2.SRCLK",
+   "U3.SRCLK"
+  ],
+  [
+   "U1.D8",
+   "U2.RCLK",
+   "U3.RCLK"
+  ],
+  [
+   "U2.QH'",
+   "U3.SER"
+  ],
+  [
+   "U2.QA",
+   "R1.1"
+  ],
+  [
+   "R1.2",
+   "D1.A"
+  ],
+  [
+   "U2.QB",
+   "R2.1"
+  ],
+  [
+   "R2.2",
+   "D2.A"
+  ],
+  [
+   "U2.QC",
+   "R3.1"
+  ],
+  [
+   "R3.2",
+   "D3.A"
+  ],
+  [
+   "U2.QD",
+   "R4.1"
+  ],
+  [
+   "R4.2",
+   "D4.A"
+  ],
+  [
+   "U2.QE",
+   "R5.1"
+  ],
+  [
+   "R5.2",
+   "D5.A"
+  ],
+  [
+   "U2.QF",
+   "R6.1"
+  ],
+  [
+   "R6.2",
+   "D6.A"
+  ],
+  [
+   "U2.QG",
+   "R7.1"
+  ],
+  [
+   "R7.2",
+   "D7.A"
+  ],
+  [
+   "U2.QH",
+   "R8.1"
+  ],
+  [
+   "R8.2",
+   "D8.A"
+  ],
+  [
+   "U3.QA",
+   "R9.1"
+  ],
+  [
+   "R9.2",
+   "D9.A"
+  ],
+  [
+   "U3.QB",
+   "R10.1"
+  ],
+  [
+   "R10.2",
+   "D10.A"
+  ],
+  [
+   "U3.QC",
+   "R11.1"
+  ],
+  [
+   "R11.2",
+   "D11.A"
+  ],
+  [
+   "U3.QD",
+   "R12.1"
+  ],
+  [
+   "R12.2",
+   "D12.A"
+  ],
+  [
+   "U3.QE",
+   "R13.1"
+  ],
+  [
+   "R13.2",
+   "D13.A"
+  ],
+  [
+   "U3.QF",
+   "R14.1"
+  ],
+  [
+   "R14.2",
+   "D14.A"
+  ],
+  [
+   "U3.QG",
+   "R15.1"
+  ],
+  [
+   "R15.2",
+   "D15.A"
+  ],
+  [
+   "U3.QH",
+   "R16.1"
+  ],
+  [
+   "R16.2",
+   "D16.A"
+  ],
+  [
+   "U1.GND",
+   "U2.GND",
+   "U2.OE",
+   "U3.GND",
+   "U3.OE",
+   "D1.K",
+   "D2.K",
+   "D3.K",
+   "D4.K",
+   "D5.K",
+   "D6.K",
+   "D7.K",
+   "D8.K",
+   "D9.K",
+   "D10.K",
+   "D11.K",
+   "D12.K",
+   "D13.K",
+   "D14.K",
+   "D15.K",
+   "D16.K"
+  ]
+ ],
+ "board": "double"
+}

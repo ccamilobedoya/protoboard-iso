@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
 import { sonarAdvance, sonarUntil, echoWidth, IDLE, BURST, ECHO, OFF } from '../src/sim/devices/ultrasonic.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
@@ -122,7 +122,8 @@ test('supply: 2 mA waiting, 15 mA measuring; under 4.5 V no echo, over 5.5 V a w
       nets: [['T+', 'S1.VCC', 'R1.1'], ['R1.2', 'S1.TRIG'], ['S1.GND', 'T-']],
       supplies: [{ id: 'V1', kind: 'bench', voltage: volts, positive: 'T+', negative: 'T-' }],
     });
-    assert.equal(r.status, 'done', JSON.stringify(r.problems));
+    // Outside its 4.5…5.5 V the simulation warns (a doubt): WARNINGS.
+    assert.equal(r.status, volts >= 4.5 && volts <= 5.5 ? 'done' : 'warnings', JSON.stringify(r.problems));
     return r.circuit;
   };
   const idle = simulate(at(5));

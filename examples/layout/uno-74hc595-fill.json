@@ -1,0 +1,217 @@
+{
+ "title": {
+  "en": "UNO filling eight LEDs through a 74HC595",
+  "es": "UNO que llena ocho LED con un 74HC595"
+ },
+ "parts": [
+  {
+   "id": "U1",
+   "part": "UNO",
+   "program": "// Fills the eight LEDs one by one, then empties them: a 74HC595 takes each byte with shiftOut.\nconst int DATA = 11;   // SER\nconst int CLOCK = 12;  // SRCLK\nconst int LATCH = 8;   // RCLK\nint lit = 0;\n\nvoid setup() {\n  pinMode(DATA, OUTPUT);\n  pinMode(CLOCK, OUTPUT);\n  pinMode(LATCH, OUTPUT);\n}\n\nvoid loop() {\n  // lit LEDs from QA up: 0, 1, 3, 7 ... 255 (MSBFIRST puts bit 0 on QA)\n  int value = (1 << lit) - 1;\n  digitalWrite(LATCH, LOW);\n  shiftOut(DATA, CLOCK, MSBFIRST, value);\n  digitalWrite(LATCH, HIGH);\n  lit = (lit + 1) % 9;\n  delay(200);\n}\n"
+  },
+  {
+   "id": "U2",
+   "part": "74HC595"
+  },
+  {
+   "id": "R1",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D1",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R2",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D2",
+   "type": "led",
+   "color": "red"
+  },
+  {
+   "id": "R3",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D3",
+   "type": "led",
+   "color": "yellow"
+  },
+  {
+   "id": "R4",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D4",
+   "type": "led",
+   "color": "yellow"
+  },
+  {
+   "id": "R5",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D5",
+   "type": "led",
+   "color": "green"
+  },
+  {
+   "id": "R6",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D6",
+   "type": "led",
+   "color": "green"
+  },
+  {
+   "id": "R7",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D7",
+   "type": "led",
+   "color": "blue"
+  },
+  {
+   "id": "R8",
+   "type": "resistor",
+   "value": "1k"
+  },
+  {
+   "id": "D8",
+   "type": "led",
+   "color": "blue"
+  }
+ ],
+ "nets": [
+  [
+   "U1.5V",
+   "U2.VCC",
+   "U2.SRCLR"
+  ],
+  [
+   "U1.GND",
+   "U2.GND",
+   "U2.OE"
+  ],
+  [
+   "U1.D11",
+   "U2.SER"
+  ],
+  [
+   "U1.D12",
+   "U2.SRCLK"
+  ],
+  [
+   "U1.D8",
+   "U2.RCLK"
+  ],
+  [
+   "U2.QA",
+   "R1.1"
+  ],
+  [
+   "R1.2",
+   "D1.A"
+  ],
+  [
+   "D1.K",
+   "U1.GND"
+  ],
+  [
+   "U2.QB",
+   "R2.1"
+  ],
+  [
+   "R2.2",
+   "D2.A"
+  ],
+  [
+   "D2.K",
+   "U1.GND"
+  ],
+  [
+   "U2.QC",
+   "R3.1"
+  ],
+  [
+   "R3.2",
+   "D3.A"
+  ],
+  [
+   "D3.K",
+   "U1.GND"
+  ],
+  [
+   "U2.QD",
+   "R4.1"
+  ],
+  [
+   "R4.2",
+   "D4.A"
+  ],
+  [
+   "D4.K",
+   "U1.GND"
+  ],
+  [
+   "U2.QE",
+   "R5.1"
+  ],
+  [
+   "R5.2",
+   "D5.A"
+  ],
+  [
+   "D5.K",
+   "U1.GND"
+  ],
+  [
+   "U2.QF",
+   "R6.1"
+  ],
+  [
+   "R6.2",
+   "D6.A"
+  ],
+  [
+   "D6.K",
+   "U1.GND"
+  ],
+  [
+   "U2.QG",
+   "R7.1"
+  ],
+  [
+   "R7.2",
+   "D7.A"
+  ],
+  [
+   "D7.K",
+   "U1.GND"
+  ],
+  [
+   "U2.QH",
+   "R8.1"
+  ],
+  [
+   "R8.2",
+   "D8.A"
+  ],
+  [
+   "D8.K",
+   "U1.GND"
+  ]
+ ]
+}

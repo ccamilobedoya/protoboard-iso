@@ -46,10 +46,20 @@ de cada placa en `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
 | Consumo propio | 40 mA (C3: 20 mA), sin radio | 45 mA (chip, puente USB, LED de encendido) |
 | Límites | 40 mA por pin (máximo absoluto); un pin por encima de VDD + 0,3 V o por debajo de −0,3 V (diodos de protección conduciendo: `SIM_PIN_OVERVOLTAGE`) | lo mismo, a 5 V |
 
+`kit catalog <placa>` dice la resistencia de salida con su origen (`pines de salida (el modelo del
+simulador): cada uno es 5 V o 0 V detrás de 40 Ω (de la hoja de datos del ATmega328P: 4,2 V de salida
+a 20 mA desde 5 V)`; en JSON `pinOutput`): la del ESP32 de su hoja de datos, la del ESP32-C3 supuesta
+igual a la del ESP32.
+
 - **Alimentación:** una placa con USB (`"usb": true`, por defecto) es una fuente: 5 V tras la
   resistencia del cable en su pin de USB (VIN en un DevKit, 5V en las otras). Sin otra fuente, la
   tierra es su GND, así que `esp32-led` se simula sin nada más. `"usb": false`: la placa toma su
-  alimentación del circuito por esos pines.
+  alimentación del circuito por esos pines. Por USB una placa da 500 mA en total (un puerto USB 2.0;
+  el fusible rearmable del UNO también es de 500 mA): pasado eso, un peligro en su pin de USB dice qué
+  pasa (`U1.5V da 721 mA desde el USB, más que los 500 mA que da un puerto USB: el fusible rearmable
+  de 500 mA de la placa se abre…`; en un DevKit o un C3, el puerto del computador se apaga). El pin
+  3V3 del UNO tiene su propio LP2985: pasados sus 150 mA, un peligro en `U1.3V3`; el regulador de
+  3,3 V de un DevKit o un C3 tiene su máximo en la placa.
 - **Pines:** `"io"` fija cada GPIO por su nombre impreso, su nombre GPIO o su número (`"D13"`,
   `"GPIO13"`, `"13"`): `high`, `low`, `input`, `input_pullup`, `input_pulldown`. Los que no aparecen
   son entradas. Un GPIO sin nada conectado se deja fuera. Los errores son avisos y se dejan fuera: un
@@ -96,11 +106,106 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   fija), las funciones de bits, `LED_BUILTIN` (2 en el DevKit, 8 en el C3, 13 en el UNO) y
   `A0`…`A5`. En un UNO, `digitalWrite(pin, HIGH)` sobre una entrada activa su pull-up, como en el
   chip real.
+  `shiftOut` y `shiftIn` con `MSBFIRST` / `LSBFIRST` (ocho `digitalWrite` de las patas de datos y de
+  reloj, sin tiempo entre ellos), `PI`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`. Un nombre que
+  el kit no tiene detiene el programa con `NAME is not a name the kit's Arduino subset knows` (un
+  nombre de Arduino que el kit no tiene, como `RISING`) o `NAME is not declared: a real board would not
+  compile this sketch`, con la línea. En un UNO `analogRead(0)` … `analogRead(5)` leen los canales
+  A0 … A5. Los
+  arreglos tienen una dimensión: `const int C[6][3] = {…}` se rechaza con su línea
+  (`SIM_PROGRAM_ARRAY_DIMENSIONS`); escríbelo como una sola lista, `C[fila * 3 + columna]`.
+- **Serial imprime como el `Print` de una placa:** un `char` (`'Z'`, una variable `char`, `(char) 65`,
+  una función que devuelve `char`) sale como su letra, y la aritmética con él es un número (`c + 1`
+  imprime 67); `byte`, `unsigned char` y `char` con `DEC` imprimen el número; `Serial.write(65)` envía
+  el byte (`A`) y `Serial.write("texto")` el texto; el segundo argumento de un entero es su base
+  (`DEC`, `HEX`, `OCT`, `BIN`; un negativo en otra base, como sus 32 bits: `-1` en `HEX` es
+  `FFFFFFFF`), el de un float, sus decimales (`Serial.println(3.14159, 3)` es `3.142`).
+- **Lo que mostraría una placa real, el kit lo dice** (cada uno un aviso con su línea, un ⚠ de la
+  revisión, y el programa sigue hasta donde seguiría una placa): un pin que la placa no tiene
+  (`SIM_PROGRAM_PIN_UNKNOWN`, la llamada no hace nada); `digitalWrite(pin, HIGH)` en un pin que nunca
+  se configuró como `OUTPUT` (`SIM_PROGRAM_NOT_OUTPUT`: en un UNO lo alimenta el pull-up, un LED apenas
+  brilla; en un ESP32 no cambia nada); `analogWrite` en un pin sin PWM (`SIM_PROGRAM_NO_PWM`, HIGH desde
+  128); una división o un resto enteros por cero (`SIM_PROGRAM_DIVIDE_ZERO`: 0 y sigue, en la placa el
+  resultado no está definido; un ESP32 se detiene ahí, porque su chip lanza una excepción y se
+  reinicia); un arreglo leído o escrito fuera de sus elementos (`SIM_PROGRAM_OUT_OF_BOUNDS`: el kit lee
+  0 y descarta lo escrito, una placa toca otra memoria; `int a[5] = {1, 2}` tiene cinco elementos, el
+  resto 0); un `delay` negativo (`SIM_PROGRAM_DELAY_NEGATIVE`: un argumento sin signo, unos 49 días,
+  una espera hasta el final de la ejecución); un nombre nunca declarado (`SIM_PROGRAM_UNDECLARED`, una
+  placa no lo compila; el kit corre hasta llegar ahí); una llave sin cerrar (`SIM_PROGRAM_BRACE`, con la
+  línea donde abrió su bloque; no corre); un `#include` de una librería que el kit no tiene
+  (`SIM_PROGRAM_LIBRARY`, una línea: sus objetos, `Servo s;`, `WiFi.begin(…)`, y sus constantes no
+  hacen nada y leen 0). Los del entorno de ejecución se ven en los estados que resuelve la revisión
+  (setup() y loop() hasta su primera espera) y en una ejecución.
+- **`Serial.begin` toma los pines de su UART:** su TX (D1 en un UNO, GPIO1 en un ESP32) pasa a ser
+  una salida que reposa en alto, el nivel de parada de la línea, así que lo que alimenta ve el riel de
+  la placa: el TX de un UNO en el RX de un ESP32 son 5 V en un pin de 3,3 V, y la revisión del voltaje
+  de los pines lo dice (`SIM_PIN_OVERVOLTAGE`). El `Serial` del ESP32-C3 es su puerto USB y no toma
+  ningún pin.
+- **Los enteros tienen el tamaño de su placa** (2026-11): un valor guardado en una variable, un
+  parámetro, un elemento de un arreglo o el retorno de una función se ajusta a su tipo en la placa en
+  uso: `byte`/`uint8_t` 8 bits, `char`/`int8_t` 8 con signo, `int` y `unsigned int` 16 bits en un UNO
+  y 32 en un ESP32, `long`, `unsigned long`, `uint32_t` 32, `bool` 0 o 1 (`byte b = 255; b++;` es 0).
+  Una cadena aritmética con un `unsigned long` (o, en un UNO, un `unsigned int`) da la vuelta como C la
+  tipa, así que `now - start` funciona al pasar por la vuelta; `millis()` y `micros()` dan la vuelta en
+  2^32. Una suma con signo que se desborda dentro de una expresión no se ajusta (C la deja indefinida);
+  guardada, sí. `bitSet`, `bitClear`, `bitToggle` y `bitWrite` cambian su variable o elemento; sobre
+  otra cosa son una advertencia (`SIM_PROGRAM_NOT_LVALUE`), como un compilador las rechaza. Un
+  parámetro por referencia (`int &x`) es una copia en el kit, con advertencia (`SIM_PROGRAM_REFERENCE`).
+- **Texto:** `String` con sus métodos de siempre (`length`, `charAt`, `indexOf`, `substring`, `toInt`,
+  `toFloat`, `equals`, `startsWith`, `trim`, `toUpperCase`, `toLowerCase`, `concat`… la lista está en
+  `references/sketch.md` de la skill), un `char` sumado a un String como su letra y un `float` con dos
+  decimales, `char *texto = "…"`; `sprintf` y `snprintf` en un búfer `char` (`%d %u %ld %lu %x %c %s
+  %%` y anchos; un UNO no tiene `%f`, escribe `?` como avr-libc). Las macros sencillas con argumentos
+  se expanden donde se usan.
+- **Lo que se rechaza, con qué escribir en su lugar** (el programa no corre, la advertencia nombra la
+  construcción y su línea): punteros (`SIM_PROGRAM_POINTER`), `struct`, `class`, `enum` y otras
+  declaraciones de tipos (`SIM_PROGRAM_TYPE_DECL`), un método de `String` que el kit no tiene
+  (`SIM_PROGRAM_STRING_METHOD`), un miembro leído con `.` (`SIM_PROGRAM_MEMBER`), una macro que no
+  puede expandir (`SIM_PROGRAM_MACRO`).
+- **Una línea serie entre dos placas:** los bytes que un puerto envía por su pin TX llegan a un puerto
+  de otra placa cuando el alto y el bajo del pin TX llegan a su pin RX como un alto y un bajo para
+  ella: en la misma red, o por un camino pasivo (una resistencia en serie, el divisor de siempre de
+  1 kΩ sobre 2 kΩ de 5 V a 3,3 V), juzgado una vez por enlace con la solución DC con el pin TX en cada
+  nivel. Un programa que lee un puerto cuyo pin RX nunca recibe los dos niveles, o ningún TX, es una
+  advertencia que dice por qué (`SIM_SERIAL_LEVELS`, `SIM_SERIAL_NO_TX`). Cada byte llega cuando
+  pasan sus diez bits a la velocidad del que envía, así que `available()`, `read()`, `parseInt()` y `readStringUntil()`
+  funcionan entre ellas, los dos programas avanzando en la misma ejecución (el `Serial` de un UNO al
+  `Serial2` de un ESP32). Dos velocidades distintas no pasan nada (`SIM_PROGRAM_BAUD_MISMATCH`: una
+  placa real lee basura). El pin TX queda en su nivel de reposo en el circuito: sus bits no se dibujan
+  como flancos. Un `\r` recibido se imprime como nada.
+- **Escribirle a una placa:** `simulate --run 3 --serial "1@0.5"` le entrega el texto a su `Serial` de
+  USB a los 0,5 s, un carácter cada diez bits a la velocidad del puerto (se repite; `\n` para una
+  línea nueva; `U1:` delante nombra la placa, `Serial2:` el puerto). Un programa que lee un puerto sin
+  nada escrito ni nada conectado a su pin RX recibe una nota que nombra la opción (`SIM_SERIAL_WAITS`).
+  Un DHT11 leído en su primer segundo imprime `nan`, como en una placa, con una nota que dice que aún
+  se estaba encendiendo (`SIM_LIBRARY_EARLY`).
+- **Interrupciones:** `attachInterrupt(digitalPinToInterrupt(pin), manejador, RISING | FALLING |
+  CHANGE | LOW)` y `detachInterrupt` en los pines que tienen una (un UNO: D2 y D3; un ESP32: todos los
+  GPIO, también `ONLOW` y `ONHIGH`), con globales `volatile`. El manejador corre en el paso que ve
+  cruzar su pin (el motor termina un paso al presionar y al soltar un pulsador), entre dos
+  instrucciones del programa principal, también mientras este espera en un `delay`; `LOW` lo corre en
+  cada paso en que el pin está bajo. `noInterrupts()` las retiene e `interrupts()` corre lo que llegó
+  entretanto. Un pin sin interrupción se avisa (`SIM_PROGRAM_NO_INTERRUPT`) y su manejador nunca corre,
+  como en la placa. Los pulsadores del kit no rebotan: un manejador ve un flanco por pulsación, y un
+  antirrebote en él solo actúa como bloqueo.
+- **Puertos serie y sueño profundo:** `Serial1` y `Serial2` en un ESP32 (`Serial1` en un ESP32-C3)
+  son puertos propios: `begin(baudios[, config, rx, tx])` (los pines por defecto de Serial2 son RX 16,
+  TX 17), `print`, `println`, `write`, `available`, `read`, `peek`, `parseInt`, `parseFloat`,
+  `readStringUntil`, `readString`, `setTimeout`, `flush`, `end`; lo que imprimen sale en la salida de
+  la ejecución con su etiqueta (`Serial2: got 5`). Un UNO solo tiene `Serial`: `Serial2` ahí detiene
+  el programa con «Serial2 is not declared on an UNO: a real board would not compile this sketch».
+  Una lectura que espera (`parseInt`) espera su plazo, 1 s salvo que `setTimeout` diga otro, y
+  devuelve 0 si no llega nada. El sueño profundo del ESP32 (`esp_sleep_enable_timer_wakeup(µs)` y
+  luego `esp_deep_sleep_start()`, o `ESP.deepSleep(µs)`): el programa se detiene, sus pines vuelven a
+  ser entradas y, pasado el tiempo dado, empieza otra vez desde `setup()` con sus globales como al
+  encender y `millis()` desde 0; sin temporizador duerme hasta el final. La ficha de la placa dice que
+  duerme y cuándo despierta.
 - **Cómo corre:** cada función pasa a ser un generador, así que `delay()` espera en tiempo simulado.
   El programa corre entre pasos de tiempo, con los voltajes del paso anterior, como el biestable del
   555: un cambio vale un paso después (1 ms en la página). En t = 0 vuelve a empezar con los voltajes
   de ese momento hasta que sus pines salen iguales (su setup puede activar un pull-up que su loop
-  lee). Un loop que nunca espera recibe 2000 vueltas por paso, así la página no se congela. Cuando
+  lee). Un `delay` dura lo que dice desde que se llama: el tiempo que un `loop()` corrió sin esperar
+  no se descuenta del siguiente. Un loop que nunca espera recibe 2000 vueltas por paso, así la página no se congela. Cuando
   se usa un control (se presiona un pulsador), el programa sigue donde estaba.
 - **En la página:** un circuito con programa corre en tiempo real (`delay(500)` es medio segundo),
   con pasos de 1 ms (más cortos, hasta 0,1 ms, si al lado hay un RC rápido). La ficha de la placa
@@ -108,7 +213,10 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **Lo que no corre:** clases (salvo los objetos de tres bibliotecas, [más abajo](#objetos-de-biblioteca-dht-bme280-bmp280)), punteros, plantillas, macros con parámetros, otras librerías (un
   `#include` distinto del de Arduino se avisa: `SIM_PROGRAM_LIBRARY`); llamar a una función que nadie
   define devuelve 0 (`SIM_PROGRAM_UNSUPPORTED`); una línea que no entiende lo detiene
-  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`). Una variable
+  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`); una carpeta nombrada como
+  programa (`SIM_PROGRAM_FOLDER`); un programa de una línea que se lee como un nombre de archivo que el
+  kit no lee, con una barra o una terminación que no es `.ino` (`SIM_PROGRAM_NOT_SKETCH`: se toma por un
+  nombre de archivo, nunca se lee como sketch). Una variable
   global cuyo valor llama a `delay`, a `pulseIn` o a una función propia del programa
   (`long g = pulseIn(7, HIGH);`, `int x = mitad(4);`) es `SIM_PROGRAM_ERROR`: aquí esas llamadas
   esperan en tiempo simulado, y el valor de una global no tiene tiempo en que esperar.
@@ -248,7 +356,7 @@ de un float escribe dos decimales (`24.00`, como Arduino), de `NaN` `nan` y de u
 | **M4** | Recetas con su programa: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; probado potenciómetro → ADC → PWM con los números de cada placa | ✅ 2026-10-26 |
 | **M5** | `pulseIn` (2026-11-10): una espera en tiempo simulado que mide entre los pasos que terminan en los flancos; `engine.advance` aterriza en los eventos de cada elemento; recetas `uno-distance`, `esp32-distance`, `distance-alarm-uno` con el HC-SR04 | ✅ 2026-11-10 |
 | **M6** | Objetos de biblioteca (2026-11-10): `DHT`, `Adafruit_BME280`, `Adafruit_BMP280` como números de la tabla del traductor; la placa le pregunta al sensor conectado donde lo busca la biblioteca; recetas `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | ✅ 2026-11-10 |
-| después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, interrupciones (`attachInterrupt`), versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
+| después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
 
 El programa maneja la memoria que guardan los pines (`gpioStage`: `mode`, `level`, `pull`) a
 través de un elemento sin corriente propia (el controlador de la placa), así que el motor solo

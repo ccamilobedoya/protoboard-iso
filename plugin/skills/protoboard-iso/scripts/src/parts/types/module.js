@@ -48,7 +48,7 @@ export default {
     if (!given.length) return { error: { code: 'MODULE_PINS', params: { example: '{ "D13": "j20", "GND": "T-5" }', names: all.join(', ') } } };
     const names = [];
     for (const key of given) {
-      const name = findPin(all, key);
+      const name = findPin(all, key, 'module');
       if (!name) return { error: { code: 'UNKNOWN_PIN', params: { pin: key, names: all.join(', ') } } };
       names.push(name);
     }

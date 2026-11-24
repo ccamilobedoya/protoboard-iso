@@ -381,7 +381,7 @@ dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08
 - ✅ El kit primero, y luego un ensayo (2026-11-16): la revisión de peligros también sostiene en alto cada salida del programa de una placa, sola (`con D10 en alto`); después de los peligros, el arreglo calculado por el kit (el valor de una resistencia, o una resistencia agregada en serie sobre el circuito compilado, `src/fix.js`) o «El kit no tiene un arreglo calculado para esto.»; una línea `Revisado` con lo que se revisó y lo que no; `layout --dry-run` / `dry_run` ensaya un circuito sin guardar nada; la skill usa primero el kit, su propio conocimiento solo donde el kit dice que no tiene respuesta, y ensaya cada idea propia antes de que llegue al circuito (`references/beyond-the-kit.md`)
 - ✅ Arreglarlo en una llamada, en cualquier orden (2026-11-16): `layout <objetivo> --fix` (MCP `fix: true`) aplica el arreglo calculado del kit como una revisión, solo si se le pide, y dice qué aplicó; `layout` prueba los órdenes que dan las redes cuando el orden en que vinieron los componentes deja algo por arreglar (todas las recetas barajadas terminan `DONE` salvo `esp32-distance`, nombrada en `test/layout-order.test.js`); un ensayo que termina `CHANGES` ya no dice que se creó el circuito
 - ⬜ Picos al conmutar: un transitorio corto alrededor de los flancos de un programa, un 555 o un generador para encontrar los picos que los estados en DC no ven (la línea `Revisado` los lista como no revisados)
-- ⬜ Encoder rotativo, pendiente: dos controles momentáneos "+1 clic" y "−1 clic" que muevan el objetivo un clic (una pieza que sigue al ambiente tendría que dejar el campo), `attachInterrupt` en el programa de una placa, el EC11 suelto sobre sus propios pines (sin pull-up) y la variante 15/30 (dos clics por ciclo)
+- ⬜ Encoder rotativo, pendiente: dos controles momentáneos "+1 clic" y "−1 clic" que muevan el objetivo un clic (una pieza que sigue al ambiente tendría que dejar el campo), el EC11 suelto sobre sus propios pines (sin pull-up) y la variante 15/30 (dos clics por ciclo)
 - ⬜ Un LED infrarrojo como emisor y un fototransistor suelto o un receptor IR que lo lea
 - ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
 - ✅ Los pull-ups internos de Wire en una placa AVR (2026-11-10): el `begin()` de una biblioteca o `Wire.begin()` encienden los pull-ups del UNO en SDA y SCL, así que una placa I2C de 3,3 V queda en unos 3,68 V, sobre su VDDIO + 0,3 V: `SIM_PIN_OVER_VDDIO` (una nota); `Wire.begin(sda, scl)` mueve el bus de un ESP32
@@ -509,6 +509,73 @@ las decisiones en el registro de `PLANNING.md`.
 - ✅ Prueba de paridad inglés–español (I01): cada documento de `docs/en/` tiene su copia en `docs/es/` (y `README`, `ROADMAP`, `PLANNING`, `examples/README`), con los mismos títulos y bloques de código; cada par se declara una vez. Hoy: 22 pares mantenidos a mano, nada los comprueba — hecho el 2026-10-29: `test/parity.test.js`, los pares por sus enlaces de idioma; encontró cuatro decisiones que faltaban en el registro en español (agregadas) y una oración que faltaba en el formato del circuito en inglés (agregada)
 - ✅ Estado por decisión (N09): cada entrada del registro de decisiones de `PLANNING.md` (y `planeacion.md`) lleva un estado, y una reemplazada dice «reemplazada por N»; una prueba lo comprueba. Hoy: las entradas no tienen estado, y quien lee no sabe cuáles siguen en pie — hecho el 2026-10-29: una columna de estado en los dos registros (76 vigentes, 5 reemplazadas del todo o en parte), `test/decisions.test.js`
 - ✅ Índice de los documentos (N18): `docs/en/README.md` y `docs/es/README.md` con un bloque generado, una línea por documento (título y para qué sirve), y un paso de `npm run verify` que falla cuando queda viejo. Hoy: el README y el mapa del código enlazan documentos, pero nada los lista todos — hecho el 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; la comprobación vive en `test/docs.test.js` (parte de `npm test`, y así de `npm run verify`)
+
+## Confianza: qué significa DONE (2026-11) ✅
+
+Lo encontraron asistentes que hicieron de asistente de un usuario nuevo sobre un clon limpio de
+0.12.1: `layout` terminaba en `DONE` y `review` en `APPROVED` con circuitos que el kit no pudo
+comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró nada que decir;
+`WARNINGS` significa armado, y cada línea ⚠ se le dice al usuario antes de decir que funciona. La
+sección `[Unreleased]` del registro de cambios tiene cada cambio en detalle.
+
+**Qué significan `DONE` y `WARNINGS`** ✅
+- ✅ Dudas junto a los peligros: `review` devuelve `doubts` (lo que el kit no pudo comprobar, o comprobó y puede no funcionar); basta una para APROBADO CON AVISOS y `STATUS: WARNINGS`, bajo su propio encabezado, en la consola y en las herramientas MCP
+- ✅ El encabezado de las dudas es cierto para todas («El kit no puede confirmar que esto funcione»), y una nota que dice que un componente pasa de un máximo es un ⚠
+- ✅ La línea `Revisado` es veraz: los campos del ambiente visitados en sus dos extremos, un sensor con su propio valor, «hace» para un componente, un programa que el kit no puede correr, una ejecución demasiado corta para saber
+
+**Peligros y dudas que el kit encuentra** ✅
+- ✅ La polaridad invertida es un peligro (reguladores, amplificadores, el 555, placas); una fuente de banco negativa se simula invertida y muestra su signo
+- ✅ La entrada máxima absoluta de un regulador, una placa por USB por encima de 500 mA, el pin 3V3 de un UNO por encima de 150 mA y una batería en corto son peligros
+- ✅ Dudas: un chip con sus pines de alimentación abiertos (`SUPPLY_PINS_UNWIRED`), una bobina conmutada sin diodo de rueda libre (cuatro diodos en un puente H), un pulsador entre pines unidos, un relé manejado que no cierra
+- ✅ Una salida que nunca se enciende es una duda; una que cuelga de un componente no simulado se nombra en la línea de ese componente; una oscilación lenta se sigue lo bastante antes de decirlo
+- ✅ La revisión de peligros visita los extremos del ambiente, los controles de la página, las combinaciones de salidas que alcanza la ejecución de un programa y los estados que guarda un chip con reloj; el voltaje más alto de un pin en la ejecución
+- ✅ Un arreglo calculado deja la pieza funcionando; una pieza al revés se voltea (`--fix` lo hace, y lo dice); las líneas de daño dicen qué le pasa a la pieza; un límite de potencia se juzga por su promedio
+- ✅ Un circuito con dos estados de reposo (un enclavamiento) lo dice, con las lecturas de cada estado
+
+**Correr un circuito (`simulate --run`)** ✅
+- ✅ `simulate --run <s>` corre un circuito como la página, con `--env`, `--set`, `--press`, `--at`, `--serial`, `--start` y `--budget` (MCP `run_s` y los mismos argumentos), y dice lo que imprimieron los programas y lo que hizo cada salida
+- ✅ La respuesta de `layout` tiene una línea `Comportamiento` para un circuito que cambia solo, con las mismas cifras que una ejecución del mismo largo; `--transient` avanza el programa de una placa como la página
+- ✅ Una ejecución elige un paso que la deja terminar, y dice desde dónde empieza, qué cubrió cuando terminó antes, una melodía nota por nota y los pitidos y el tono de un zumbador por aparte
+- ✅ Un aviso visto de paso no es un hallazgo: un nivel que debe durar se guarda solo cuando se asienta; una cifra nombra su estado, y dos cifras de lo mismo coinciden
+
+**Programas** ✅
+- ✅ Un programa calcula lo que calcula la placa: enteros de los tamaños de la placa, `char` como letra, `delay()` tan largo como dice, métodos de `String`, `sprintf`, macros simples, macros de bits
+- ✅ Los errores que mostraría una placa real son ⚠ con su línea, y el programa sigue; una construcción que el subconjunto no tiene dice qué escribir en su lugar; un ciclo que termina no está atascado
+- ✅ Interrupciones, `Serial1`/`Serial2`, el sueño profundo del ESP32, una línea serie entre dos placas que sigue el cable, y texto escrito a una placa en una ejecución
+- ✅ El `.ino` de una placa junto a `circuit.json` se encuentra en cada estado que visita la revisión, y un archivo no encontrado dice dónde buscó el kit
+
+**Los seis chips** ✅
+- ✅ El 74HC595 y el CD4017 se simulan, con `shiftOut` desde un UNO o un ESP32; sus entradas cambian cerca de la mitad de la alimentación, y se avisa un nivel no garantizado, una entrada abierta o una por encima de la alimentación
+- ✅ El ULN2003, el ULN2803, el PC817 y el LM386 se simulan; `catalog` dice lo que cubre cada modelo, y hay un ejemplo de cada chip
+- ✅ Un chip lógico alimentado con menos que sus señales recibe el arreglo calculado `resupply`; la corriente del CD4017, los rangos de alimentación y el recorte del LM386 y el rango del PC817 se dicen como son
+
+**El montaje** ✅
+- ✅ El montaje calcula antes de probar: una spec demasiado grande es `FIX_SPEC` de una vez, y la búsqueda se detiene en su límite, contado en colocaciones, con su mejor intento y el cambio siguiente que haría
+- ✅ Los circuitos grandes se montan en segundos sin quedarse sin memoria; las redes que comparten un pin son una sola; la misma spec da el mismo circuito
+- ✅ Antes de responder `CHANGES`, el montaje prueba lo que probaría una persona (otros órdenes, la protoboard doble, los componentes más altos y más anchos primero), y encuentra antes el orden que funciona
+- ✅ Una placa sola, dos baterías y cuatro relés en un chip driver se montan; un circuito guardado con componentes por fuera lo dice en cada respuesta siguiente (`No están en la protoboard: …`)
+
+**La línea de comandos y `apply`** ✅
+- ✅ La línea de comandos no se cae, no corta su salida ni guarda en silencio: un archivo malo son una o dos líneas y salida 1, un error inesperado salida 3, una opción mala salida 2 con su nombre
+- ✅ `apply` rechaza lo que el kit no puede leer, dice lo que dirá `review` de un cambio y no construye sobre un historial dañado (`--new-history`); un lote dentro del tope nunca desborda la pila
+- ✅ Los mensajes dicen la regla (el largo de una ejecución, el rango de una resistencia, un id con un espacio); un ensayo dice que no guardó nada; `--json` es siempre JSON; la página aguanta cualquier id que el kit acepte
+- ✅ Un componente que el kit no tiene dice qué tiene cerca, por las palabras de su nombre; `catalog` da un ejemplo de un componente, la resistencia de los pines de una placa y sus nombres `TX`/`RX`
+
+**La habilidad y los documentos** ✅
+- ✅ La habilidad, los agentes, los textos del MCP y los documentos dicen lo que el kit hace ahora: los dos tipos de `WARNINGS` dichos antes de decir que un circuito funciona, una ejecución con las condiciones del usuario, códigos de salida 0–3
+- ✅ `references/run-it.md`, `warnings.md`, `chips.md`, `sketch.md` y `parts.md` dicen lo que un asistente tendría que adivinar; cada comando y cada línea citada los corre una prueba
+
+**Sigue abierto** ⬜
+- ⬜ Un arreglo calculado para un motor sobre su rango como «una resistencia de N Ω de al menos X W» (un motor de 3 V en 5 V pide unos 4,7 Ω a 1 W; hoy el kit dice que no tiene porque una de ¼ W se recalienta)
+- ⬜ Límites para una pieza con pines sin conectar (un 555 suelto con la alimentación invertida no se marca)
+- ⬜ La misma comprobación de «manejado pero no funciona» que tienen los relés, para otras piezas
+- ⬜ Decir dónde cambia un circuito («se enciende por debajo de unos 500 lx»): el umbral de un sensor, no solo los dos extremos de su rango
+- ⬜ Un altavoz para oír lo que maneja el LM386 (un tipo de componente nuevo, decisión del mantenedor; mientras tanto lo reemplaza una resistencia de 8 Ω)
+- ⬜ Dos 74HC595 con dieciséis LED en una sola protoboard, y un 555 con un CD4017 y diez LED, siguen terminando en `CHANGES` en el límite de 60 s (cada intento cuesta unas 16 000 colocaciones); la protoboard doble resuelve el primero
+- ⬜ Memoria: el dibujo de la revisión de una protoboard muy larga (doscientas resistencias: unos 450 MB, otro tanto la página), y la página de un circuito de 1000 componentes (unos 2,5 GB al escribirla)
+- ⬜ Lo que agregarían las instrucciones del servidor MCP, con una cifra de `scripts/trigger-bench.js` (el contexto de arranque está en sus 48 KB): el `.ino` en la carpeta del circuito, una ejecución antes de decir que un programa funciona
+- ⬜ Límites conocidos, escritos en los documentos: un entero con signo que se desborda dentro de una expresión no da la vuelta, solo cuando se guarda; el manejador de una interrupción corre en el paso que ve cruzar su pin, no en el flanco
+- ⬜ Límites conocidos: la corriente del CD4017 por encima de 10 V probablemente exagera la de un chip real; la revisión ve los errores de un programa en ejecución solo hasta la primera espera de `loop()` (`simulate --run` ve el resto)
 
 ## Opcional, más adelante ⬜
 

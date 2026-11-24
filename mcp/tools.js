@@ -21,7 +21,6 @@ import {
   checkCircuit,
   formatIssue,
   t,
-  PART_TYPES,
   VIEWS,
   ANNOTATION_LAYERS,
   OP_NAMES,
@@ -30,21 +29,23 @@ import {
 import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest, suggestMany } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } from '../src/query-format.js';
-import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, relayoutTarget, writePage } from '../src/node/workspace.js';
+import { InputError, inputErrorText, resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, relayoutTarget, writePage } from '../src/node/workspace.js';
 import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
-import { simulate } from '../src/sim/index.js';
+import { simulate, withStates } from '../src/sim/index.js';
+import { runCircuit, stimuliFromArgs, prepareRun } from '../src/sim/run.js';
 import { pickLanguage } from '../src/i18n/index.js';
-import { formatSimulation, formatFalstad } from '../src/sim/format.js';
+import { formatSimulation, formatFalstad, formatRun } from '../src/sim/format.js';
 import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
 import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
-import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest, BUDGET_SECONDS, withUnplaced, unplacedFirst } from '../src/layout.js';
+import { LIMITS } from '../src/limits.js';
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { appView } from './app.js';
-import { compactCatalog, catalogSuggestions, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
+import { compactCatalog, unknownText, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
 
 // The rasteriser `cd mcp && npm install` puts in mcp/node_modules, which the kit cannot see from src/.
 rasterSearchIn(fileURLToPath(new URL('.', import.meta.url)));
@@ -116,7 +117,10 @@ function safely(handler) {
     try {
       return await handler({ ...args, outputLang: args.lang, lang: pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG) });
     } catch (e) {
-      return { isError: true, content: [{ type: 'text', text: e.message }] };
+      // A file that cannot be used is said in the person's language, as the command line says it.
+      const issue = e?.issue?.code === 'HISTORY_DAMAGED' ? { ...e.issue, params: { ...e.issue.params, option: 'apply_ops new_history', variant: 'next' } } : e?.issue;
+      const text = e instanceof InputError ? inputErrorText(issue, pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG)) : e.message;
+      return { isError: true, content: [{ type: 'text', text }] };
     }
   };
 }
@@ -166,11 +170,11 @@ export const INSTRUCTIONS = [
   'Breadboard circuits: describe what is connected; the kit places, draws, checks and simulates it. Never compute holes, colour codes, voltages or currents yourself, and never rewrite circuit files.',
   `Recipes first: a usual lesson circuit is layout with recipe and only the values that change (${Object.keys(RECIPES).join(', ')}; catalog with the name shows its parts, nets and values). It comes out ready, nothing to work out.`,
   'Which tool: another new circuit → layout (parts without holes, nets of pins and rails). Other connections or parts in a circuit made by layout (get_circuit shows a spec) → layout again on the same target with the new nets (the full parts list if parts change) and expect_revision (parts keep their holes if they fit; undo restores). A value, a description, a fix or a hand-made circuit → apply_ops.',
-  'layout ends in one line, STATUS: DONE (ready) · WARNINGS (built, but a part would burn as wired: tell the user, with the fix the kit finds) · CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review) · FIX_SPEC (nothing created: fix every ✖ in the spec and call again) · SPEC_OK (check_only).',
+  'layout ends in one line, STATUS: DONE (ready) · WARNINGS (built: tell the user each ⚠ first, a part that would burn or what the kit cannot confirm works) · CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review) · FIX_SPEC (nothing created: fix every ✖ in the spec and call again) · SPEC_OK (check_only).',
   'Operations: history and inspect (numbers, not pictures) → query / suggest → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
   'Check: review is the definition of done (it also checks the nets of a circuit made by layout); netlist lists every net; simulate gives a model, and a value a learner must predict is never shown. render returns a PNG only when asked: images are slow to read.',
   'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group. Board "double": two boards side by side for a wide development board across the joint, rows a–t (k–o, p–t on the back board), rails B± and U± (no T); layout picks it by itself when a DevKit would cover a pin\'s strip.',
-  'Microcontroller boards (ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO) are simulated pin by pin: on USB they are a source (no supplies needed), and each GPIO state goes in the part: "io": {"D13": "high", "D27": "input_pullup"} (high, low, input, input_pullup, input_pulldown), or it runs a program: "program": "blink.ino" (a file beside the circuit) or the sketch\'s text (setup, loop, pinMode, digitalWrite, digitalRead, analogRead, analogWrite/ledcWrite PWM, tone, delay, millis, Serial).',
+  'Microcontroller boards (ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO) are simulated pin by pin: on USB they are a source (no supplies needed), and each GPIO state goes in the part: "io": {"D13": "high", "D27": "input_pullup"} (high, low, input, input_pullup, input_pulldown), or it runs a program: "program": "blink.ino" (a file beside circuit.json) or the sketch\'s text (Arduino\'s subset: setup, loop, pins, PWM, tone, delay, millis, Serial).',
   'The page out/<name>.html of a circuit with a source runs the simulation by default: values of the tapped part, oscilloscope, lit LEDs, and the Current button in the bar (not pressed). Turn it off with page.simulation false while a learner must predict a value (page.results false or page.flow false turn off one each).',
 ].join('\n');
 
@@ -320,7 +324,7 @@ server.registerTool(
   {
     title: 'Build a circuit on a breadboard',
     description:
-      'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes; catalog with the name gives their values). Otherwise from its parts (no holes, any order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give the new nets and, if parts change, the full parts list; a part keeps its holes when its pins still fit its nets. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), WARNINGS (built, a part would burn as wired: tell the user first), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
+      'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes; catalog with the name gives their values). Otherwise from its parts (no holes, any order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts by distance from the source, jumpers, ground to a − rail, then the nets check and the lesson review, laid out again while it blocks. On an existing target it lays the circuit out again as one revision (undo restores it): give the new nets and, if parts change, the full parts list; parts keep their holes where their nets allow. The nets are kept (spec) and review checks them. The answer ends in STATUS: DONE (ready), WARNINGS (built: tell the user each ⚠ first), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
 
     inputSchema: {
       target: z.string().describe('Folder relative to the root (e.g. led-switch): new, or an existing circuit to lay out again'),
@@ -342,16 +346,17 @@ server.registerTool(
       page: z.object({}).passthrough().optional().describe('As in the circuit. With a source the page runs the simulation by default (values, oscilloscope, lit LEDs, a Current button not pressed): nothing to add. {"simulation": false} turns it off while a learner must predict a value'),
       clearance: z.number().optional().describe('Gap between bodies in mm (default 1; 3 for a roomier lesson)'),
       expect_revision: z.number().int().min(0).optional().describe('Existing circuit: refuse if it changed since this revision'),
-      check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
+      check_only: z.boolean().optional().describe('Only check the parts and nets (names, pins, parts in no net); create nothing'),
       dry_run: z.boolean().optional().describe('The whole answer, nothing saved: try an idea first'),
       fix: z.boolean().optional().describe("Existing circuit, nothing else given: apply the kit's To fix it line"),
+      budget_s: z.number().positive().optional().describe(`Search seconds (default ${BUDGET_SECONDS}, max ${LIMITS.layoutSeconds}); past it, the best try as CHANGES`),
       author: z.string().optional(),
       note: z.string().optional(),
       lang: common.lang,
     },
     annotations: WRITE,
   },
-  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, dry_run: dryRun, fix, author = 'layout', note, lang, outputLang }) => {
+  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, dry_run: dryRun, fix, budget_s: budget, author = 'layout', note, lang, outputLang }) => {
     const full = inside(target);
     const paths = resolveTarget(full);
     const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
@@ -373,7 +378,8 @@ server.registerTool(
     if (!previous && (!parts || !nets)) return refuse('LAYOUT_NEEDS_SPEC');
     const spec = fixed ? fixed.spec : previous ? specFromCircuit(previous, given) : given;
     const out = pickLanguage(lang, spec.lang);
-    const result = { ...autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out }), ...(fixed && { applied: fixed.applied }) };
+    if (!Array.isArray(spec.parts) || !spec.parts.length) return { isError: true, content: [{ type: 'text', text: formatLayout(specProblems([{ severity: 'error', code: 'SPEC_EMPTY', params: {} }]), out, { t, formatIssue }) }] };
+    const result = { ...autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out, budget }), ...(fixed && { applied: fixed.applied }) };
     if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, out, { t, formatIssue }) }] };
     // A trial: the same answer, nothing written and no board shown (as try_ops).
     if (dryRun) return text(formatLayout({ ...result, trial: true }, out, { t, formatIssue }));
@@ -399,13 +405,16 @@ server.registerTool(
       author: z.string().optional(),
       note: z.string().optional().describe('Why the change is made'),
       views: z.array(z.enum(Object.keys(VIEWS))).optional().describe('Views to measure (default front)'),
+      new_history: z.boolean().optional(),
       ...common,
     },
     annotations: WRITE,
   },
-  safely(async ({ target, ops, dry_run, expect_revision, author = 'mcp', note = '', views, lang, outputLang, format }) => {
+  safely(async ({ target, ops, dry_run, expect_revision, author = 'mcp', note = '', views, new_history: newHistory, lang, outputLang, format }) => {
     const { full } = existing(target);
-    const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang });
+    const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang, newHistory });
+    // The message names the option of the caller: here new_history, not the CLI's --new-history.
+    for (const e of result.errors) if (e.code === 'HISTORY_DAMAGED') e.params = { ...e.params, option: 'new_history' };
     const out = { ...result, circuit: undefined, files: relFiles(result.files) };
     const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }) + pageLine(result.files, lang));
     if (result.errors.length) return { ...response, isError: true };
@@ -440,14 +449,15 @@ server.registerTool(
   'review',
   {
     title: 'Review circuit',
-    description: 'Verdict from measurements in both views: APPROVED, APPROVED WITH WARNINGS (hazards: parts the DC simulation takes past a maximum, at rest, with one control operated or one program output high, and the fix the kit finds; not blocking) or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
+    description: 'Verdict from measurements in both views: APPROVED, APPROVED WITH WARNINGS (hazards: parts the DC simulation takes past a maximum, at rest, one control operated or the outputs a program sets, and the fix the kit finds; doubts: what it cannot vouch for; not blocking) or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
     inputSchema: { target: targetArg, profile: z.enum(Object.keys(PROFILES)).optional(), views: z.array(z.enum(Object.keys(VIEWS))).optional(), explain: z.boolean().optional(), ...common },
     annotations: READ,
   },
   safely(async ({ target, profile, views, explain, lang, format }) => {
     const { paths } = existing(target);
-    const result = review(loadCircuit(paths), { profile, views, lang, explain });
-    return answer(format, result, () => formatReview(result, lang, { t, formatIssue }));
+    const circuit = loadCircuit(paths);
+    const result = withUnplaced(circuit, review(circuit, { profile, views, lang, explain }));
+    return answer(format, result, () => unplacedFirst(result, lang, formatReview(result, lang, { t, formatIssue })));
   }),
 );
 
@@ -456,22 +466,46 @@ server.registerTool(
   {
     title: 'Simulate circuit',
     description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. An emitter (a laser) adds its light to the environment for every light sensor, solved together. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
+      'Node voltages and part currents from the circuit (a model, not a measurement). run_s: seconds run as the page runs it (environment, set, press "S1@0.5+0.2", at "1:light=9", serial "1@0.5" typed to a board): Serial, outputs, Hz. Needs a power source: "supplies" in the circuit (set with apply_ops op "circuit"; kind "generator", a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop, step in s; start "zero" (discharged) or "dc" (resting point; a run\'s default). Warns about overloads, current limit, shorts, floating nodes; a laser\'s light reaches the light sensors. falstad: true adds a link opening it in Falstad CircuitJS (DC state; parts it lacks as equivalents, listed). Never show a result a learner must predict; Falstad shows every value.',
     inputSchema: {
       target: targetArg,
       analysis: z.enum(['dc', 'transient']).optional(),
       stop: z.number().positive().optional().describe('transient end time, s'),
       step: z.number().positive().optional().describe('transient step, s (default stop/1000)'),
       start: z.enum(['zero', 'dc']).optional(),
+      run_s: z.number().positive().optional(),
+      environment: z.any().optional(),
+      set: z.any().optional(),
+      press: z.array(z.string()).optional(),
+      at: z.array(z.string()).optional(),
+      serial: z.array(z.string()).optional(),
       falstad: z.boolean().optional().describe('also the link that opens this circuit in Falstad CircuitJS'),
       ...common,
     },
     annotations: READ,
   },
-  safely(async ({ target, analysis = 'dc', stop, step, start, falstad = false, lang, format }) => {
+  safely(async ({ target, analysis = 'dc', stop, step, start, run_s, environment, set, press, at, serial, falstad = false, lang, format }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
-    const result = simulate(circuit, { analysis, stop, step, start });
+    // The same stimuli and run as the command line (simulate --run, src/sim/run.js); nothing is saved.
+    const said = stimuliFromArgs({ environment, set, press, at, serial });
+    const refused = (errors) => ({ ...answer(format, { ok: false, errors }, () => errors.map((e) => formatIssue(e, lang)).join('\n')), isError: true });
+    if (said.errors.length) return refused(said.errors);
+    if (run_s !== undefined) {
+      const run = withUnplaced(circuit, runCircuit(circuit, { seconds: run_s, stimuli: said.stimuli, start }));
+      if (run.errors) return refused(run.errors);
+      const response = answer(format, run, () => unplacedFirst(run, lang, formatRun(run, lang, { formatIssue, netLabels: circuit.netLabels })));
+      return run.ok ? response : { ...response, isError: true };
+    }
+    const runOnly = ['press', 'at', 'serial'].find((option) => said.stimuli[option].length);
+    if (runOnly) return refused([{ severity: 'error', code: 'RUN_ONLY', params: { option: runOnly } }]);
+    let result;
+    if (said.stimuli.env.length || said.stimuli.set.length) {
+      const prepared = prepareRun(circuit, said.stimuli);
+      if (prepared.errors) return refused(prepared.errors);
+      result = prepared.fatal ? { analysis, model: true, ok: false, issues: prepared.issues } : analysis === 'transient' ? prepared.engine.transient({ stop, step, start }) : prepared.engine.dc();
+      if (result.issues && prepared.issues?.length) result = { ...result, issues: [...result.issues, ...prepared.issues] };
+    } else result = withStates(circuit, simulate(circuit, { analysis, stop, step, start }));
     if (falstad && result.ok) {
       const { program } = compile(circuit);
       const engine = createEngine(program);
@@ -479,7 +513,8 @@ server.registerTool(
       result.falstad = toFalstad(program, { reading: engine.read(), timeConstants: engine.timeConstants() });
       delete result.falstad.text;
     }
-    const response = answer(format, result, () => [formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }), result.falstad && formatFalstad(result.falstad, lang)].filter(Boolean).join('\n\n'));
+    result = withUnplaced(circuit, result);
+    const response = answer(format, result, () => unplacedFirst(result, lang, [formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }), result.falstad && formatFalstad(result.falstad, lang)].filter(Boolean).join('\n\n')));
     return result.ok ? response : { ...response, isError: true };
   }),
 );
@@ -564,10 +599,7 @@ server.registerTool(
   safely(async ({ name, lang, format }) => {
     if (name) {
       const entry = catalogEntry(name, lang);
-      if (!entry) {
-        const close = catalogSuggestions(name);
-        return { isError: true, content: [{ type: 'text', text: `${t(lang, 'catalog.unknown', { name, types: Object.keys(PART_TYPES).join(', ') })}${close.length ? ` ${t(lang, 'catalog.closest', { names: close.join(', ') })}` : ''}` }] };
-      }
+      if (!entry) return { isError: true, content: [{ type: 'text', text: unknownText(name, lang) }] };
       return answer(format, entry, () => formatCatalogEntry(entry, lang));
     }
     if (format === 'json') return json(fullCatalog(lang));

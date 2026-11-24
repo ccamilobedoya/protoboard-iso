@@ -28,6 +28,7 @@ Keys are in English, so the format is the same in every language.
 | `supplies` | no | Simulation: where the power comes from, e.g. `[{ "id": "V1", "voltage": 5 }]` (between T+ and T-). A [battery](#battery) part is a source too. See [simulation.md](simulation.md). |
 | `environment` | no | What the sensors read, shared by every part that senses it: `{ "light": 300, "temperature": 25 }`, each field a number or `{ value, program }` (a program changes it with time). A sensor without a value of its own follows it. See [environment.md](environment.md). |
 | `page` | no | The embeddable page. With a source the simulation runs by default; `simulation: false` turns it all off (a value to predict), `results: false` only the values of the tapped part (and the lit LEDs), `flow: false` only the Current button; `focus` (parts in focus when it opens), `start` (`dc` or `zero`: how the live simulation starts), `theme` (`auto`, the default, follows the system; `light` or `dark` fixes it; `?theme=` in the link wins), `controls` (a panel of sliders and buttons: part or supply, field, optional range and label; or `{ "environment": "light" }`, a field of the environment with its indicator), `environment` (`true` or `false`: every field of the environment in the panel; by default when a part follows one), `tour` (a timeline: the name of a JSON file beside the circuit, read only from its folder, or the timeline itself; *See how it works* in the ⋯ menu plays it, see [stage-and-video.md](stage-and-video.md)). See [focus-and-flow.md](focus-and-flow.md). |
+| `spec` | no | Written by `layout`: what it was asked for (`nets`, `supplies`, `recipe`), the ids of the jumpers it added (`wires`) and, when it found no place for some parts, those parts as they were asked (`unplaced`, without holes). `simulate` and `review` then say first `Not on the board: …`, and `layout` again on the circuit asks for them. Do not edit by hand. |
 | `parts` | yes | List of parts. |
 
 ## Holes
@@ -331,7 +332,7 @@ It takes next to nothing under 1.5 V and the current rises smoothly to the 167 �
 no hysteresis. It has a polarity: pin `1` is the long lead and the `+` on its case; reversed it is an
 open circuit of 100 kΩ, silent, and over 1 V says so (`SIM_REVERSE_VOLTAGE`). Over 7.5 V it warns with
 `SIM_IC_SUPPLY` (the kit's "more than its maximum" code); over 35 mA (from about 5.8 V, inside the 3 to 7 V of its
-listings) it only notes `SIM_BUZZER_CURRENT`. Between 1.5 and 2.0 V it takes current without sounding yet, and its card says so.
+listings) it warns `SIM_BUZZER_CURRENT` (over its listed maximum, not a stress). Between 1.5 and 2.0 V it takes current without sounding yet, and its card says so.
 `SIM_BUZZER_DC` does not apply to it. Its card says *sounding · 2.3 kHz* and the level as "about" N dB,
 or *silent*. Tell it from the passive one by the sealed bottom of the
 can (a resin band at its foot in the drawing) and by the fact that it beeps the moment it is powered;

@@ -19,15 +19,40 @@ export const programFile = (program) => {
   return /\.ino$/i.test(text.trim()) && !text.includes('\n') ? text.trim() : null;
 };
 
-// { text } or { error: 'outside' | 'file' | 'size', size }: outside the folder, missing or
-// unreadable (or no folder: a circuit given whole), larger than `limit` bytes.
+// A one-line program that reads as a file name and not as a sketch: no `;`, brace or parenthesis, and a
+// slash or a file ending ("sketches/blink", "blink.cpp"). The kit takes it for a file name it cannot
+// use (only a .ino beside the circuit is read), not for a sketch that "does not read at line 1".
+export const looksLikeFileName = (program) => {
+  const text = String(program ?? '').trim();
+  return text !== '' && !/[\n;{}()]/.test(text) && (/[\\/]/.test(text) || /\.[A-Za-z0-9]{1,5}$/.test(text));
+};
+
+// The folder a circuit was read from, resolved, or null (a circuit given whole).
+export const circuitFolder = (circuit) => (circuit?.[CIRCUIT_FOLDER] ? resolve(String(circuit[CIRCUIT_FOLDER])) : null);
+
+// Whether `name` is a folder inside the circuit's folder (a program that names one).
+export function isFolderBeside(circuit, name) {
+  const folder = circuit?.[CIRCUIT_FOLDER];
+  if (!folder) return false;
+  const file = resolve(folder, name);
+  try {
+    return within(resolve(folder), file) && statSync(file).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+// { text } or { error: 'outside' | 'folder' | 'file' | 'size', size }: outside the folder, a folder and
+// not a file, missing or unreadable (or no folder: a circuit given whole), larger than `limit` bytes.
 export function readBeside(circuit, name, limit) {
   const folder = circuit?.[CIRCUIT_FOLDER];
   const file = folder ? resolve(folder, name) : null;
   if (file && (!within(resolve(folder), file) || (existsSync(file) && !within(realpathSync(folder), realpathSync(file))))) return { error: 'outside' };
   try {
     if (!file) throw new Error('no folder');
-    const size = statSync(file).size;
+    const stat = statSync(file);
+    if (stat.isDirectory()) return { error: 'folder' };
+    const size = stat.size;
     if (size > limit) return { error: 'size', size };
     return { text: readFileSync(file, 'utf8') };
   } catch {

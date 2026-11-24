@@ -140,6 +140,7 @@ export function buildSchemas() {
           nets: { type: 'array', items: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'object', properties: { pins: { type: 'array', items: { type: 'string' } }, color: { type: 'string' } }, required: ['pins'] }] } },
           supplies: { type: 'array', items: { type: 'object' } },
           wires: { type: 'array', items: { type: 'string' }, description: 'jumpers added by layout (not parts of the spec)' },
+          unplaced: { type: 'array', items: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } }, description: 'parts of the spec the layout found no place for, as asked (without holes): simulate and review name them first, and layout again asks for them' },
           recipe: {
             type: 'object',
             description: 'The recipe the circuit was laid out from (src/recipes/), with the values given; gone once it is laid out again with other parts or nets',

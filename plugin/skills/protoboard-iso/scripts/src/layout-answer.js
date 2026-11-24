@@ -4,21 +4,26 @@
 // enough for an assistant to tell the user what the circuit does, show the sketch and offer only
 // changes the kit accepts, every number taken from the kit (docs/en/layout.md, "The answer").
 //
-//   answerExtras(circuit, { folder, lang, advise }) → { readings?, programs?, changeable?, advice? }
+//   answerExtras(circuit, { folder, lang, advise }) → { readings?, behaviour?, programs?, changeable?, advice? }
 //   formatExtras(r, lang, t) → lines for formatLayout, before its STATUS line
 //
 // Two lines come before the readings: `Solved` (r.solved, from autoLayout: the values a goal chose,
 // the simulated result, how far from the goal and the neighbouring standard values) and `Worth checking` (the
 // advisory: a part of a goal above its rated value as built, and the value that would bring it
 // under; information only, nothing is changed).
+// `Behaviour, first 2 s` follows the readings for a circuit that changes by itself (a board's program,
+// a 555, a generator, an op-amp beside a capacitor; sim/run.js behaviourOf): what each output did in a
+// bounded run, its frequency and duty when it toggles. The run stops at BEHAVIOUR_MS of the machine's
+// time, and the line then says it was not measured and how to measure it.
 
-import { simulate, compile } from './sim/index.js';
+import { simulate, compile, restingStates } from './sim/index.js';
 import { readBeside, programFile, CIRCUIT_FOLDER } from './beside.js';
 import { LIMITS } from './limits.js';
 import { RECIPES, recipeDefaults, valueLimits } from './recipes/index.js';
 import { goalsOf } from './recipes/goals.js';
 import { adviseGoals } from './recipes/solve.js';
 import { formatValue } from './core/units.js';
+import { behaviourOf, BEHAVIOUR_STEPS, gainsOf } from './sim/run.js';
 import { decimalSeparator } from './i18n/index.js';
 
 // Parts whose job is to be driven, by the simulator's kind: LEDs first, then the rest.
@@ -76,11 +81,51 @@ function readingsOf(circuit) {
   if (!compiled.fatal && oscillatesBy(compiled.program)) return null;
   const r = simulate(circuit);
   if (!r.ok) return null;
-  const sources = Object.entries(r.supplies ?? {}).map(([id, s]) => ({ id, kind: s.kind === 'battery' ? 'battery' : 'supply', voltage: s.voltage, current: s.current }));
+  const rest = readingFrom(r);
+  if (!rest) return null;
+  // Nothing that lights or moves: the voltage of each net that is not a rail is what the circuit is
+  // for (a divider's 3.33 V), so the line says those instead.
+  if (!rest.parts.length && !compiled.fatal) rest.nets = netVoltages(compiled.program, r);
+  // Two resting states (a latch): the point at rest is a balance between them; each is said instead.
+  const two = compiled.fatal ? null : restingStates(circuit, compiled);
+  if (!two) return rest;
+  return { ...rest, states: two.states.map((s) => ({ ...readingFrom(s.reading), gains: gainsOf(s.reading) })) };
+}
+
+// Each net of the compiled circuit that is not ground or a supply's rail, with the pins on it (wires
+// left out, nodes they join as one) and its voltage at rest, in the order the parts come.
+const SHOWN_NETS = 4;
+function netVoltages(program, r) {
+  const parent = new Map();
+  const find = (x) => (parent.has(x) && parent.get(x) !== x ? find(parent.get(x)) : x);
+  for (const d of program.devices ?? []) if (d.kind === 'W' && d.pins?.length === 2) {
+    const [a, b] = d.pins.map((p) => find(p.node));
+    if (a !== b) parent.set(a, b);
+  }
+  const rails = new Set([program.ground, ...(program.supplies ?? []).flatMap((x) => [x.p, x.n])].map(find));
+  const nets = new Map();
+  for (const d of program.devices ?? []) {
+    if (d.kind === 'W' || d.unsupported) continue;
+    for (const p of d.pins) {
+      const net = find(p.node);
+      if (rails.has(net) || r.nodes?.[p.node] == null) continue;
+      if (!nets.has(net)) nets.set(net, { pins: [], voltage: r.nodes[p.node] });
+      nets.get(net).pins.push(`${d.id}.${p.name}`);
+    }
+  }
+  return [...nets.values()].filter((n) => n.pins.length > 1 || nets.size === 1);
+}
+
+// A reading's sources and loads, as the Readings line says them.
+function readingFrom(r) {
+  const sources = Object.entries(r.supplies ?? {}).map(([id, s]) => ({ id, kind: s.kind === 'battery' ? 'battery' : 'supply', voltage: s.voltage, current: s.current, ...(s.written < 0 && { named: s.named, high: s.high }) }));
   const leds = [];
   const others = [];
+  // A battery part is also one of the supplies the simulation reports: each source is said once.
+  const listed = new Set(sources.map((s) => s.id));
   for (const [id, p] of Object.entries(r.parts ?? {})) {
-    if (p.kind === 'BAT') sources.push({ id, kind: 'battery', voltage: p.on ? p.voltage : 0, current: p.on ? p.current : 0, ...(!p.on && { off: true }) });
+    if (p.kind === 'BAT' && listed.has(id)) sources.splice(sources.findIndex((s) => s.id === id), 1);
+    if (p.kind === 'BAT') sources.push({ id, kind: 'battery', part: true, voltage: p.on ? p.voltage : 0, current: p.on ? p.current : 0, ...(!p.on && { off: true }) });
     else if (p.kind === 'MCU' && p.usb) sources.push({ id, kind: 'usb', voltage: p.usb.voltage, current: p.usb.current });
     else if (LOADS[p.kind]) {
       const current = Math.abs(p.current ?? 0);
@@ -161,12 +206,39 @@ function adviceOf(circuit) {
   return list.length ? list : null;
 }
 
+const BEHAVIOUR_S = 2;
+const SHOWN_OUTPUTS = 4;
+function behaviourLineOf(circuit) {
+  if (hidden(circuit)) return null;
+  const b = behaviourOf(circuit, { seconds: BEHAVIOUR_S });
+  if (!b) return null;
+  if (b.skipped) return { seconds: b.seconds, skipped: b.skipped };
+  // What a person sees first: the parts, then the pins a program drives.
+  const outputs = [...b.outputs.filter((o) => o.kind !== 'pin'), ...b.outputs.filter((o) => o.kind === 'pin')];
+  return { seconds: b.seconds, start: b.start, outputs: outputs.map(({ intervals, intervalsTotal, ...o }) => o), ...(b.serialWaits && { serialWaits: b.serialWaits }) };
+}
+
+// The supplies written with a negative voltage: one line in the answer says the rail named + is the
+// lower one (the readings name the voltage as written, −5 V).
+function negativeOf(circuit) {
+  const list = (circuit.supplies ?? []).map((s, i) => ({ id: s?.id ?? `V${i + 1}`, voltage: Number(s?.voltage) })).filter((s) => s.voltage < 0);
+  if (!list.length) return null;
+  const compiled = compile(circuit);
+  if (compiled.fatal) return null;
+  return list.map((s) => ({ ...s, ...(({ named, high }) => ({ named, high }))(compiled.program.supplies.find((x) => x.id === s.id) ?? {}) }));
+}
+
 export function answerExtras(circuit, { folder, lang = 'en', advise = true } = {}) {
   const readings = readingsOf(circuit);
+  const negative = negativeOf(circuit);
+  // The run reads a board's .ino from the circuit's folder, as the review did.
+  const where = folder ?? circuit[CIRCUIT_FOLDER];
+  const seen = where && circuit[CIRCUIT_FOLDER] !== where ? Object.defineProperty({ ...circuit }, CIRCUIT_FOLDER, { value: where, enumerable: false }) : circuit;
+  const behaviour = behaviourLineOf(seen);
   const programs = programsOf(circuit, folder ?? circuit[CIRCUIT_FOLDER]);
   const changeable = changeableOf(circuit, lang);
   const advice = advise && readings ? adviceOf(circuit) : null;
-  return { ...(advice && { advice }), ...(readings && { readings }), ...(programs && { programs }), ...(changeable && { changeable }) };
+  return { ...(advice && { advice }), ...(negative && { negative }), ...(readings && { readings }), ...(behaviour && { behaviour }), ...(programs && { programs }), ...(changeable && { changeable }) };
 }
 
 // The unit a recipe's numeric value is in, by its field (a resistor's "330" carries its own).
@@ -214,15 +286,30 @@ export function formatExtras(r, lang, t) {
   const lines = [];
   for (const s of r.solved ?? []) lines.push(solvedLine(s, lang, t, f, decimal));
   for (const a of r.advice ?? []) lines.push(adviceLine(a, lang, t, f));
+  for (const n of r.negative ?? []) lines.push(t(lang, 'layout.negativeSupply', { id: n.id, voltage: f(n.voltage, 'V'), named: n.named, high: n.high }));
   if (r.readings) {
-    const { sources, parts } = r.readings;
-    const many = sources.length > 1;
-    const source = (s) => (s.kind === 'usb' ? `${s.id} USB ${f(s.voltage, 'V')}` : `${t(lang, `layout.readings.${s.kind}`)}${many ? ` ${s.id}` : ''} ${s.off ? t(lang, 'sim.battery.off') : f(s.voltage, 'V')}`);
-    const load = (p) => `${p.id} ${p.off ? '0 mA' : f(p.current, 'A')}${p.brightness != null ? `, ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}` : ''}`;
-    const items = [...sources.map(source), ...parts.slice(0, SHOWN_LOADS).map(load)];
-    if (parts.length > SHOWN_LOADS) items.push(t(lang, 'layout.readings.more', { count: parts.length - SHOWN_LOADS }));
-    lines.push(t(lang, 'layout.readings', { items: items.join(' · ') }));
+    const itemsOf = ({ sources, parts, nets }) => {
+      const many = sources.length > 1;
+      // A drawn battery is named by its id (BT1), as the parts are; a bench supply only when there are several.
+      const source = (s) => (s.kind === 'usb' ? `${s.id} USB ${f(s.voltage, 'V')}` : `${t(lang, `layout.readings.${s.kind}`)}${many || s.part ? ` ${s.id}` : ''} ${s.off ? t(lang, 'sim.battery.off') : f(s.voltage, 'V')}`);
+      const load = (p) => `${p.id} ${p.off ? '0 mA' : f(p.current, 'A')}${p.brightness != null ? `, ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}` : ''}`;
+      const items = [...sources.map(source), ...parts.slice(0, SHOWN_LOADS).map(load)];
+      if (parts.length > SHOWN_LOADS) items.push(t(lang, 'layout.readings.more', { count: parts.length - SHOWN_LOADS }));
+      for (const n of (nets ?? []).slice(0, SHOWN_NETS)) items.push(`${n.pins.join(' = ')} ${f(n.voltage, 'V')}`);
+      if (nets?.length > SHOWN_NETS) items.push(t(lang, 'layout.readings.moreNets', { count: nets.length - SHOWN_NETS }));
+      return items;
+    };
+    if (r.readings.states) {
+      // Two resting states: each with its transistors on or off, then its readings; the point at rest
+      // between them is not said as a reading (a real circuit never sits there).
+      lines.push(t(lang, 'layout.states'));
+      r.readings.states.forEach((s, k) => {
+        const gains = s.gains.map((g) => t(lang, g.on ? 'layout.states.on' : 'layout.states.off', { id: g.id })).join(', ');
+        lines.push(`  ${k + 1}. ${[gains, ...itemsOf(s)].join(' · ')}`);
+      });
+    } else lines.push(t(lang, 'layout.readings', { items: itemsOf(r.readings).join(' · ') }));
   }
+  if (r.behaviour) lines.push(behaviourText(r.behaviour, lang, t, f));
   for (const p of r.programs ?? []) {
     lines.push(t(lang, 'layout.program', { part: p.part }));
     for (const line of p.text.split('\n')) lines.push(line ? `  ${line}` : '');
@@ -239,4 +326,45 @@ export function formatExtras(r, lang, t) {
     lines.push(t(lang, 'layout.changeable', { items: items.join(' · ') }));
   }
   return lines;
+}
+
+// A passive buzzer in the Behaviour line: its beeps and its tone apart ("BZ1 beeps 2 Hz, sounding
+// 20 % of the time, tone 2 kHz"); silent on a steady current.
+function soundItem(o, lang, t, f) {
+  const s = o.sound;
+  const tone = o.tone ? t(lang, 'layout.behaviour.tone', { frequency: f(o.tone.frequency, 'Hz') }) : '';
+  if (s.frequency) return t(lang, 'layout.behaviour.beeps', { id: o.id, frequency: f(s.frequency, 'Hz'), percent: Math.round(100 * (s.duty ?? s.onShare)), tone });
+  if (!s.changes) return s.onShare > 0.5 ? t(lang, 'layout.behaviour.sounds', { id: o.id, tone }) : t(lang, o.onShare > 0 ? 'layout.behaviour.click' : 'layout.behaviour.silent', { id: o.id });
+  return t(lang, 'layout.behaviour.soundShare', { id: o.id, percent: Math.round(100 * s.onShare), starts: s.starts, tone });
+}
+
+// An output that stays off (or silent) for the whole line.
+const offThroughout = (o) => {
+  const s = o.sound ?? o;
+  return !s.frequency && !s.changes && !(s.onShare > 0.5);
+};
+
+// "Behaviour, first 2 s (simulated): D1 1 Hz, on 50 % of the time · U1.D13 1 Hz, on 50 % of the time".
+function behaviourText(b, lang, t, f) {
+  const seconds = f(b.seconds, 's');
+  if (b.skipped) {
+    const why = b.skipped.code === 'RUN_STEPS' ? t(lang, 'layout.behaviour.steps', { steps: String(BEHAVIOUR_STEPS).replace(/\B(?=(\d{3})+$)/g, ' ') })
+      : b.skipped.code === 'RUN_BUDGET' ? t(lang, 'layout.behaviour.slow', { budget: f(LIMITS.runMs / 1000, 's') }) : t(lang, 'layout.behaviour.failed', { time: b.skipped.params?.time ? f(b.skipped.params.time.value, 's') : '0 s' });
+    return t(lang, 'layout.behaviour.skipped', { seconds, why, run: String(b.seconds) });
+  }
+  const item = (o) => {
+    if (o.sound) return soundItem(o, lang, t, f);
+    const percent = Math.round(100 * (o.duty ?? o.onShare));
+    if (o.frequency && o.about) return t(lang, 'layout.behaviour.rhythmAbout', { id: o.id, frequency: formatValue(Number(o.frequency.toPrecision(2)), 'Hz', { decimal: decimalSeparator(lang) }), percent });
+    if (o.frequency) return t(lang, 'layout.behaviour.rhythm', { id: o.id, frequency: f(o.frequency, 'Hz'), percent });
+    if (!o.changes) return t(lang, o.onShare > 0.5 ? 'layout.behaviour.on' : 'layout.behaviour.off', { id: o.id });
+    return t(lang, 'layout.behaviour.share', { id: o.id, percent: Math.round(100 * o.onShare), changes: o.changes });
+  };
+  // A board whose program waits for serial input nothing gives it: said first, and the outputs that
+  // only stay off while it waits are not listed as "off throughout" (they wait with it).
+  const waits = (b.serialWaits ?? []).map((id) => t(lang, 'layout.behaviour.waitsSerial', { id }));
+  const outputs = waits.length ? b.outputs.filter((o) => !offThroughout(o)) : b.outputs;
+  const items = [...waits, ...outputs.slice(0, SHOWN_OUTPUTS).map(item)];
+  if (outputs.length > SHOWN_OUTPUTS) items.push(t(lang, 'layout.behaviour.more', { count: outputs.length - SHOWN_OUTPUTS }));
+  return t(lang, 'layout.behaviour', { seconds, start: t(lang, `layout.behaviour.start.${b.start === 'zero' ? 'zero' : 'dc'}`), items: items.length ? items.join(' · ') : t(lang, 'layout.behaviour.none') });
 }

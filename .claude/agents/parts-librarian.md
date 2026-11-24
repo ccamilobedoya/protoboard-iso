@@ -57,7 +57,10 @@ part may only need a line in `src/parts/db.js`.
   scripts/preview.js <name> --width 700`) to judge the shape; front and back if geometry is new.
 - Update `docs/*/circuit-format.md`, `docs/*/simulation.md` (models table) and the roadmap,
   in both languages, and the plugin's skill when the part changes what it says
-  (`plugin-src/references/spec.md`, then `npm run pack-skill`).
+  (`plugin-src/references/spec.md`, then `npm run pack-skill`). Every new part, type or field changes
+  the skill's `references/parts.md`: `npm run parts-reference -- --write` (a test fails while it is
+  stale), then `npm run pack-skill`. A part drawn without a simulation model is fine: `catalog`
+  marks it "Not simulated" and a circuit with it ends `WARNINGS`; say so in the report.
 - The repository is public: nothing private in what you write (CLAUDE.md, "Privacy"). A part
   someone owns is described by its part number and datasheet, not by whose bench it is on; notes
   from `CLAUDE.local.md` or a private notes app are made generic first. `npm test` checks it.

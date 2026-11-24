@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { SENSOR_MODULES, ldrResistance, LDR_PARTS } from '../src/parts/sensors.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { findPin } from '../src/parts/pin-names.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
@@ -245,7 +245,9 @@ test('sensor modules: a 5 V module on a 3.3 V board drives its pin with VCC (the
   // An ESP32 on USB: its VIN is 5 V, its pins 3.3 V. The module on VIN, DO into D27, in the dark (DO high).
   const spec = { environment: { light: 1 }, parts: [{ id: 'U1', part: 'ESP32-DEVKIT' }, { id: 'U2', type: 'sensor-module', part: 'LDR-LM393' }], nets: [['U1.VIN', 'U2.VCC'], ['U2.GND', 'U1.GND'], ['U2.DO', 'U1.D27']] };
   const r = autoLayout(spec);
-  assert.equal(r.status, 'done');
+  // Built; the over-voltage the simulation warns about is a doubt, told before saying it works.
+  assert.equal(r.status, 'warnings');
+  assert.ok(r.review.doubts.some((d) => d.code === 'SIM_PIN_OVERVOLTAGE'));
   const s = simulate(r.circuit);
   // DO's pull-up goes to the module's 5 V: the pin's protection diode holds it near 3.9 V, over the
   // 3.3 V + 0.3 V a pin takes.

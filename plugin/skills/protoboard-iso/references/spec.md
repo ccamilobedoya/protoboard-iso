@@ -39,21 +39,38 @@ fields.
 - A **microcontroller board** (`ESP32-DEVKIT`, `ESP32-C3-SUPERMINI`, `UNO`) is powered by USB (no
   supply needed) and takes each pin's state for the simulation:
   `{"id": "U1", "part": "ESP32-DEVKIT", "io": {"D13": "high", "D27": "input_pullup"}}`, or runs a
-  program: `"program": "blink.ino"` (a file beside the circuit, the Arduino sketch as uploaded) or
-  the sketch's text. `setup()`, `loop()`, `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`,
+  program: `"program": "blink.ino"` (the Arduino sketch as uploaded, a file **in the circuit's
+  folder, beside `circuit.json`**: `circuits/<name>/blink.ino`, written there before `layout`;
+  anywhere else it is not read, and the answer says where the kit looked) or the sketch's text. `setup()`, `loop()`, `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`,
   `analogWrite`/`ledcWrite` (PWM), `tone`, `delay`, `millis`, `Serial.println` run in simulated
-  time, and the page runs them in real time.
+  time, and the page runs them in real time. What else a sketch may use (`shiftOut` runs) is in
+  [sketch.md](sketch.md); a function the kit does not know (one that list does not have, a
+  library's) is a ⚠ under "The kit cannot confirm these work": the program runs only as far as the
+  kit can follow. Check what it does with `kit simulate <folder> --run <s>` ([run-it.md](run-it.md)).
+- **Relays and switches beside the board** (a relay module, a rocker switch) lie along its edge,
+  side by side, each slid along by its own width when it would land on another: four relays on a
+  ULN2003 or a board's pins lay out like one.
+- **Is it simulated?** Before building with a part you have not used, `kit catalog <name>`: a
+  `Simulated: …` line says what its model covers and leaves out; `Not simulated` means the kit draws
+  and wires it but checks nothing about it. Today every chip is simulated; the one part drawn only is
+  the `DESPI-C02` e-paper adapter (`kit catalog modules` marks it "not simulated: drawn only"). A
+  circuit with such a part ends `WARNINGS`, and its ⚠ names the outputs that hang from it (`nor what
+  D1, D2, D3 do`): say the kit cannot tell what they do, not that they stay off. What every part
+  takes: [parts.md](parts.md). The 74HC595, CD4017, ULN2003, ULN2803, PC817 and LM386, with the
+  wiring a beginner gets wrong and a worked spec each: [chips.md](chips.md).
 
 ## Nets
 
 Each one the pins it joins (`"R1.2"`) and rails (`"T+"`, `"T-"`, `"B+"`, `"B-"`), as a list or
 `{pins, color}`. Pin names as people write them work: `A`/`K` or `anode`/`cathode`, `VIN`, `VOUT`,
-`DISCH`, `THRESHOLD`, `VDD`, `GPIO4` (the DevKit's `D4`), `3.3V`. A ground net without a rail goes
-to a − rail by itself.
+`DISCH`, `THRESHOLD`, `VDD`, `GPIO4` (the DevKit's `D4`), `3.3V`. A board's serial pins go by the
+names it prints: an UNO's TX is `D1` and RX `D0`; a DevKit's are `TX0`/`RX0` and `TX2`/`RX2`. A
+ground net without a rail goes to a − rail by itself.
 
 ## Supplies and the rest
 
-- **supplies**: a bench supply on the rails (`voltage`, `currentLimit`; `positive` may name a pin);
+- **supplies**: a bench supply on the rails (`voltage`, `currentLimit`; `positive` may name a pin;
+  a negative `voltage` is the same supply reversed, and a part fed backwards is a ⚠ hazard);
   `"kind": "generator"` for a signal generator. Not needed with a battery part.
 - Also `board` (`auto` by default: it grows as needed), `clearance` (mm; 3 for lessons), `title`,
   `netLabels`, `page`, `lang`; `--check` (`check_only: true`) only checks the spec.

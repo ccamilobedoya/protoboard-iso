@@ -375,7 +375,7 @@ board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 
 - ✅ The kit first, then a trial (2026-11-16): the hazard review also holds each output of a board's program high, alone (`with D10 high`); after the hazards the kit's computed fix (one resistor's value, or one resistor added in series on the compiled circuit, `src/fix.js`) or "The kit has no computed fix for this."; a `Checked` line of what was and was not checked; `layout --dry-run` / `dry_run` tries a circuit and saves nothing; the skill uses the kit first, its own knowledge only where the kit says it has none, and tries every idea of its own before it reaches the circuit (`references/beyond-the-kit.md`)
 - ✅ Fix it in one call, in any order (2026-11-16): `layout <target> --fix` (MCP `fix: true`) applies the kit's computed fix as one revision, only on request, and says what it applied; `layout` tries the orders the nets give when the order the parts were listed in leaves something to fix (every recipe shuffled ends `DONE` but `esp32-distance`, named in `test/layout-order.test.js`); a trial that ends `CHANGES` no longer says the circuit was created
 - ⬜ Peaks while switching: a short transient around a program's, a 555's or a generator's edges to find the peaks the DC states do not (the `Checked` line lists them as not checked)
-- ⬜ Rotary encoder, still to do: two momentary controls "+1 click" and "−1 click" that shift the target by one click (a part that follows the environment would need to leave the field), `attachInterrupt` in a board's program, the bare EC11 on its own pins (no pull-ups) and the 15/30 variant (two clicks a cycle)
+- ⬜ Rotary encoder, still to do: two momentary controls "+1 click" and "−1 click" that shift the target by one click (a part that follows the environment would need to leave the field), the bare EC11 on its own pins (no pull-ups) and the 15/30 variant (two clicks a cycle)
 - ⬜ An infrared LED as an emitter and a bare phototransistor or IR receiver that reads it
 - ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
 - ✅ Wire's internal pull-ups on an AVR board (2026-11-10): a library's `begin()` or `Wire.begin()` turns on the UNO's pull-ups on SDA and SCL, so a 3.3 V I2C board idles at about 3.68 V, over its VDDIO + 0.3 V: `SIM_PIN_OVER_VDDIO` (a note); `Wire.begin(sda, scl)` moves an ESP32's bus
@@ -502,6 +502,72 @@ in the log of `PLANNING.md`.
 - ✅ English–Spanish parity test (I01): every document in `docs/en/` has its copy in `docs/es/` (and `README`, `ROADMAP`, `PLANNING`, `examples/README`), with the same headings and code blocks; each pair declared once. Today: 22 pairs kept by hand, nothing checks them — done 2026-10-29: `test/parity.test.js`, pairs by their language links; it found four decisions missing from the Spanish log (added) and a sentence missing from the English circuit format (added)
 - ✅ Status per decision (N09): every entry of the decision log in `PLANNING.md` (and `planeacion.md`) gets a status, and a replaced one says «replaced by N»; a test checks it. Today: entries have no status, so a reader cannot tell which ones still hold — done 2026-10-29: a status column in both logs (76 in force, 5 replaced in whole or in part), `test/decisions.test.js`
 - ✅ Index of the documents (N18): `docs/en/README.md` and `docs/es/README.md` with a generated block, one line per document (title and what it is for), and a step in `npm run verify` that fails when it is stale. Today: the README and the code map link documents, but nothing lists them all — done 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; the check lives in `test/docs.test.js` (part of `npm test`, so of `npm run verify`)
+
+## Trust: what DONE means (2026-11) ✅
+
+Found by assistants acting as a first-time user's on a clean clone of 0.12.1: `layout` ended `DONE`
+and `review` `APPROVED` on circuits the kit could not check. The rule now: `DONE` means the kit
+checked it and found nothing to tell; `WARNINGS` means built, and each ⚠ line is told to the user
+before saying it works. The changelog's `[Unreleased]` section has each change in detail.
+
+**What `DONE` and `WARNINGS` mean** ✅
+- ✅ Doubts beside hazards: `review` returns `doubts` (what the kit could not check, or checked and found may not work); one is enough for APPROVED WITH WARNINGS and `STATUS: WARNINGS`, under its own heading, in the CLI and the MCP tools
+- ✅ The doubts' heading is true for all of them ("The kit cannot confirm these work"), and a note that says a part is over a maximum is a ⚠
+- ✅ The `Checked` line is truthful: the environment's fields visited at both ends, a sensor set by its own value, one part "does", a program the kit cannot run, a run too short to tell
+
+**Hazards and doubts the kit finds** ✅
+- ✅ Reverse polarity is a hazard (regulators, op-amps, the 555, boards); a negative bench supply simulates reversed and shows its sign
+- ✅ A regulator's absolute maximum input, a board on USB past 500 mA, an UNO's 3V3 pin past 150 mA and a shorted battery are hazards
+- ✅ Doubts: a chip with its supply pins open (`SUPPLY_PINS_UNWIRED`), a coil switched with no flyback diode (four diodes for an H-bridge), a button across joined pins, a relay driven but not pulled in
+- ✅ An output that never comes on is a doubt; one that hangs from a part not simulated is named on that part's line; a slow oscillation is followed long enough before saying so
+- ✅ The hazard check visits the environment's ends, the page's controls, the combinations of outputs a program's run reaches and the states a clocked chip latches; a pin's highest voltage over the run
+- ✅ A computed fix leaves the part working; a part in backwards is turned round (`--fix` does it, and says so); damage lines say what happens to the part; a power limit is judged on its average
+- ✅ A circuit with two resting states (a latch) says so, with each state's readings
+
+**Running a circuit (`simulate --run`)** ✅
+- ✅ `simulate --run <s>` runs a circuit as the page does, with `--env`, `--set`, `--press`, `--at`, `--serial`, `--start` and `--budget` (MCP `run_s` and the same arguments), and says what the programs printed and what each output did
+- ✅ `layout`'s answer has a `Behaviour` line for a circuit that changes by itself, the same figures as a run of the same length; `--transient` steps a board's program as the page does
+- ✅ A run chooses a step that lets it finish, and says where it starts, what it covered when it ended early, a tune note by note and a buzzer's beeps and tone apart
+- ✅ A warning seen in passing is not a finding: a level that must last is kept only once settled; a figure names its state, and two figures for one thing agree
+
+**Sketches** ✅
+- ✅ A sketch computes what the board computes: integers of the board's sizes, `char` as a letter, `delay()` as long as it says, `String` methods, `sprintf`, simple macros, bit macros
+- ✅ Mistakes a real board would show are ⚠ with their line, and the sketch goes on; a construct the subset lacks says what to write instead; a loop that ends is not stuck
+- ✅ Interrupts, `Serial1`/`Serial2`, ESP32 deep sleep, a serial line between two boards that follows the wire, and text typed to a board in a run
+- ✅ A board's `.ino` beside `circuit.json` is found in every state the review visits, and a file not found says where the kit looked
+
+**The six chips** ✅
+- ✅ The 74HC595 and the CD4017 are simulated, with `shiftOut` from an UNO or an ESP32; their inputs switch near half the supply, and a level not guaranteed, an open input or one over the supply is told
+- ✅ The ULN2003, the ULN2803, the PC817 and the LM386 are simulated; `catalog` says what each model covers, and there is an example for each chip
+- ✅ A logic chip fed less than its signals gets the computed fix `resupply`; the CD4017's drive, the LM386's supply ranges and clipping and the PC817's rank are said as they are
+
+**The layout** ✅
+- ✅ Layout calculates before it tries: a spec too large is `FIX_SPEC` at once, and the search stops at its budget, counted in placements, with its best try and the next change it would make
+- ✅ Large circuits lay out in seconds without running out of memory; nets that share a pin are one net; the same spec gives the same circuit
+- ✅ Before answering `CHANGES`, layout tries what a person would (other orders, the double board, the tallest and widest parts first), and finds the order that works sooner
+- ✅ A board alone, two batteries and four relays on a driver chip lay out; a circuit saved with parts left out says so on every later answer (`Not on the board: …`)
+
+**The command line and `apply`** ✅
+- ✅ The command line never crashes, cuts its output or saves silently: a bad file is one or two lines and exit 1, an unexpected error exit 3, a bad option exit 2 with its name
+- ✅ `apply` refuses input it cannot read, says what `review` will say of a change, and does not build on a damaged history (`--new-history`); a batch within the cap never overflows the stack
+- ✅ Messages say the rule (a run's length, a resistance's range, an id with a space); a dry run says nothing was saved; `--json` is always JSON; the page survives any id the kit accepts
+- ✅ A part the kit lacks says what it has near, matched by the words in its name; `catalog` gives a part's example, a board's pin resistance and its `TX`/`RX` names
+
+**The skill and the docs** ✅
+- ✅ The skill, the agents, the MCP texts and the docs say what the kit now does: both kinds of `WARNINGS` told before saying a circuit works, a run with the user's conditions, exit codes 0–3
+- ✅ `references/run-it.md`, `warnings.md`, `chips.md`, `sketch.md` and `parts.md` say what an assistant would otherwise guess; every command and quoted line is run by a test
+
+**Still open** ⬜
+- ⬜ A computed fix for a motor above its range as "a resistor of N Ω rated at least X W" (a 3 V motor on 5 V needs about 4.7 Ω at 1 W; today the kit says it has none because a ¼ W candidate overheats)
+- ⬜ Limits for a part with unconnected pins (a bare 555 with its supply reversed is not flagged)
+- ⬜ The same "driven but not working" check the relays have, for other parts
+- ⬜ Say where a circuit switches ("turns on below about 500 lx"): a sensor's threshold, not only the two ends of its range
+- ⬜ A loudspeaker to hear what the LM386 drives (a new part type, the maintainer's decision; an 8 Ω resistor stands for it meanwhile)
+- ⬜ Two 74HC595 with sixteen LEDs on one board, and a 555 with a CD4017 and ten LEDs, still end `CHANGES` at the 60 s budget (each try costs about 16 000 placements); the double board solves the first
+- ⬜ Memory: the review's drawing of a very long board (two hundred resistors: about 450 MB, as much for the page), and the page of a 1000-part circuit (about 2.5 GB to write)
+- ⬜ What the MCP server's instructions would add, with a number from `scripts/trigger-bench.js` (the startup context is at its 48 KB): the `.ino` in the circuit's folder, a run before saying a program works
+- ⬜ Known limits, written in the docs: a signed integer that overflows inside an expression is not wrapped, only when it is stored; an interrupt handler runs at the step that sees its pin cross, not at the edge
+- ⬜ Known limits: the CD4017's drive above 10 V is likely an overestimate of a real chip's; the review sees a sketch's runtime mistakes only up to the first wait of `loop()` (`simulate --run` sees the rest)
 
 ## Optional, later ⬜
 

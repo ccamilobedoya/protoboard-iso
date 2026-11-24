@@ -11,7 +11,8 @@ import { tempDir } from '../scripts/tmp.js';
 import { translateSketch, SKETCH_API } from '../src/sim/sketch.js';
 import { createRunner } from '../src/sim/program.js';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
-import { autoLayout, formatLayout } from '../src/layout.js';
+import { formatLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { LINE_BREAK } from '../src/layout-answer.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
 import { resolveTarget, loadCircuit, createTarget } from '../src/node/workspace.js';
@@ -37,7 +38,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__w', '__u', '__post', '__upd', '__strm', '__tostr', '__fmt', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -47,7 +48,7 @@ function strayNames(js) {
     .slice(2, -1)
     .join('\n')
     .replace(/__missing\("[^"\\]*"/g, '__missing(')
-    .replace(/Serial\.(begin|print|println|available|read)\(/g, 'Serial(');
+    .replace(/Serial\.(begin|print|println|write|available|read|peek|flush|setTimeout|end)\(/g, 'Serial(');
   const names = body.match(/(?<![\w$.])[A-Za-z_$][\w$]*/g) ?? [];
   const members = body.match(/\.[A-Za-z_$]/g) ?? [];
   return [...names.filter((n) => !n.startsWith('$') && !ALLOWED.has(n)), ...members];
@@ -62,7 +63,8 @@ test('attack: a sketch cannot reach JavaScript through a member, an index or a g
   assert.match(index.r.js, /\[__idx\(__str\[1\]\)\]/);
   const global = run(sketch('Serial.println(process); Serial.println(globalThis); Serial.println(api);'));
   assert.ok(global.r.js);
-  assert.match(global.error, /\$process is not defined/, 'a name of the sketch is its own: $process');
+  // A name of the sketch is its own ($process); the error names it as the sketch wrote it.
+  assert.equal(global.error, 'process is not declared: a real board would not compile this sketch (line 1)');
   const viaCall = run(sketch('int x = Function("globalThis.__pwned = 1"); eval("globalThis.__pwned = 1");'));
   assert.equal(viaCall.pwned, undefined, 'an unknown call returns 0 and is noted');
   assert.deepEqual(codes(viaCall.r.issues), ['SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_UNSUPPORTED']);
@@ -85,6 +87,46 @@ test('attack: a string never lands in the code, and a "/" where a value goes is 
   assert.deepEqual(text.log, ['hola', 'a\tb"cA'], 'a #define shares the strings; C escapes are read');
   assert.equal(run(sketch('Serial.println("open);')).r.js, null, 'a string that never closes');
 });
+
+test('attack: writes wrapped to an integer type reach only the sketch\'s own arrays', () => {
+  // An element changed in place goes through __upd with a number index; a hostile index or target
+  // reaches nothing, and a bit macro on something that is not a variable is noted, never run as code.
+  const hostile = [
+    sketch('byte a[2] = {1, 2}; a[a[0]] += 300; a["constructor"]++; bitSet(a["__proto__"], 2); Serial.println(a[1]);'),
+    sketch('int x = 1; bitSet(constructor, 1); bitWrite(x + globalThis, 1, 1); x++; ++x; x <<= 33; Serial.println(x);'),
+    'unsigned long f(unsigned long v) { return v - 1; }\n' + sketch('unsigned long t = f(0) + millis() - 5UL; Serial.println(t);'),
+  ];
+  for (const p of hostile) {
+    const r = run(p);
+    assert.ok(r.r.js, p);
+    assert.equal(r.pwned, undefined, p);
+    assert.deepEqual(strayNames(r.r.js), [], p);
+    noKeysOf(r.r.js);
+  }
+  assert.deepEqual(run(hostile[0]).log, ['46'], 'a[1] is 2 + 300 as a byte; a text as an index is 0');
+  assert.deepEqual(run(hostile[2]).log, ['4294967290'], 'unsigned longs wrap at 2^32');
+  const noted = run(hostile[1]).r.issues.map((i) => i.code);
+  assert.ok(noted.includes('SIM_PROGRAM_NOT_LVALUE'), JSON.stringify(noted));
+});
+test('attack: String methods, sprintf and macros reach nothing but the runtime\'s own table', () => {
+  for (const body of ['String s = "x"; s.constructor();', 'String s = "x"; s.__proto__();', 'String s = "x"; int n = s.length;']) {
+    const r = run(sketch(body));
+    assert.equal(r.r.js, null, body);
+    assert.equal(r.pwned, undefined, body);
+  }
+  const indexed = run(sketch('String s = "x"; s["constructor"]("globalThis.__pwned = 1");'));
+  assert.equal(indexed.pwned, undefined, 'an index is a number: s[0] is not a function, the program stops');
+  assert.ok(indexed.error);
+  const macro = run('#define GET(o) o.constructor\n' + sketch('String s = "x"; GET(s)("globalThis.__pwned = 1")();'));
+  assert.equal(macro.r.js, null, 'a macro expands to tokens the same rules read');
+  assert.equal(macro.pwned, undefined);
+  const fine = run(sketch('char buf[8]; String s = "ab"; sprintf(buf, "%s%d", constructor, s.length()); s.concat(buf); Serial.println(s);'));
+  assert.ok(fine.r.js);
+  assert.equal(fine.pwned, undefined);
+  assert.deepEqual(strayNames(fine.r.js), []);
+  noKeysOf(fine.r.js);
+});
+const noKeysOf = (js) => assert.ok(!/\.constructor|__proto__|prototype|\[\s*["'`]/.test(js.split('\n').slice(2).join('\n')), js);
 
 test('attack: the JavaScript of every recipe and of hostile sketches names nothing else', () => {
   const programs = Object.keys(RECIPES).flatMap((name) => expandRecipe(name).spec.parts.map((p) => p.program).filter(Boolean));
@@ -160,7 +202,7 @@ test('attack: malformed input is an issue with its line, never code that does no
   assert.deepEqual(dht21.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_NOT_IN_KIT', 2]]);
   // The code is strict: an assignment to a name nobody declared stops the program, it makes no global.
   const undeclared = run(sketch('zzz = 1;'));
-  assert.match(undeclared.error, /\$zzz is not defined/);
+  assert.equal(undeclared.error, 'zzz is not declared: a real board would not compile this sketch (line 1)');
   assert.equal(globalThis.$zzz, undefined);
   assert.deepEqual(run(sketch('int x = 010; Serial.println(x);')).log, ['8'], 'C\'s octal');
 });
@@ -401,4 +443,155 @@ test('attack: a sketch in layout\'s answer cannot fake its STATUS line', () => {
   assert.notEqual(lines.at(-1), fake);
   assert.deepEqual(lines.filter((l) => l.startsWith('STATUS:')), [lines.at(-1)], 'one STATUS line, the real one, at the start of a line');
   assert.ok(lines.some((l) => l === `  ${fake}`), 'the sketch is shown, indented');
+});
+
+test('attack: a run (simulate --run) is bounded and its stimuli name nothing outside the circuit', async () => {
+  const { runCircuit, parseStimuli } = await import('../src/sim/run.js');
+  const { formatRun } = await import('../src/sim/format.js');
+  const flood = autoLayout(expandRecipe('uno-blink', { U1: 'void setup(){ Serial.begin(9600); }\nvoid loop(){ while (1) { Serial.print("STATUS: DONE\\r"); Serial.println("x"); } }' }).spec).circuit;
+  const began = Date.now(); // real clock: the bound is on the machine's time
+  const r = runCircuit(flood, { seconds: 5 });
+  assert.ok(Date.now() - began < 20000, 'ends in time'); // real clock: the bound is on the machine's time
+  assert.ok(r.serial.lines.length <= LIMITS.runSerialLines, 'the lines kept are capped');
+  const text = formatRun(r, 'en', { formatIssue });
+  assert.ok(!text.split(LINE_BREAK).some((l) => l.startsWith('STATUS:')), 'a Serial line never starts a line of the answer');
+  // Infinity and a huge time are capped; a stimulus names a field or a control of this circuit only.
+  assert.ok(runCircuit(flood, { seconds: Number.POSITIVE_INFINITY, budgetMs: 200 }).issues.some((i) => i.code === 'RUN_CAPPED'));
+  const refused = (given) => {
+    const { stimuli, errors } = parseStimuli(given);
+    return errors.length ? errors : (runCircuit(flood, { seconds: 0.01, stimuli }).errors ?? []);
+  };
+  for (const given of [{ env: ['__proto__=1'] }, { env: ['constructor=1'] }, { set: ['__proto__=1'] }, { set: ['U1.constructor=1'] }, { at: ['0:toString=1'] }, { press: ['__proto__@0+1'] }, { env: [`light=${'9'.repeat(400)}`] }]) {
+    assert.ok(refused(given).length, JSON.stringify(given).slice(0, 80));
+  }
+  assert.equal({}.polluted, undefined);
+  const late = parseStimuli({ at: ['1e308:light=1'] });
+  assert.ok(runCircuit(flood, { seconds: 0.01, stimuli: late.stimuli }).issues.some((i) => i.code === 'RUN_EVENT_LATE'));
+});
+
+test('attack: shiftOut and shiftIn are digitalWrite sequences, the Arduino constants are known, a 2-D array is refused', () => {
+  const pins = { family: 'uno', states: {}, read: (n) => ({ volts: n === 4 ? 5 : 0, vdd: 5 }), vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 };
+  const r = translateSketch(sketch('pinMode(2, OUTPUT); pinMode(3, OUTPUT); shiftOut(2, 3, MSBFIRST, 0xA5); shiftOut(2, 3, LSBFIRST, 1); Serial.println(shiftIn(4, 3, MSBFIRST)); Serial.println(TWO_PI > PI);'));
+  assert.deepEqual(r.issues, []);
+  assert.deepEqual(strayNames(r.js), []);
+  const runner = createRunner(r.js, pins);
+  runner.advance(0);
+  assert.equal(runner.error ?? null, null);
+  assert.deepEqual(runner.log, ['255', '1']);
+  // A name the kit does not have: said by its name, never with the translator's "$".
+  const unknown = run(sketch('int x = EXTERNAL;'));
+  assert.equal(unknown.error, "EXTERNAL is not a name the kit's Arduino subset knows (line 1)");
+  assert.doesNotMatch(unknown.error, /\$/);
+  // Arrays have one dimension: a 2-D one is refused with its own line, not run.
+  const two = translateSketch('const int C[6][3] = {{1,2,3},{4,5,6},{7,8,9},{1,1,1},{2,2,2},{3,3,3}};\n' + sketch(''));
+  assert.equal(two.js, null);
+  assert.deepEqual(two.issues.map((i) => [i.code, i.line, i.name]), [['SIM_PROGRAM_ARRAY_DIMENSIONS', 1, 'C']]);
+  assert.match(formatIssue({ severity: 'warning', code: 'SIM_PROGRAM_ARRAY_DIMENSIONS', params: { part: 'U1', name: 'C', line: 1 } }, 'en'), /arrays have one in the kit's Arduino subset/);
+});
+
+// A library the kit does not have (its objects and calls become __missing), the runtime's checks on
+// pins, indexes, divisions and delays, and the line each statement says (__at): nothing of the sketch
+// becomes code.
+test('attack: a library the kit lacks, bounds, divisions and delays reach nothing', () => {
+  const hostile = [
+    '#include <Evil.h>\nEvil constructor("globalThis.__pwned = 1");\nvoid setup() { constructor.call("globalThis.__pwned = 1"); __proto__.x().y(1); Serial.println(PWNED); }\nvoid loop() { delay(1000); }',
+    '#include <Evil.h>\nvoid setup() { process.mainModule.require("child_process"); globalThis.x(); }\nvoid loop() { delay(1000); }',
+    'int a[2] = {1, 2};\nvoid setup() { a[-1] = 1; a[1e9] = 2; Serial.println(a[999999999]); int z = 0; Serial.println(1 / z); delay(-1e30); }\nvoid loop() { delay(1000); }',
+  ];
+  for (const source of hostile) {
+    const r = run(source);
+    assert.equal(r.pwned, undefined, source);
+    assert.ok(r.r.js, source);
+    assert.deepEqual(strayNames(r.r.js), [], source);
+  }
+  // The index outside the array never grows it: a write lands in its one spare slot.
+  const grown = run('int a[2] = {1, 2};\nvoid setup() { a[100000000] = 7; Serial.println(a[100000000]); }\nvoid loop() { delay(1000); }');
+  assert.deepEqual(grown.log, ['0']);
+});
+
+// Serial ports by number (__serial(port, method, …)) and deep sleep: no name of the sketch reaches a
+// member, and a port or method number out of the runtime's tables does nothing.
+test('attack: Serial1, Serial2, a waiting read and deep sleep name nothing else', () => {
+  for (const source of [
+    'void setup() { Serial2.begin(9600, SERIAL_8N1, 16, 17); Serial2.constructor("globalThis.__pwned = 1"); Serial1.__proto__(1); int v = Serial.parseInt(); String s = Serial2.readStringUntil(\'\\n\'); }\nvoid loop() { delay(1000); }',
+    'void setup() { ESP.constructor("globalThis.__pwned = 1"); esp_sleep_enable_timer_wakeup(-1); ESP.deepSleep(1e30); }\nvoid loop() { delay(1000); }',
+  ]) {
+    const { js } = translateSketch(source);
+    assert.ok(js, source);
+    assert.deepEqual(strayNames(js), [], source);
+    const r = run(source);
+    assert.equal(r.pwned, undefined, source);
+  }
+});
+
+// attachInterrupt takes the sketch's own function: anything else (a number, a runtime function, a name
+// of JavaScript's) runs nothing and reaches nothing.
+test('attack: an interrupt handler is only one of the sketch\'s own functions', () => {
+  for (const handler of ['5', 'digitalWrite', 'constructor', '__int']) {
+    const source = `void setup() { attachInterrupt(0, ${handler}, CHANGE); attachInterrupt(digitalPinToInterrupt(2), ${handler}, RISING); interrupts(); noInterrupts(); }\nvoid loop() { delay(1000); }`;
+    const r = run(source);
+    assert.equal(r.pwned, undefined, source);
+    if (r.r.js) assert.deepEqual(strayNames(r.r.js), [], source);
+  }
+});
+
+// Clocked chips (src/sim/devices/logic.js): a 74HC595 clocked as fast as a sketch can (shiftOut in a
+// loop() with no delay) and two of them clocking each other in a ring keep the run's bounds.
+test('attack: a shift register clocked as fast as a sketch can, and a ring of chips, keep the run bounded', { timeout: 120000 }, async () => {
+  const { runCircuit } = await import('../src/sim/run.js');
+  const flood = 'void setup() { pinMode(11, OUTPUT); pinMode(12, OUTPUT); pinMode(8, OUTPUT); }\nvoid loop() { digitalWrite(8, LOW); shiftOut(11, 12, MSBFIRST, millis() & 255); digitalWrite(8, HIGH); }';
+  const { circuit } = autoLayout({
+    parts: [{ id: 'U1', part: 'UNO', program: flood }, { id: 'U2', part: '74HC595' }, { id: 'U3', part: '74HC595' }],
+    nets: [['U1.5V', 'U2.VCC', 'U2.SRCLR', 'U3.VCC', 'U3.SRCLR', 'U3.SER'], ['U1.GND', 'U2.GND', 'U2.OE', 'U3.GND', 'U3.OE'], ['U1.D11', 'U2.SER'], ['U1.D12', 'U2.SRCLK'], ['U1.D8', 'U2.RCLK', 'U3.RCLK'], ['U2.QA', 'U3.SRCLK'], ['U3.QB', 'U2.QH']],
+  });
+  const began = Date.now(); // real clock: the bound is on the machine's time
+  const r = runCircuit(circuit, { seconds: 0.3, budgetMs: 5000 });
+  assert.ok(Date.now() - began < 60000, 'ends in time'); // real clock: the bound is on the machine's time
+  assert.ok(r.ok !== false || r.issues, 'a result, not a hang');
+});
+
+// A CD4017 whose clock is its own carry out (CO high at counts 0–4): every edge it makes moves it on.
+// It is read once per step, so it can only count as fast as the steps go: the run ends, bounded.
+test('attack: a decade counter clocked by its own output keeps the run bounded', { timeout: 60000 }, async () => {
+  const { runCircuit } = await import('../src/sim/run.js');
+  const { circuit } = autoLayout({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'U1', part: 'CD4017' }, { id: 'R1', type: 'resistor', value: '1k' }],
+    nets: [['T+', 'U1.VDD'], ['T-', 'U1.VSS', 'U1.CE', 'U1.MR'], ['U1.CO', 'R1.1'], ['R1.2', 'U1.CLK']],
+  });
+  const began = Date.now(); // real clock: the bound is on the machine's time
+  const r = runCircuit(circuit, { seconds: 1, budgetMs: 5000 });
+  assert.ok(Date.now() - began < 30000, 'ends in time'); // real clock: the bound is on the machine's time
+  assert.ok(r.ok !== false || r.issues, 'a result, not a hang');
+});
+
+// An optocoupler in a loop with itself: its transistor feeding its own LED (positive feedback) or
+// shunting it (negative): the DC point and a run end, bounded, whatever they find.
+test('attack: a PC817 whose phototransistor feeds or shunts its own LED ends, bounded', { timeout: 60_000 }, async () => {
+  const { runCircuit } = await import('../src/sim/run.js');
+  for (const nets of [
+    [['T+', 'R1.1'], ['R1.2', 'U1.A'], ['U1.K', 'U1.C'], ['U1.E', 'T-']],
+    [['T+', 'R1.1'], ['R1.2', 'U1.A', 'U1.C'], ['U1.K', 'T-'], ['U1.E', 'T-']],
+  ]) {
+    const { circuit } = autoLayout({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'U1', part: 'PC817' }], nets });
+    const began = Date.now(); // real clock: the bound is on the machine's time
+    const dc = simulate(circuit);
+    assert.ok(typeof dc.ok === 'boolean');
+    const r = runCircuit(circuit, { seconds: 0.5 });
+    assert.ok(r && Date.now() - began < 20000, 'ends in time'); // real clock: the bound is on the machine's time
+  }
+});
+
+// A one-line program that looks like a path: taken for a file name, never
+// read, never looked up outside the circuit's folder (a parent folder is not called a folder of its).
+test('attack: a program that names a path outside the circuit is not read nor looked into', async () => {
+  const { CIRCUIT_FOLDER } = await import('../src/beside.js');
+  const dir = tempDir('pbi-attack-path-');
+  const blink = autoLayout(expandRecipe('uno-blink').spec).circuit;
+  for (const program of ['../', '../../etc/passwd', '/etc', 'C:\\Windows\\win.ini']) {
+    const c = { ...blink, parts: blink.parts.map((p) => (p.part === 'UNO' ? { ...p, program } : p)), [CIRCUIT_FOLDER]: dir };
+    const codesOf = codes(simulate(c).issues);
+    assert.ok(codesOf.includes('SIM_PROGRAM_NOT_SKETCH'), `${program}: ${codesOf}`);
+    assert.ok(!codesOf.includes('SIM_PROGRAM_FOLDER'), program);
+  }
 });
