@@ -4,7 +4,7 @@
 // it; the tests about the limit itself import src/sim/run.js directly and use the default. The command
 // line's form: RUN_BUDGET_ARGS after `simulate … --run <s>`. The same idea as test/layout-generous.js.
 // Since a run's step is at least its length over 20 000, most runs take under a second of a free
-// machine and use the default budget; this is for the ones that take seconds (c11a-logic's 74HC595
+// machine and use the default budget; this is for the ones that take seconds (logic-chips' 74HC595
 // runs, about 2.3 s free), the skill's references (a run of 60 s) and the acceptance files.
 import { runCircuit as run } from '../src/sim/run.js';
 import { LIMITS } from '../src/limits.js';

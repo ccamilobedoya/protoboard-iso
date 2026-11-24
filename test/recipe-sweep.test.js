@@ -1,6 +1,6 @@
 // Every recipe laid out once with its defaults, and every check that reads a whole sweep of the
 // recipes reads this one. Each check was in its own file (recipes, hazards, recipe-visibility,
-// trust-c1/c2/c4 acceptance), and each laid the sixty recipes out again: the same circuits, in
+// the honest-verdict, missed-hazards and layout-size acceptance files), and each laid the sixty recipes out again: the same circuits, in
 // separate processes. The assertions are theirs, unchanged; the layout is shared.
 //
 // After an intended change of a placement or of the drawing, write the visibility figures again:
@@ -76,7 +76,7 @@ test('every recipe keeps its review verdict and every visible share in both view
   for (const name of Object.keys(stored)) assert.deepEqual(now[name], stored[name], name);
 });
 
-// ---- trust-c2-acceptance.test.js, B10
+// ---- missed-hazards-acceptance.test.js, B10
 // Baseline v0.12.1: all 60 recipes review "approved" with no hazard and no blocking item at rest (recorded 2026-11-20).
 const RECIPE_BASELINE_COUNT = 60;
 test('B10 · the recipe list is the one the baseline was recorded on', () => {
@@ -91,7 +91,7 @@ for (const name of NAMES) {
   });
 }
 
-// ---- trust-c1-acceptance.test.js, A4 (the CLI's answer is formatLayout's text; the catalog's list
+// ---- honest-verdict-acceptance.test.js, A4 (the CLI's answer is formatLayout's text; the catalog's list
 // of recipes is read through the CLI in that file)
 const lastLine = (text) => text.trimEnd().split('\n').at(-1);
 const warnLines = (text) => text.split('\n').filter((l) => l.includes('⚠'));
@@ -109,7 +109,7 @@ test('A4: every recipe ends DONE, or WARNINGS with its reason (the others are li
   }
 });
 
-// ---- trust-c4-acceptance.test.js, E8: what `layout --recipe` resolves is the spec laid out above
+// ---- layout-size-acceptance.test.js, E8: what `layout --recipe` resolves is the spec laid out above
 test('E8: every recipe still lays out to DONE (in process)', () => {
   const failures = [];
   for (const name of NAMES) {
