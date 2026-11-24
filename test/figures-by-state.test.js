@@ -1,4 +1,4 @@
-// What a replay left partial (2026-11): a buzzer's beeps and its tone apart, a passive buzzer on a
+// Each figure named by the state it was seen in: a buzzer's beeps and its tone apart, a passive buzzer on a
 // steady current is silent, the motor on a pin names the state of each figure, a board's output
 // resistance in its catalog entry, a supply written negative shown as written by its control, and a
 // part wired to nothing in a circuit with a source has no hazard. Through the CLI as a child process
@@ -24,7 +24,7 @@ const cli = (args) => spawnSync(process.execPath, [bin, ...args], { cwd: root, e
 
 const BEEP = 'void setup() { pinMode(8, OUTPUT); }\nvoid loop() { tone(8, 2000); delay(100); noTone(8); delay(400); }\n';
 const beeper = () => {
-  const dir = tempDir('c9-beep-');
+  const dir = tempDir('figures-beep-');
   const target = join(dir, 'bz');
   mkdirSync(target, { recursive: true });
   writeFileSync(join(target, 'beep.ino'), BEEP);
@@ -75,7 +75,7 @@ test('a passive buzzer on steady DC is silent (a ⚠ that it never sounds); an a
 // ---- The motor on a pin: each figure names its state
 
 test('a motor straight on a UNO pin: layout names the state of its figure, and a run names when its strongest came', () => {
-  const dir = tempDir('c9-motor-');
+  const dir = tempDir('figures-motor-');
   const target = join(dir, 'm');
   const program = 'void setup(){pinMode(9,OUTPUT);} void loop(){digitalWrite(9,HIGH);delay(1000);digitalWrite(9,LOW);delay(1000);}';
   writeFileSync(join(dir, 'spec.json'), JSON.stringify({ parts: [{ id: 'U1', part: 'UNO', program }, { id: 'M1', type: 'motor' }], nets: [['U1.D9', 'M1.+'], ['M1.-', 'U1.GND']] }));
@@ -121,7 +121,7 @@ test('the control of a supply written at -5 V shows -5 V and sets it as written'
 // ---- A part wired to nothing has no hazard
 
 test('an LED added by operations on empty strips, in a circuit with a source, has no hazard and no doubt; one lead on a strip of its own is a doubt, not a hazard', () => {
-  const dir = tempDir('c9-loose-');
+  const dir = tempDir('figures-loose-');
   const base = join(dir, 'base');
   assert.equal(cli(['layout', base, '--recipe', 'led-resistor']).status, 0);
   const cases = [

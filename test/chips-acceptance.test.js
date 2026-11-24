@@ -1,5 +1,5 @@
-// C11 acceptance: the six chips the kit used to draw only (74HC595, CD4017, ULN2003, ULN2803, PC817,
-// LM386) are simulated. Each test is one item (G1-G20) of the contract, driven through the CLI as a
+// Acceptance: the six chips the kit used to draw only (74HC595, CD4017, ULN2003, ULN2803, PC817,
+// LM386) are simulated. Each test is one item (G1-G20), driven through the CLI as a
 // child process (always with a timeout, so a hang fails the test instead of blocking it).
 //
 // Expected values come from the datasheets and the LED model the kit uses, worked out in a comment
@@ -9,7 +9,7 @@
 // A UNO pin is 5 V behind 40 ohm, an ESP32 pin 3.3 V behind 17 ohm (`catalog UNO`, `catalog ESP32-DEVKIT`).
 //
 // Each circuit is laid out once per file (a lazy helper) and shared by the tests that read it. Names
-// the contract leaves open (the issue code for "inputs do not reach a high level", for an output's
+// the items leave open (the issue code for "inputs do not reach a high level", for an output's
 // current) are matched by the part's id and the kind (a hazard, a doubt), never by the code.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,12 +37,12 @@ const lastLine = (r) => r.stdout.trim().split('\n').at(-1);
 const laid = new Map();
 function circuit(key, makeSpec) {
   if (!laid.has(key)) {
-    const dir = tempDir(`c11-${key}-`);
+    const dir = tempDir(`chips-${key}-`);
     const file = join(dir, 'spec.json');
     writeFileSync(file, JSON.stringify(makeSpec()));
     const target = join(dir, 'c');
     const r = cli(['layout', target, file, '--budget', String(LIMITS.layoutSeconds)], LAYOUT_MS);
-    // A spec that ends FIX_SPEC or CHANGES is the verifier's mistake, never an expected failure.
+    // A spec that ends FIX_SPEC or CHANGES is a mistake of the test, never an expected failure.
     assert.match(lastLine(r), /^STATUS: (WARNINGS|DONE)\b/, `spec ${key} must lay out: ${lastLine(r)}\n${r.stdout.slice(-1500)}${r.stderr}`);
     laid.set(key, { target, layoutOut: r.stdout });
   }
@@ -52,7 +52,7 @@ const parsed = (r, what) => {
   try { return JSON.parse(r.stdout); } catch { return assert.fail(`${what}: not JSON (exit ${r.status}): ${r.stdout.slice(0, 300)}${r.stderr.slice(0, 300)}`); }
 };
 // simulate --run <s> --json, with the largest machine-time budget (a busy machine never cuts the run; test/run-generous.js) (readings are those at the end of the run). A board's sketch that does not even
-// run is the verifier's mistake, not an expected failure: it is checked here.
+// run is a mistake of the test, not an expected failure: it is checked here.
 const run = (c, seconds, { press = [] } = {}) => {
   const r = parsed(cli(['simulate', c.target, '--run', String(seconds), ...RUN_BUDGET_ARGS, ...press.flatMap((p) => ['--press', p]), '--json']), 'simulate --run');
   for (const [id, p] of Object.entries(r.readings?.parts ?? {})) if (p.program) assert.equal(p.program.error, null, `the sketch of ${id} must run: ${JSON.stringify(p.program)}`);
@@ -150,7 +150,7 @@ test('G1: shiftOut(MSBFIRST, 0b10100101) then the latch: QA, QC, QF, QH on, the 
   // Current of a lit LED: VCC 5 V, red LED 1.76 V at 10 mA, 330 ohm, the output's resistance (datasheet
   // VOH(min) 3.98 V at 6 mA from 4.5 V: 87 ohm at most; VOL(max) 0.26 V at 6 mA: 43 ohm):
   //   I = (5 - 1.76) / (330 + 87) = 7.8 mA  ...  (5 - 1.76) / (330 + 43) = 8.7 mA  ...  with no output resistance 9.8 mA.
-  // So 5 to 12 mA, the contract's bounds.
+  // So 5 to 12 mA, the item's bounds.
   for (const n of PALINDROME_ON) {
     const i = mA(partOf(r.readings, `D${n}`).current);
     assert.ok(i >= 5 && i <= 12, `D${n} carries ${i} mA, expected 5 to 12 (hand figure 7.8 to 9.8 mA)`);
@@ -276,7 +276,7 @@ test('G5b: a 74HC595 on 5 V driven by 3.3 V pins: the review warns about the chi
   assert.ok(found.length >= 1, `a hazard or a doubt about IC1 (not the "not simulated" one) is expected; the review has: ${codes(rev).join(', ')}`);
 });
 
-// Arbitrated (orchestrator, C11 second round): G1's sketch lights four of the eight LEDs on purpose, so
+// G1's sketch lights four of the eight LEDs on purpose, so
 // the kit's "never comes on" for the other four is honest and that circuit ends WARNINGS. G6 is checked on
 // the walking bit of G3 instead, whose sketch lights every LED at some moment.
 test('G6: review of the walking-bit circuit (G3): no SIM_PART_NOT_SIMULATED, no SIM_OUTPUT_NEVER_ON, verdict approved; layout ends STATUS: DONE', () => {
@@ -470,7 +470,7 @@ test('G13: ULN2803 with eight LEDs from 5 V: each LED follows its input, 0.6 to 
   // IN1..IN7 from D2..D8, IN8 open. Phase A (0 to 0.5 s): D2, D4, D6, D8 high (IN1, IN3, IN5, IN7 -> LED 1, 3, 5, 7 on);
   // phase B (from 0.5 s): the other pins high (IN2, IN4, IN6 -> LED 2, 4, 6 on). LED 8 (input open) never.
   // LED current with 220 ohm: the datasheet's VCE(sat) is 0.9 to 1.1 V at 100 mA and a little less at 10 mA (about 0.6 to 1.0 V),
-  // so I = (5 - 1.76 - 0.8) / 220 = 11 mA (about 10), and the output sits at 0.6 to 1.2 V, the contract's bounds.
+  // so I = (5 - 1.76 - 0.8) / 220 = 11 mA (about 10), and the output sits at 0.6 to 1.2 V, the item's bounds.
   const program = 'void setup(){for(int p=2;p<=8;p++)pinMode(p,OUTPUT);digitalWrite(2,HIGH);digitalWrite(4,HIGH);digitalWrite(6,HIGH);digitalWrite(8,HIGH);delay(500);for(int p=2;p<=8;p++)digitalWrite(p,(p%2)?HIGH:LOW);}\nvoid loop(){delay(100);}';
   const c = circuit('g13', () => {
     const parts = [{ id: 'U1', part: 'UNO', program }, { id: 'IC1', type: 'ic', part: 'ULN2803' }];

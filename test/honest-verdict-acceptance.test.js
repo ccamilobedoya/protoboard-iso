@@ -1,8 +1,8 @@
-// Acceptance tests of the C1 contract "DONE means checked" (A1-A14), through the CLI as a child
+// Acceptance tests of "DONE means checked" (items A1-A14), through the CLI as a child
 // process and the public exports. DONE means the kit checked the circuit and found nothing to tell;
 // WARNINGS means "built, and each ⚠ line must be told to the user before saying it works".
 //
-// Exact sentences are not asserted where the contract leaves them open: only codes, part ids, the
+// Exact sentences are not asserted where the items leave them open: only codes, part ids, the
 // STATUS token, the exit code and the words that name a fact (a file name, a line number).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -23,7 +23,7 @@ const warnLines = (text) => text.split('\n').filter((l) => l.includes('⚠'));
 
 // Lay out a spec with the CLI in a fresh folder; returns the run, the circuit file and its folder.
 function build(spec, { files = {} } = {}) {
-  const dir = tempDir('pbi-c1-');
+  const dir = tempDir('pbi-verdict-');
   const circuitDir = join(dir, 'circuit');
   mkdirSync(circuitDir);
   const specFile = join(dir, 'spec.json');
@@ -54,7 +54,7 @@ const shiftSpec = {
   nets: [['U1.5V', 'U2.VCC', 'U2.SRCLR', 'T+'], ['U1.GND', 'U2.GND', 'U2.OE', 'T-'], ['U1.D2', 'U2.SER'], ['U1.D3', 'U2.SRCLK'], ['U1.D4', 'U2.RCLK'], ['U2.QA', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'T-']],
 };
 
-// shiftOut is in the kit's Arduino subset since C8a, so no ⚠ says it is unknown. Since C11a the kit
+// shiftOut is in the kit's Arduino subset, so no ⚠ says it is unknown, and the kit
 // simulates the 74HC595 (src/sim/devices/shift-register.js): the counter's bit 0 lands on QA and
 // toggles the LED every 500 ms, so the circuit is checked and ends DONE, with no ⚠ about U2.
 test('A1: a 74HC595 with a shiftOut sketch is simulated: DONE, no ⚠ for U2, the LED behind it is judged', SLOW, () => {
@@ -73,7 +73,7 @@ test('A1: a 74HC595 with a shiftOut sketch is simulated: DONE, no ⚠ for U2, th
 });
 
 // ---- A2
-// The LM386 this took is simulated now (C11, its own acceptance file): the part the kit still draws
+// The LM386 this took is simulated now (test/chips-acceptance.test.js): the part the kit still draws
 // only is the e-paper adapter of examples/epaper-esp32.json, which layout cannot place by itself, so
 // the CLI's review of that example is the answer: approved with warnings, its ⚠ naming EP1.
 test('A2: a part the kit only draws, wired to a supply, has a ⚠ naming it (now the e-paper adapter)', SLOW, () => {
@@ -85,7 +85,7 @@ test('A2: a part the kit only draws, wired to a supply, has a ⚠ naming it (now
 
 // ---- A3 (must not change)
 test('A3: the uno-blink recipe (everything simulated) is still DONE with no ⚠', SLOW, () => {
-  const dir = tempDir('pbi-c1-');
+  const dir = tempDir('pbi-verdict-');
   const r = run(['layout', join(dir, 'circuit.json'), '--recipe', 'uno-blink']);
   assert.equal(r.status, 0, r.stderr);
   assert.match(lastLine(r.stdout), /^STATUS: DONE/, r.stdout);
@@ -102,7 +102,7 @@ test('A4: the catalog lists every recipe of the kit', SLOW, () => {
   const names = [...after.matchAll(/^ {2}([a-z0-9][a-z0-9-]*) \(/gm)].map((m) => m[1]);
   assert.deepEqual([...names].sort(), Object.keys(RECIPES).sort(), 'every recipe of the kit');
   // One of them through the CLI end to end: the status line the sweep reads from formatLayout.
-  const dir = tempDir('pbi-c1-');
+  const dir = tempDir('pbi-verdict-');
   const r = run(['layout', join(dir, 'circuit.json'), '--recipe', names[0]]);
   assert.match(lastLine(r.stdout), /^STATUS: (DONE|WARNINGS)/, r.stdout);
 });
@@ -159,7 +159,7 @@ test('A8: a LED on 9 V with no resistor is still WARNINGS with the damage ⚠ an
   assert.equal((j.doubts ?? []).length, 0);
 });
 
-// Since C11a the 74HC595 is simulated: its doubt here is its three inputs left open (SER, SRCLK, RCLK).
+// The 74HC595 is simulated: its doubt here is its three inputs left open (SER, SRCLK, RCLK).
 test('A9: a LED with no resistor and a 74HC595 in one circuit: WARNINGS, a damage ⚠ and a doubt ⚠ under different headings', SLOW, () => {
   const { r, circuit, out } = build(ledNoResistor([{ id: 'U2', part: '74HC595' }], [['T+', 'U2.VCC', 'U2.SRCLR'], ['T-', 'U2.GND', 'U2.OE']], 5));
   assert.equal(r.status, 0, r.stderr);
@@ -184,12 +184,12 @@ test('A9: a LED with no resistor and a 74HC595 in one circuit: WARNINGS, a damag
 test('A10: a circuit that needs a fix is still CHANGES', SLOW, () => {
   const spec = JSON.parse(spawnSync('cat', [join(root, 'examples/layout/esp32-both-headers.json')], { encoding: 'utf8' }).stdout);
   const { out } = build({ ...spec, board: 'bb830' });
-  assert.match(lastLine(out), /^STATUS: CHANGES/, out); // exit code not asserted: the contract does not change it
+  assert.match(lastLine(out), /^STATUS: CHANGES/, out); // exit code not asserted: this item does not change it
 });
 
 // ---- A11, A12
 test('A11: the ldr-night-light recipe does not say "nothing that applies" on its Checked line (layout and review)', SLOW, () => {
-  const dir = tempDir('pbi-c1-');
+  const dir = tempDir('pbi-verdict-');
   const circuit = join(dir, 'circuit.json');
   const r = run(['layout', circuit, '--recipe', 'ldr-night-light']);
   assert.equal(r.status, 0, r.stderr);
@@ -213,9 +213,9 @@ test('A12: three LEDs on a 9 V battery: the Readings line names BT1 once', SLOW,
 });
 
 // ---- A13
-// Since C11 every chip of the kit is simulated: none is marked. The one part still drawn only is the
+// Every chip of the kit is simulated: none is marked. The one part still drawn only is the
 // DESPI-C02 adapter (a module), whose entry says so; the list's marking itself is tested in process with a
-// part with no model of the tests' own (test/trust-c1.test.js).
+// part with no model of the tests' own (test/honest-verdict.test.js).
 test('A13: catalog marks none of the chips as not simulated, and the DESPI-C02 entry says it is; no text points to src/ or docs/', () => {
   const list = run(['catalog']).stdout;
   const controls = ['NE555', 'LM358'];

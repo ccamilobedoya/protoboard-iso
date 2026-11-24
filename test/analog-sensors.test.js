@@ -187,7 +187,7 @@ test('active buzzer: from 2.0 V it is a 167 ohm load and sounds, quieter below 5
   near(buzzer(5).level, 85, 0.3, 'level at 5 V');
   assert.equal(buzzer(1.7).sounding, false);
   assert.ok(buzzer(1.7).current > 0.001 && buzzer(1.7).current < 0.01, 'the ramp is between nothing and the law');
-  // Over 35 mA a current warning (over its listed maximum, C10b; never a stress), over 7.5 V the
+  // Over 35 mA a current warning (over its listed maximum; never a stress), over 7.5 V the
   // maximum-supply warning, and neither at 5 V.
   const six = buzzer(6).issues;
   assert.ok(codes({ issues: six }).includes('SIM_BUZZER_CURRENT') && !codes({ issues: six }).includes('SIM_OVER_CURRENT'));

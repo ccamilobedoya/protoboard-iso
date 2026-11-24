@@ -1,6 +1,6 @@
-// Acceptance tests for session C2 ("hazards and does-not-work the simulator misses"), items B1-B11.
-// Written from the contract alone, through the CLI (child process) and the exports of src/. Where the
-// contract leaves a string open, the test asserts the stable part (issue code, part id, flag).
+// Acceptance tests for "hazards and does-not-work the simulator misses", items B1-B11.
+// Written from the items alone, through the CLI (child process) and the exports of src/. Where an
+// item leaves a string open, the test asserts the stable part (issue code, part id, flag).
 //
 // Facts about the kit these tests rely on:
 //   - 7805 pins: VIN, GND, OUT. Battery pins: + and -. Electrolytic capacitor pins: + and -.
@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 
 const root = new URL('../', import.meta.url).pathname;
-const dir = tempDir('c2-acc-');
+const dir = tempDir('hazards-acc-');
 const run = (args, extra = {}) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args], { cwd: dir, encoding: 'utf8', timeout: 120000, ...extra });
 const json = (r) => { try { return JSON.parse(r.stdout); } catch { assert.fail(`no JSON on stdout (exit ${r.status}): ${r.stdout.slice(0, 300)} ${r.stderr.slice(0, 300)}`); } };
 
@@ -63,7 +63,7 @@ const ledReversed = (volts) => ({
 });
 
 test('B2 · a red LED reversed with a resistor on 9 V: past its 5 V reverse rating, so the hazard stays', () => {
-  // Arbitrated: the contract's first wording ("no hazard for a reversed LED") was wrong for 9 V. The
+  // The item's first wording ("no hazard for a reversed LED") was wrong for 9 V. The
   // red LED's reverse rating is 5 V and the reversed LED sees about 9 V (no current, so nothing drops
   // across the resistor): the kit warned before this work and still must.
   const r = reviewJson(build(ledReversed(9)));
@@ -123,7 +123,7 @@ test('B5 precondition · night light at light 0: coil 42 mA between release 7.1 
   const s = simJson(build(NIGHT('10k'), { ops: light0 }));
   const k = s.parts.K1;
   assert.equal(k.closed, false);
-  // coil current 42 mA (contract: about 42 mA); the model's own thresholds: pullIn 5 V/70 ohm*0.75 = 53.6 mA, dropOut 7.1 mA
+  // coil current 42 mA (expected: about 42 mA); the model's own thresholds: pullIn 5 V/70 ohm*0.75 = 53.6 mA, dropOut 7.1 mA
   assert.ok(k.current > k.dropOut && k.current < k.pullIn, `coil ${k.current} A, band ${k.dropOut}..${k.pullIn}`);
 });
 

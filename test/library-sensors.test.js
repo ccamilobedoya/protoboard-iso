@@ -249,7 +249,7 @@ test('BME280 on 5 V: SIM_IC_SUPPLY and no answer; the regulated board on 5 V ans
   assert.ok(!codes(simulate(regulated.circuit).issues).includes('SIM_IC_SUPPLY'));
 });
 
-// Since C10b the line over the chip's maximum is a warning, not a note.
+// The line over the chip's maximum is a warning, not a note.
 test('Wire on an AVR turns on its pull-ups: a 3.3 V I2C board on a UNO idles at 3.68 V, a warning; on an ESP32 at 3.3 V, none', () => {
   const sketch = (cls) => boschSketch(cls, 'Serial.println(bme.begin(0x76));');
   for (const [board, part, cls, vcc, sda, scl, idle, noted] of [
@@ -319,7 +319,7 @@ for (const name of ['uno-dht11', 'esp32-bme280', 'uno-bmp280-altitude']) {
     }
     for (const [id, visible] of seen) assert.ok(visible >= 0.5, `${id}: ${Math.round(visible * 100)} % at best`);
     // The static solve of uno-bmp280-altitude stops inside begin(), with Wire's pull-ups still on: it
-    // says SIM_PIN_OVER_VDDIO (a warning since C10b); the review judges it by the run, where the sketch
+    // says SIM_PIN_OVER_VDDIO (a warning); the review judges it by the run, where the sketch
     // has turned them off, so the recipe is DONE above.
     assert.deepEqual(codes(simulate(r.circuit).issues.filter((i) => i.severity !== 'info' && !(name === 'uno-bmp280-altitude' && i.code === 'SIM_PIN_OVER_VDDIO'))), []);
   });

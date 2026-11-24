@@ -1,4 +1,4 @@
-// The analog chips the kit used to draw only (C11b): the ULN2003 and ULN2803 Darlington arrays, the
+// The analog chips the kit used to draw only: the ULN2003 and ULN2803 Darlington arrays, the
 // PC817 optocoupler and the LM386 audio amplifier, each against its datasheet; and the regulators'
 // maximum input. Each circuit is laid out once and shared by its tests.
 

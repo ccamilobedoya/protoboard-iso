@@ -1,10 +1,10 @@
-// The chips after the physics review (C14): what a dissipation limit is judged on over time, and
-// the wording of readings that round to their limit.
+// What a dissipation limit is judged on over time (its average over a run, not its peak), and the
+// wording of readings that round to their limit.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { runCircuit } from '../src/sim/run.js'; // its runs take under a second since C15b's step
+import { runCircuit } from '../src/sim/run.js'; // its runs take under a second at a run's step
 import { simulate } from '../src/sim/index.js';
 import { formatIssue } from '../src/index.js';
 
@@ -47,7 +47,7 @@ test("the LM386's supply messages name the LM386N-1 and N-3, and what the N-4 ta
   assert.match(formatIssue(over, 'es'), /más que los 15 V del LM386N-1 y el N-3/);
 });
 
-// Item 7: a reading that rounds equal to its limit shows more figures, until the two differ.
+// A reading that rounds equal to its limit shows more figures, until the two differ.
 test('a reading that rounds to its limit is shown with one more figure', () => {
   const issue = (value) => ({ severity: 'warning', code: 'SIM_OVER_CURRENT', params: { part: 'U1.A', current: { value, unit: 'A' }, max: { value: 0.05, unit: 'A' } } });
   assert.match(formatIssue(issue(0.05004), 'en'), /carries 50\.04 mA, more than its maximum 50 mA/);

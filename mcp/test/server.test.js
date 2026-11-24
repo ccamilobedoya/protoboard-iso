@@ -291,7 +291,7 @@ test('layout dry_run: the same answer, a trial line, a STATUS that says nothing 
   assert.equal(trial._meta, undefined);
   assert.ok(!existsSync(join(root, 'trial-led')), 'no folder');
   const made = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 } });
-  // The STATUS words differ on purpose: a trial says nothing was saved (C12).
+  // The STATUS words differ on purpose: a trial says nothing was saved.
   const steady = (text) => text.replace(/ \d+ ms /, ' … ms ').split('\n').filter((l) => !/^(Trial: |trial-led · rev |Page: |STATUS: )/.test(l)).join('\n');
   assert.equal(steady(textOf(trial)), steady(textOf(made)));
   assert.match(textOf(trial), /STATUS: DONE · as tried, the circuit would be ready[^\n]*nothing was saved/);

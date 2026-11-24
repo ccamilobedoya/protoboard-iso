@@ -44,7 +44,7 @@ test('findPin: nothing when the guess is unknown or not unique', () => {
   assert.equal(findPin(['anode', 'cathode'], ''), undefined);
 });
 
-// A board's serial pins by the names people write (C14, item 9): TX and RX on each board, and the
+// A board's serial pins by the names people write: TX and RX on each board, and the
 // DevKit's second port by its GPIO number. Only on a development board.
 test("findPin: a board's TX and RX, and the DevKit's GPIO17 and GPIO16", () => {
   const c3 = pinsOf({ type: 'module', part: 'ESP32-C3-SUPERMINI' });

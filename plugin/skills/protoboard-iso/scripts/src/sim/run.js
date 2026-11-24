@@ -940,4 +940,4 @@ export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS }
   const waits = [...new Set(r.issues.filter((i) => i.code === 'SIM_SERIAL_WAITS').map((i) => String(i.params.part)))];
   return { seconds, start: r.run.start, outputs, ...(waits.length && { serialWaits: waits }) };
 }
-const ABOUT_PERIODS = 5; // whole periods under which a frequency is said as "about" (the contract)
+const ABOUT_PERIODS = 5; // whole periods under which a frequency is said as "about"

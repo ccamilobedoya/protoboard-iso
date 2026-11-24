@@ -46,7 +46,7 @@ test('unknown words: a word that is an ask only alone, and names with no ask in 
   assert.equal(problem('LEDX').params.variant, undefined);
 });
 
-// The common asks a round of assistants met with no answer ("28BYJ-48 … has no part with a close
+// The common asks assistants met with no answer ("28BYJ-48 … has no part with a close
 // name"): each says what the kit has near it, or that nothing is near, in both languages.
 test('unknown words: a stepper, screens, keypad, joystick, radios, SD card, clock and load cell say what is near', () => {
   const asks = {

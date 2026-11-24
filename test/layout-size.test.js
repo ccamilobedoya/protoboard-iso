@@ -118,7 +118,7 @@ test('the budget stops the search with its best try and a line that says so', ()
   assert.ok(p);
   assert.equal(p.params.seconds, 0.5);
   const text = formatLayout(r, 'en', { t, formatIssue });
-  // Counted in placements tried (C12); a busy machine may reach the budget's clock first, and says so.
+  // Counted in placements tried; a busy machine may reach the budget's clock first, and says so.
   assert.match(text, /The search stopped at (the clock of )?its budget of 0\.5 s/);
   assert.match(text, /a larger budget/);
   assert.match(formatLayout(r, 'es', { t, formatIssue }), /La búsqueda se detuvo/);

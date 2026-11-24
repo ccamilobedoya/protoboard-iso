@@ -439,7 +439,7 @@ from 26.5 s to 15.6 s and none got slower by more than 10 %. Placements: every r
 example is placed as on 0.12.1 except the four whose ground nets are now one (`uno-button`,
 `encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
 
-### Hard cases: what the last round before the release found (2026-11-23)
+### Hard cases: circuits written by hand (2026-11-23)
 
 Three assistants with only the packed skill built 36 circuits on a clean clone. Every recipe ended
 `DONE`; these hand-written circuits did not, each measured before the change (load 3 to 4 on a
@@ -480,7 +480,7 @@ four-core machine shared with other work):
   - searches them whole by how their first try ended, best first; the order given goes on from its
     first search (its second search only, `resume`) and keeps its place on a tie. Laid out again on a
     circuit already made (`previous`), the orders are searched as before.
-  Measured (load 3 to 11 on a machine shared with two other sessions; placements are the comparable
+  Measured (load 3 to 11 on a machine shared with other work; placements are the comparable
   figure): the display and button `DONE` in 11 618 placements, 5.1 s at load 3 (before 67 146, 31 s
   at load 3.5); two 74HC595 with sixteen LEDs on the double board `DONE` in 109 288 and, listed LEDs
   first, 90 136 placements (before `CHANGES` at the budget, 300 025 and 279 850); on one board still
@@ -821,7 +821,7 @@ In order of what would pay most:
    block ending one pitch past its outer row): measure two real boards and change `junction` in
    `doubleBoard` (`src/board/board.js`) if it differs. Jumpers between the two boards' headers
    still arch over the DevKit when a net needs both (three in the bench case).
-7. **Two dense chip circuits still end `CHANGES` on one board** (measured 2026-11-23, C15c): two
+7. **Two dense chip circuits still end `CHANGES` on one board** (measured 2026-11-23): two
    74HC595 with sixteen LEDs (19 items open at the 60 s budget) and a 555 clocking a CD4017 with
    ten LEDs (6 open). Each try of such a circuit costs about 16 000 placements, so the budget allows
    few. The first ends `DONE` on the double board (`"board": "double"`); the second has no such way

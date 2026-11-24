@@ -485,7 +485,7 @@ pasaron de 26,5 s a 15,6 s y ninguna se volvió más lenta en más de 10 %. Ubic
 recetas y los ejemplos de montaje quedan como en la 0.12.1 salvo los cuatro cuyas redes de tierra
 ahora son una (`uno-button`, `encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
 
-### Casos difíciles: lo que encontró la última ronda antes de publicar (2026-11-23)
+### Casos difíciles: circuitos escritos a mano (2026-11-23)
 
 Tres asistentes con solo la habilidad empaquetada armaron 36 circuitos en un clon limpio. Todas las
 recetas terminaron en `DONE`; estos circuitos escritos a mano no, cada uno medido antes del cambio
@@ -531,7 +531,7 @@ recetas terminaron en `DONE`; estos circuitos escritos a mano no, cada uno medid
   - los busca completos según cómo terminó su primer intento, el mejor primero; el orden dado sigue
     desde su primera búsqueda (solo la segunda, `resume`) y conserva su lugar en un empate. Al volver a
     montar un circuito que ya existe (`previous`), los órdenes se buscan como antes.
-  Medido (carga de 3 a 11 en una máquina compartida con otras dos sesiones; las colocaciones son la
+  Medido (carga de 3 a 11 en una máquina compartida con otro trabajo; las colocaciones son la
   cifra comparable): el display y el botón en `DONE` en 11 618 colocaciones, 5,1 s con carga 3 (antes
   67 146, 31 s con carga 3,5); dos 74HC595 con dieciséis LED en la protoboard doble en `DONE` en 109 288
   y, con los LED de primero, 90 136 colocaciones (antes `CHANGES` en el límite, 300 025 y 279 850); en
@@ -894,7 +894,7 @@ En orden de lo que más rendiría:
    filas de pines de las dos protoboards todavía pasan por encima del DevKit cuando una red necesita
    las dos (tres en el caso del banco).
 7. **Dos circuitos densos de chips siguen terminando en `CHANGES` en una sola protoboard** (medido
-   el 2026-11-23, C15c): dos 74HC595 con dieciséis LED (19 puntos abiertos en el límite de 60 s) y
+   el 2026-11-23): dos 74HC595 con dieciséis LED (19 puntos abiertos en el límite de 60 s) y
    un 555 que da reloj a un CD4017 con diez LED (6 abiertos). Cada intento de un circuito así cuesta
    unas 16 000 colocaciones, así que el límite permite pocos. El primero termina en `DONE` en la
    protoboard doble (`"board": "double"`); el segundo todavía no tiene esa salida: un `--budget`

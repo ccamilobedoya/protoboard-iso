@@ -1,4 +1,4 @@
-// Small answers that said less than they should (2026-11 trust work): the buzzer entry says which kind
+// Small answers that said less than they should (2026-11): the buzzer entry says which kind
 // is which, an unknown part with no close name says so and where to look, a common ask the kit lacks
 // names what it has near, a missing value says it is missing, an option's own message is the last
 // line, and the doubts' heading is true both for what the kit could not check and for what it found.

@@ -1,7 +1,7 @@
-// C4 acceptance: layout size is calculated first, never hangs, never runs out of memory.
-// Each test is one item (E1-E9) of the contract, driven through the CLI as a child process (always
+// Acceptance: layout size is calculated first, never hangs, never runs out of memory.
+// Each test is one item (E1-E9), driven through the CLI as a child process (always
 // with a timeout, so a hang fails the test instead of blocking it) or through the public exports.
-// Timing bounds are the contract's figures times three, never "faster than"; behaviours are exact.
+// Timing bounds are the items' figures times three, never "faster than"; behaviours are exact.
 // The slow cases (E1, E2, E3, E4) run one layout each, and no case runs twice.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -64,7 +64,7 @@ const askedPairs = (n) => [
 ];
 
 test('E1: 10 LED + 220 ohm pairs from one UNO pin finish within 60 s, not CHANGES, every net there', () => {
-  const dir = tempDir('c4-e1-');
+  const dir = tempDir('size-e1-');
   const file = specFile(dir, 'spec.json', pairsSpec(10));
   const r = cli(['layout', join(dir, 'c'), file], { timeout: 60_000 });
   assert.ok(!r.timedOut && r.elapsed <= 60_000, `did not finish within 60 s (${describe(r)})`);
@@ -74,7 +74,7 @@ test('E1: 10 LED + 220 ohm pairs from one UNO pin finish within 60 s, not CHANGE
 });
 
 test('E2: 20 pairs finish within 135 s and are not CHANGES', () => {
-  const dir = tempDir('c4-e2-');
+  const dir = tempDir('size-e2-');
   const file = specFile(dir, 'spec.json', pairsSpec(20));
   const r = cli(['layout', join(dir, 'c'), file], { timeout: 135_000 });
   assert.ok(!r.timedOut && r.elapsed <= 135_000, `did not finish within 135 s (${describe(r)})`);
@@ -83,13 +83,13 @@ test('E2: 20 pairs finish within 135 s and are not CHANGES', () => {
 });
 
 test('E3: --budget 2 on the 20-pair spec ends within 15 s as CHANGES, says the budget, leaves a valid circuit.json', () => {
-  const dir = tempDir('c4-e3-');
+  const dir = tempDir('size-e3-');
   const file = specFile(dir, 'spec.json', pairsSpec(20));
   const r = cli(['layout', join(dir, 'c'), file, '--budget', '2'], { timeout: 15_000 });
   assert.ok(!r.timedOut && r.elapsed <= 15_000, `did not end within 15 s (${describe(r)})`);
   assert.equal(r.status, 2, `exit code as for CHANGES (${describe(r)})`);
   assert.match(lastLine(r), /^STATUS: CHANGES/, describe(r));
-  // The budget line's exact text is open in the contract: the stable part is the word "budget".
+  // The budget line's exact text is left open by the item: the stable part is the word "budget".
   assert.match(r.stdout, /budget/i, 'stdout has a line about the budget');
   const circuit = join(dir, 'c', 'circuit.json');
   assert.ok(existsSync(circuit), 'circuit.json exists');
@@ -98,7 +98,7 @@ test('E3: --budget 2 on the 20-pair spec ends within 15 s as CHANGES, says the b
 });
 
 test('E4: 200 resistors in series on a 9 V battery: placed or refused, never out of memory, in 90 s', () => {
-  const dir = tempDir('c4-e4-');
+  const dir = tempDir('size-e4-');
   const n = 200;
   const parts = [{ id: 'BT1', type: 'battery', format: '9V' }, ...Array.from({ length: n }, (_, i) => ({ id: `R${i + 1}`, type: 'resistor', value: '1k' }))];
   const nets = [['BT1.+', 'R1.1'], ...Array.from({ length: n - 1 }, (_, i) => [`R${i + 1}.2`, `R${i + 2}.1`]), [`R${n}.2`, 'BT1.-']];
@@ -123,7 +123,7 @@ test('E4: 200 resistors in series on a 9 V battery: placed or refused, never out
 });
 
 test('E5: a spec that cannot fit (400 DIP-8 ICs) is FIX_SPEC, exit 1, in under 5 s, nothing created', () => {
-  const dir = tempDir('c4-e5-');
+  const dir = tempDir('size-e5-');
   const n = 400;
   const parts = Array.from({ length: n }, (_, i) => ({ id: `U${i + 1}`, part: 'NE555' }));
   const nets = Array.from({ length: n - 1 }, (_, i) => [`U${i + 1}.OUT`, `U${i + 2}.TRIG`]);
@@ -137,7 +137,7 @@ test('E5: a spec that cannot fit (400 DIP-8 ICs) is FIX_SPEC, exit 1, in under 5
 });
 
 test('E6: nets that share a pin are one net: same nets as the joined list, a note, not FIX_SPEC', () => {
-  const dir = tempDir('c4-e6-');
+  const dir = tempDir('size-e6-');
   const split = specFile(dir, 'split.json', pairsSpec(3, { split: true }));
   const joined = specFile(dir, 'joined.json', pairsSpec(3));
   const a = cli(['layout', join(dir, 'a'), split], { timeout: 60_000 });
@@ -166,7 +166,7 @@ const withoutTimes = (value) => {
 };
 
 test('E7: the same 5-pair spec twice gives the same circuit.json', () => {
-  const dir = tempDir('c4-e7-');
+  const dir = tempDir('size-e7-');
   const file = specFile(dir, 'spec.json', pairsSpec(5));
   const run = (name) => {
     const r = cli(['layout', join(dir, name), file], { timeout: 120_000 });
@@ -179,7 +179,7 @@ test('E7: the same 5-pair spec twice gives the same circuit.json', () => {
 // E8, every recipe still lays out to DONE: test/recipe-sweep.test.js (the shared sweep).
 
 test('E9: --budget with a value that is not a number is refused by the parser, naming the option', () => {
-  const dir = tempDir('c4-e9-');
+  const dir = tempDir('size-e9-');
   const r = cli(['layout', join(dir, 'x'), '--recipe', 'led-resistor', '--budget', 'abc'], { timeout: 30_000 });
   assert.ok([1, 2].includes(r.status), describe(r));
   const out = r.stdout + r.stderr;

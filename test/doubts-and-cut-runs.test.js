@@ -1,4 +1,4 @@
-// What a third round of first-time users found (C10b): a part that cannot be judged is not called
+// What a beginner's assistant meets: a part that cannot be judged is not called
 // dead, a note that is a hazard is a ⚠, a run that ends early says so, and small truths.
 
 import { test } from 'node:test';
@@ -11,8 +11,8 @@ const codes = (list) => list.map((i) => i.code);
 
 // ---- 3. A part that cannot be judged is not called dead
 
-// A 555 clocking a CD4017 that lights three LEDs. Until C11a the kit did not simulate the chip and its
-// doubt named the LEDs; now it does (src/sim/devices/counter.js), so the LEDs are judged like any
+// A 555 clocking a CD4017 that lights three LEDs. The kit once drew the chip only and its
+// doubt named the LEDs; now it simulates it (src/sim/devices/counter.js), so the LEDs are judged like any
 // other. This 555 is slow (10 kΩ, 47 kΩ, 47 µF: f = 1.44 / (104 kΩ · 47 µF) ≈ 0.29 Hz): the review's
 // run follows it for two of its periods and more while LEDs keep coming on, so all three are seen lit.
 test('LEDs behind a CD4017 clocked by a slow 555 are judged and seen lit: DONE', () => {
@@ -262,7 +262,7 @@ test('run-it.md quotes the latch\'s two resting states as layout prints them', a
   assert.equal(quoted.length, 3);
   const lines = new Set(formatLayout(autoLayout(LATCH), 'en', { t, formatIssue }).split('\n').map((l) => l.trim()));
   for (const line of quoted) assert.ok(lines.has(line), line);
-  // The place marked for what the sketch session reports is filled (C13): no marker left.
+  // The place once marked in the skill for the sketch runner's findings is filled: no marker left.
   assert.doesNotMatch(text, /<!-- SKETCH SESSION:/);
   assert.match(text, /^## Sketches\n\n[\s\S]*attachInterrupt/m);
 });

@@ -100,7 +100,7 @@ test('the button recipes lay out DONE with no BUTTON_PINS_JOINED', () => {
   }
 });
 
-// ---- round 3: wording that does not overstate
+// ---- wording that does not overstate
 const lineOf = (c, code, lang = 'en') => {
   const h = checkHazards(c).hazards.find((x) => x.code === code);
   return h ? formatIssue(h, lang) : null;

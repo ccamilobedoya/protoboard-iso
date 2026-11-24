@@ -582,7 +582,7 @@ test('attack: a PC817 whose phototransistor feeds or shunts its own LED ends, bo
   }
 });
 
-// A one-line program that looks like a path (C11, the loose ends of C12): taken for a file name, never
+// A one-line program that looks like a path: taken for a file name, never
 // read, never looked up outside the circuit's folder (a parent folder is not called a folder of its).
 test('attack: a program that names a path outside the circuit is not read nor looked into', async () => {
   const { CIRCUIT_FOLDER } = await import('../src/beside.js');

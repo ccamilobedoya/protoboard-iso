@@ -1,4 +1,4 @@
-// The last round before the release (C15b), each test written from a reproduction: a run's step, the
+// Each test written from a reproduction: a run's step, the
 // warnings a run keeps, a tune's notes, a supply past what it gives, the flyback advice, a logic input
 // over its supply, the chips' drive figures, layout's readings and the small texts.
 
@@ -351,7 +351,7 @@ test('the kit has no loudspeaker: the same sentence in catalog speaker, the LM38
   assert.doesNotMatch(chips, /stands for it|ask before/i);
 });
 
-// ── 11. The skill says what the testers had to guess ─────────────────────────────────────
+// ── 11. The skill says what an assistant had to guess ───────────────────────────────────
 
 test('run-it.md lists every field of the environment at its default, and says how to type to a board', async () => {
   const { readFileSync } = await import('node:fs');
@@ -362,6 +362,6 @@ test('run-it.md lists every field of the environment at its default, and says ho
     if (f.kind === 'switch') assert.match(part, new RegExp(name === 'beam' ? 'the beam uncut' : `no [a-z, ]*\\b${name}\\b`), name);
     else assert.ok(part.includes(`${name} ${String(f.default)}${f.unit === '°' ? '°' : ` ${f.unit}`}`), `${name} ${f.default} ${f.unit}`);
   }
-  assert.doesNotMatch(doc, /<!-- serial-input: /, 'the marked place is filled (C16)');
+  assert.doesNotMatch(doc, /<!-- serial-input: /, 'the marked place is filled');
   assert.match(doc, /## Typing to a board[\s\S]*kit simulate circuits\/menu --run 2 --serial 1@0\.5/);
 });

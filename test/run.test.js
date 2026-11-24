@@ -8,7 +8,7 @@ import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { simulate, checkHazards } from '../src/sim/index.js';
-// A run's steps are at least its length over 20 000 (C15b): these runs take well under a second, so
+// A run's steps are at least its length over 20 000: these runs take well under a second, so
 // they keep the default machine-time budget (test/run-generous.js is for the slow ones).
 import { parseStimuli, stimuliFromArgs, behaviourOf, BEHAVIOUR_STEPS, runCircuit } from '../src/sim/run.js';
 import { formatLayout } from '../src/layout.js';
@@ -204,21 +204,21 @@ test('bounded: a run past the cap is capped and says so; a sketch that never let
   const slow = runCircuit(recipe('555-astable'), { seconds: 50, budgetMs: 200 });
   assert.ok(codes(slow.issues).includes('RUN_BUDGET'));
   assert.ok(slow.run.ran < 50 && slow.run.seconds === 50);
-  // A budget past the kit's largest is capped, and the answer says so (C14).
+  // A budget past the kit's largest is capped, and the answer says so.
   const over = runCircuit(blink, { seconds: 0.01, budgetMs: LIMITS.runMsMax * 2 });
   const note = over.issues.find((i) => i.code === 'RUN_BUDGET_CAPPED');
   assert.ok(note, JSON.stringify(codes(over.issues)));
   assert.match(formatIssue(note, 'en'), /more than the kit allows a run: it runs for 300 s of the machine's time at most/);
 });
 
-// simulate --run --budget <s>: the machine's time a run may take, on the command line (C14).
+// simulate --run --budget <s>: the machine's time a run may take, on the command line.
 test('simulate --run takes --budget: a small one cuts the run and names --budget, a huge one is capped', () => {
   const dir = tempDir('pb-run-budget-');
   const file = join(dir, 'astable.json');
   writeFileSync(file, JSON.stringify(recipe('555-astable')));
   const cut = cli(['simulate', file, '--run', '50', '--budget', '0.2']);
   assert.equal(cut.status, 0, cut.stderr);
-  // Its steps are 50 s / 20000: a shorter run takes as many, so only --budget is offered (C15b).
+  // Its steps are 50 s / 20000: a shorter run takes as many, so only --budget is offered.
   assert.match(cut.stdout, /it took more than 200 ms of the machine's time\. Its steps are its length over 20000, so a shorter --run takes as many: a larger --budget/);
   const capped = cli(['simulate', file, '--run', '0.01', '--budget', '1000']);
   assert.match(capped.stdout, /A budget of 1000 s is more than the kit allows a run: it runs for 300 s/);

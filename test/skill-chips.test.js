@@ -53,7 +53,7 @@ test("chips.md: eight red LEDs on 330 Ω take a 74HC595 over its 70 mA in a run,
   const { tempDir } = await import('../scripts/tmp.js');
   const root = new URL('../', import.meta.url).pathname;
   const circuit = JSON.parse(readFileSync(join(root, 'examples/uno-74hc595-fill.json'), 'utf8'));
-  // The example has 1 kΩ (since C14); with 330 Ω and eight red LEDs it goes over the chip's 70 mA.
+  // The example has 1 kΩ; with 330 Ω and eight red LEDs it goes over the chip's 70 mA.
   for (const p of circuit.parts) if (p.type === 'led') p.color = 'red';
   for (const p of circuit.parts) if (p.type === 'resistor') p.value = '330';
   const file = join(tempDir('pb-chips-595-'), 'red8.json');
@@ -62,12 +62,12 @@ test("chips.md: eight red LEDs on 330 Ω take a 74HC595 over its 70 mA in a run,
   assert.match(text, /`U2 carries 71\.3 mA, more than its\s+maximum 70 mA/);
   assert.match(run(), /warning: U2 carries 71\.3 mA, more than its maximum 70 mA/);
   assert.doesNotMatch(run('--set', [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `R${n}=1k`).join(',')), /warning:/);
-  // The review reaches the state the fill latches (C14): a hazard at layout and review, not DONE.
+  // The review reaches the state the fill latches: a hazard at layout and review, not DONE.
   const rev = JSON.parse(spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'review', file, '--json'], { encoding: 'utf8' }).stdout);
   assert.ok(rev.hazards.some((h) => h.code === 'SIM_OVER_CURRENT' && h.params.part === 'U2'), JSON.stringify(rev.hazards));
 });
 
-// chips.md (C14): 5 V pins into a 74HC595 fed 3.3 V is damage (an input more than 0.5 V over the
+// chips.md: 5 V pins into a 74HC595 fed 3.3 V is damage (an input more than 0.5 V over the
 // chip's supply), and 3.3 V pins into one fed 5 V a ⚠ the datasheet does not guarantee.
 test("chips.md: 5 V pins into a 74HC595 fed 3.3 V are a hazard naming the pin, as it says", async () => {
   const { autoLayout } = await import('./layout-generous.js');

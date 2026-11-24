@@ -1,4 +1,4 @@
-// The sketch runner computes what a board computes (trust work, 2026-11): integers have their size
+// The sketch runner computes what a board computes: integers have their size
 // on the board in use, the bit macros change their variable, a serial line follows the wire, the run
 // can type to a board, and what the kit does not read is said in words a beginner's assistant can act
 // on. Each case comes from a sketch a fresh agent wrote that ran with the wrong result and no word.
@@ -165,7 +165,7 @@ test('serial input: a sketch that reads Serial with nothing sent gets one note n
 });
 
 test('serial input: the command line takes --serial (repeatable) and prints what the board answered', () => {
-  const dir = tempDir('c15a-serial-');
+  const dir = tempDir('sketch-serial-');
   writeFileSync(join(dir, 'circuit.json'), JSON.stringify(menuCircuit().circuit));
   const r = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', dir, '--run', '1', '--serial', '2@0.2', '--serial', 'U1:1@0.5'], { encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);

@@ -17,7 +17,7 @@ const led = (dir, name = 'c') => {
 };
 
 test('apply: a batch of 900 add operations does not overflow the stack', () => {
-  const dir = tempDir('c12-batch-');
+  const dir = tempDir('cli-edges-batch-');
   const target = led(dir);
   // Off the board, as the stress run had them: every part is measured, and refused as an input mistake.
   const ops = Array.from({ length: 900 }, (_, i) => ({ op: 'add', part: { id: `X${i}`, type: 'resistor', value: '1k', pins: [`i${10 + i}`, `j${10 + i}`] } }));
@@ -29,7 +29,7 @@ test('apply: a batch of 900 add operations does not overflow the stack', () => {
 });
 
 test('apply: 3000 add operations are refused by the parts cap, quickly', () => {
-  const dir = tempDir('c12-cap-');
+  const dir = tempDir('cli-edges-cap-');
   const target = led(dir);
   const ops = Array.from({ length: 3000 }, (_, i) => ({ op: 'add', part: { id: `X${i}`, type: 'resistor', value: '1k', pins: ['a1', 'a5'] } }));
   writeFileSync(join(dir, 'ops.json'), JSON.stringify(ops));
@@ -93,7 +93,7 @@ test('page: a part called __proto__, constructor, toString, hasOwnProperty or va
 });
 
 test('apply refuses to build on a damaged history, and --new-history starts one from the circuit as it is', () => {
-  const dir = tempDir('c12-history-');
+  const dir = tempDir('cli-edges-history-');
   for (const [name, junk] of [['garbage', 'garbage{\n'], ['bytes', Buffer.from([0xff, 0xfe, 0x00, 0x9c, 0x7b, 0x22, 0x0a, 0xc3])]]) {
     const target = led(dir, name);
     appendFileSync(join(target, 'history.jsonl'), junk);
@@ -120,20 +120,20 @@ test('apply refuses to build on a damaged history, and --new-history starts one 
 });
 
 test('undo and history on a damaged history say the same, with the way on', () => {
-  const dir = tempDir('c12-history2-');
+  const dir = tempDir('cli-edges-history2-');
   const target = led(dir);
   appendFileSync(join(target, 'history.jsonl'), '[1,2]\n');
   for (const command of ['undo', 'history']) {
     const r = cli([command, target]);
     assert.equal(r.status, 1);
     assert.match(r.stderr, /damaged at line 2.*--new-history/s, command);
-    // C14: they name the command that takes it (undo and history do not).
+    // They name the command that takes it (undo and history do not).
     assert.match(r.stderr, /make the next change with apply <folder> --ops '<json>' --new-history: it starts a new history/, command);
   }
 });
 
 test('apply says what review will say: a part moved off its strips, a program file missing or outside', () => {
-  const dir = tempDir('c12-judge-');
+  const dir = tempDir('cli-edges-judge-');
   const target = led(dir);
   const moved = cli(['apply', target, '--ops', '{"op":"move","part":"R1","pins":["i100","i104"]}', '--json']);
   assert.equal(moved.status, 0);
@@ -160,7 +160,7 @@ test('apply says what review will say: a part moved off its strips, a program fi
 });
 
 test('a chip whose supply pins are not both wired, or share a net, gets a doubt that names them', () => {
-  const dir = tempDir('c12-supply-');
+  const dir = tempDir('cli-edges-supply-');
   const cases = [
     ['op', { parts: [{ id: 'U1', part: 'LM358' }, { id: 'R1', type: 'resistor', value: '1k' }], supplies: [{ voltage: 5 }], nets: [['U1.OUT1', 'R1.1'], ['R1.2', 'T-'], ['U1.IN1+', 'T+'], ['U1.IN1-', 'T-']] }, /U1 has no supply: its supply pins VCC and GND are wired to nothing/],
     ['op-gnd', { parts: [{ id: 'U1', part: 'LM358' }, { id: 'R1', type: 'resistor', value: '1k' }], supplies: [{ voltage: 5 }], nets: [['U1.OUT1', 'R1.1'], ['R1.2', 'T-'], ['U1.IN1+', 'T+'], ['U1.IN1-', 'T-'], ['U1.GND', 'T-']] }, /its supply pin VCC is wired to nothing \(of VCC and GND\)/],
@@ -186,7 +186,7 @@ test('a chip whose supply pins are not both wired, or share a net, gets a doubt 
 });
 
 test('two batteries lie side by side: in series, in parallel, and in parallel facing opposite ways', () => {
-  const dir = tempDir('c12-batteries-');
+  const dir = tempDir('cli-edges-batteries-');
   const bt = [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'BT2', type: 'battery', format: '9V' }];
   const led = [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'D1', type: 'led', color: 'red' }];
   const run = (name, spec) => {
@@ -215,7 +215,7 @@ function writeSpec(dir, name, spec) {
 }
 
 test('a board alone is placed', () => {
-  const dir = tempDir('c12-board-');
+  const dir = tempDir('cli-edges-board-');
   for (const part of ['UNO', 'ESP32-DEVKIT']) {
     const file = writeSpec(dir, part, { parts: [{ id: 'U1', type: 'module', part }], nets: [] });
     const r = cli(['layout', join(dir, `c-${part}`), file]);
@@ -226,7 +226,7 @@ test('a board alone is placed', () => {
 });
 
 test('a dry run never says the circuit is built: layout --dry-run, and undo --dry-run changes nothing', () => {
-  const dir = tempDir('c12-dry-');
+  const dir = tempDir('cli-edges-dry-');
   const r = cli(['layout', join(dir, 'c'), '--recipe', 'led-resistor', '--dry-run']);
   assert.equal(r.status, 0);
   const status = r.stdout.trim().split('\n').at(-1);
@@ -244,7 +244,7 @@ test('a dry run never says the circuit is built: layout --dry-run, and undo --dr
 });
 
 test('messages: --run echoes what was typed and has one lower bound, --transient says above 0, --start names its values', () => {
-  const dir = tempDir('c12-msg-');
+  const dir = tempDir('cli-edges-msg-');
   const target = led(dir);
   for (const value of ['abc', 'Infinity', '0', '1e-300']) {
     const r = cli(['simulate', target, '--run', value]);
@@ -264,7 +264,7 @@ test('messages: --run echoes what was typed and has one lower bound, --transient
 });
 
 test('messages: a part id with a space says ids have no spaces', () => {
-  const dir = tempDir('c12-space-');
+  const dir = tempDir('cli-edges-space-');
   const file = writeSpec(dir, 's', { parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'R 1', type: 'resistor', value: '330' }], nets: [['BT1.+', 'R 1.1'], ['R 1.2', 'BT1.-']] });
   const r = cli(['layout', join(dir, 'c'), file]);
   assert.equal(r.status, 1);
@@ -274,7 +274,7 @@ test('messages: a part id with a space says ids have no spaces', () => {
 });
 
 test('messages: a resistance says which rule it breaks, and the spec and --set read it alike', () => {
-  const dir = tempDir('c12-ohms-');
+  const dir = tempDir('cli-edges-ohms-');
   const target = led(dir);
   const cases = [['0', /"0" is not a resistance/], ['-100', /"-100" is not a resistance/], ['1e12', /no exponent \(1G, not 1e9\), from 100 mΩ to 99 GΩ/], ['1m', /"1m" is outside the resistances the kit takes, 100 mΩ to 99 GΩ/], ['1000G', /"1000G" is outside/], ['1T', /prefixes p, n, u, m, k, M, G/]];
   for (const [value, said] of cases) {
@@ -289,7 +289,7 @@ test('messages: a resistance says which rule it breaks, and the spec and --set r
 });
 
 test('messages: --json answers are JSON, errors too; catalog lists; layout on an empty folder is one line', () => {
-  const dir = tempDir('c12-json-');
+  const dir = tempDir('cli-edges-json-');
   const parse = (r) => JSON.parse(r.stdout);
   assert.ok(parse(cli(['catalog', '--json'])).types.resistor);
   const unknown = parse(cli(['catalog', 'zzz', '--json']));

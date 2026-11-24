@@ -1,4 +1,4 @@
-// What a replay of first-time requests still found in the simulator and the checks (2026-11): each
+// What first-time requests still found in the simulator and the checks (2026-11): each
 // case is written from its reproduction, through the CLI as a child process or the public exports.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -27,7 +27,7 @@ const BOARDS = {
 
 for (const [name, b] of Object.entries(BOARDS)) {
   test(`a ${name}'s program file beside circuit.json is found by layout, review and simulate --run`, () => {
-    const dir = tempDir(`c8a-ino-${name}-`);
+    const dir = tempDir(`first-ino-${name}-`);
     const target = join(dir, 'circuits', 'w');
     mkdirSync(target, { recursive: true });
     writeFileSync(join(target, 'blink.ino'), BLINK(b.number));
@@ -76,8 +76,8 @@ test('a joule thief of two uncoupled inductors leaves its LED dark: a doubt, not
   assert.match(formatIssue(neverOn(r)[0], 'es'), /^aviso: D1 nunca se enciende/);
 });
 
-// C10b: LEDs that hang from a chip not simulated are not called dead; the chip's own doubt names them.
-// Since C11 every chip is simulated: the part with no model is the tests' own (test/unsimulated-part.js).
+// LEDs that hang from a chip not simulated are not called dead; the chip's own doubt names them.
+// Every chip of the kit is simulated: the part with no model is the tests' own (test/unsimulated-part.js).
 test('LEDs behind a chip that is not simulated are named by its doubt, not called never on', () => {
   const r = autoLayout({
     supplies: [{ voltage: 5, positive: 'T+', negative: 'T-' }],
@@ -195,7 +195,7 @@ test('a supply written at -5 V reads as written, and the answer says which rail 
 // ---- 11. Loose ends
 
 test('simulate --run on a board fed by USB alone prints no empty Supplies heading', () => {
-  const dir = tempDir('c8a-usb-');
+  const dir = tempDir('first-usb-');
   assert.equal(cli(['layout', join(dir, 'c'), '--recipe', 'uno-blink']).status, 0);
   const run = cli(['simulate', join(dir, 'c'), '--run', '0.5']);
   assert.equal(run.status, 0, run.stderr);
@@ -208,7 +208,7 @@ test('simulate --run on a board fed by USB alone prints no empty Supplies headin
 // ---- 9. Two figures for one thing agree, or one of them says "about"
 
 test('an op-amp oscillator: the Behaviour line and simulate --run give the same frequency', () => {
-  const dir = tempDir('c8a-osc-');
+  const dir = tempDir('first-osc-');
   writeFileSync(join(dir, 'osc.json'), JSON.stringify({
     parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'LM358' }, { id: 'R1', type: 'resistor', value: '10k' }, { id: 'R2', type: 'resistor', value: '10k' }, { id: 'R3', type: 'resistor', value: '10k' }, { id: 'R4', type: 'resistor', value: '10k' }, { id: 'C1', type: 'capacitor', value: '68n' }],
     nets: [['BT1.+', 'U1.VCC', 'R1.1'], ['BT1.-', 'U1.GND', 'R2.2', 'C1.2'], ['R1.2', 'R2.1', 'U1.IN1+', 'R3.1'], ['R3.2', 'U1.OUT1', 'R4.1'], ['R4.2', 'U1.IN1-', 'C1.1']],
@@ -223,7 +223,7 @@ test('an op-amp oscillator: the Behaviour line and simulate --run give the same 
 });
 
 test('a pin overloaded under the half-rail line is reported by what the program writes, with its output resistance', () => {
-  const dir = tempDir('c8a-pin-');
+  const dir = tempDir('first-pin-');
   const leds = Array.from({ length: 12 }, (_, k) => ({ id: `D${k + 1}`, type: 'led', color: 'red' }));
   writeFileSync(join(dir, 's.json'), JSON.stringify({
     parts: [{ id: 'U1', part: 'UNO', program: 'void setup(){pinMode(13,OUTPUT);digitalWrite(13,HIGH);}\nvoid loop(){delay(1000);}' }, ...leds],
@@ -237,7 +237,7 @@ test('a pin overloaded under the half-rail line is reported by what the program 
 
 test('--transient says the step it solved and the spacing of the samples it printed', () => {
   const r = cli(['simulate', join(root, 'examples/battery-regulator.json'), '--transient', '0.05,1e-6']);
-  // The table is eleven of them: the line says so and names --json (C15b).
+  // The table is eleven of them: the line says so and names --json.
   assert.match(r.stdout.split('\n')[0], /50 ms solved in steps of 1 µs; the table shows 11 of its 401 samples, 125 µs apart \(--json has them all\)\./);
 });
 

@@ -1,6 +1,6 @@
 // The kit first, then a trial (docs/en/simulation.md, "The fix"; docs/en/layout.md, "The answer"):
 // the whole loop at the kit's level, with no model involved. A board's program burns a pin only while
-// it drives it high: the hazard check finds it in the combination the sketch reaches ("with D9 + D10 high", C8a), the kit computes the fix (one
+// it drives it high: the hazard check finds it in the combination the sketch reaches ("with D9 + D10 high"), the kit computes the fix (one
 // resistor in series with the buzzer) and applies it when asked (layout --fix: one call, one
 // revision, undo brings the warning back); the same change written by hand ends DONE in a trial
 // (layout --dry-run, which writes nothing) and applied, whatever order the parts are listed in; and
@@ -71,7 +71,7 @@ test('a board drives a buzzer straight from D10: WARNINGS with D10 high, the pin
   assert.match(text(built, 'es'), /⚠ aviso: Por U1\.D10 pasan 88,\d mA, más que su máximo de 40 mA: el pin se puede dañar, con D9 \+ D10 en alto\.\n/);
   assert.match(lastLine(text(built)), /^STATUS: WARNINGS · /);
   // The states: the three outputs of the program, D8 high at rest already, D9 and D10 held high.
-  // Since C8a the program runs, so its outputs are visited as its run combined them: D8 alone (as at
+  // The program runs, so its outputs are visited as its run combined them: D8 alone (as at
   // rest), then D9 with D10 (the tone): one state.
   assert.deepEqual(built.review.hazardStates, { checked: 1, total: 1, controls: 0, outputs: 3, combined: true });
 });

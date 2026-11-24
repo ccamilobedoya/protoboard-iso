@@ -123,14 +123,14 @@ test('a part\'s entry carries the card\'s text, its pins\' roles and the simulat
   const uno = catalogEntry('UNO');
   assert.ok(uno.about.includes(t('en', 'describe.module.uno')), uno.about);
   assert.ok(uno.limits.some((l) => l.each === 'pins'), JSON.stringify(uno.limits));
-  // What it gives from USB in all, 500 mA (C15b).
+  // What it gives from USB in all, 500 mA.
   assert.match(formatCatalogEntry(uno, 'en'), /\n {2}limits \(the simulator's\): maximum current 40 mA per pin · maximum reverse voltage 500 mV \(supply\) · maximum current 500 mA \(5V\) \(all it gives from USB\)\n/);
   assert.match(formatCatalogEntry(catalogEntry('UNO', 'es'), 'es'), /\n {2}límites \(los del simulador\): la corriente hasta 40 mA por pata · el voltaje inverso hasta 500 mV \(alimentación\) · la corriente hasta 500 mA \(5V\) \(todo lo que da desde el USB\)\n/);
 
   // Chips of a package that share a limit say which; a chip the simulator does not run, and a
   // breadboard, get no line for what the kit does not know.
   assert.deepEqual(catalogEntry('rgb-led').limits.find((l) => l.kind === 'max' && l.quantity === 'current').pins, ['R', 'G', 'B']);
-  // (the 74HC595 is simulated since C11a; the DESPI-C02 adapter is drawn only)
+  // (the 74HC595 is simulated; the DESPI-C02 adapter is drawn only)
   const adapter = catalogEntry('DESPI-C02');
   assert.ok(adapter.about && adapter.limits === undefined);
   assert.doesNotMatch(formatCatalogEntry(adapter, 'en'), /limits/);
@@ -154,7 +154,7 @@ test('every limit says what it belongs to when the quantity alone does not, in b
   assert.match(line('NE555', 'en'), /maximum voltage 16 V \(supply\)/);
   assert.match(line('slide-switch', 'en'), /maximum voltage 30 V across an open contact$/);
   // The UNO's logic rail is the USB's 5 V itself: the simulator checks no regulator there, so none is
-  // listed; what the board gives from USB in all is (C15b: a USB 2.0 port's and its fuse's 500 mA).
+  // listed; what the board gives from USB in all is (a USB 2.0 port's and its fuse's 500 mA).
   assert.equal(line('UNO', 'en'), "  limits (the simulator's): maximum current 40 mA per pin · maximum reverse voltage 500 mV (supply) · maximum current 500 mA (5V) (all it gives from USB)");
   // Two limits of one part with the same quantity are told apart, and no key is left untranslated.
   for (const lang of ['en', 'es']) {
@@ -170,7 +170,7 @@ test('every limit says what it belongs to when the quantity alone does not, in b
 });
 
 // An entry's example is that part, or one of its type with the same pins: `catalog ULN2803` showed the
-// 555 of an example without a ULN2803 (C14, item 9).
+// 555 of an example without a ULN2803.
 test("a part number's example is that part or one with the same pins, never another chip", () => {
   assert.equal(catalogEntry('ULN2803').example, null);
   assert.equal(catalogEntry('ULN2003').example.part.part, 'ULN2003');

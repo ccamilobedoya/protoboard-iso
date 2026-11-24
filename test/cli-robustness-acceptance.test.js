@@ -1,4 +1,4 @@
-// Acceptance tests for the trust contract C3 (D1-D10): the command line never crashes, cuts its
+// Acceptance tests (items D1-D10): the command line never crashes, cuts its
 // output or saves silently. Everything goes through the CLI as a child process.
 //
 // D9 needs an internal error forced from outside. The test uses a hidden hook: with
@@ -35,7 +35,7 @@ const laid = (prefix, recipe = 'led-resistor') => {
 // ---- D1 / D2: a user's mistake in the spec file is a message, not a stack
 
 test('D1: layout with a missing spec file: exit 1, no stack, STATUS: FIX_SPEC', () => {
-  const dir = tempDir('c3-d1-');
+  const dir = tempDir('cli-d1-');
   const r = cli(['layout', join(dir, 'x'), join(dir, 'missing.json')]);
   noStack(r, 'missing');
   assert.equal(r.status, 1);
@@ -44,7 +44,7 @@ test('D1: layout with a missing spec file: exit 1, no stack, STATUS: FIX_SPEC', 
 
 for (const [label, content] of [['a zero-byte spec', ''], ['malformed JSON', '{bad'], ['an array', '[1,2]'], ['a number', '42']]) {
   test(`D2: layout with ${label}: exit 1, no stack, STATUS: FIX_SPEC`, () => {
-    const dir = tempDir('c3-d2-');
+    const dir = tempDir('cli-d2-');
     const spec = join(dir, 'spec.json');
     writeFileSync(spec, content);
     const r = cli(['layout', join(dir, 'x'), spec]);
@@ -57,14 +57,14 @@ for (const [label, content] of [['a zero-byte spec', ''], ['malformed JSON', '{b
 // ---- D3: the same for the operations file
 
 test('D3: apply with a missing operations file: exit 1, no stack', () => {
-  const { dir, target } = laid('c3-d3a-');
+  const { dir, target } = laid('cli-d3a-');
   const r = cli(['apply', target, join(dir, 'missing-ops.json')]);
   noStack(r, 'missing ops');
   assert.equal(r.status, 1);
 });
 
 test('D3: apply --ops with malformed JSON: exit 1, no stack', () => {
-  const { target } = laid('c3-d3b-');
+  const { target } = laid('cli-d3b-');
   const r = cli(['apply', target, '--ops', '{bad']);
   noStack(r, 'bad ops');
   assert.equal(r.status, 1);
@@ -74,7 +74,7 @@ test('D3: apply --ops with malformed JSON: exit 1, no stack', () => {
 
 for (const spec of ['{}', '{"parts":[],"nets":[]}']) {
   test(`D4: spec ${spec} is FIX_SPEC, exit 1, nothing created`, () => {
-    const dir = tempDir('c3-d4-');
+    const dir = tempDir('cli-d4-');
     const file = join(dir, 'spec.json');
     writeFileSync(file, spec);
     const target = join(dir, 'x');
@@ -88,7 +88,7 @@ for (const spec of ['{}', '{"parts":[],"nets":[]}']) {
 // ---- D5: output is never cut
 
 test('D5: simulate --transient --json through a pipe arrives whole and parses', () => {
-  const { target } = laid('c3-d5-', 'rc-square');
+  const { target } = laid('cli-d5-', 'rc-square');
   const r = cli(['simulate', target, '--transient', '1,0.001', '--json']);
   assert.equal(r.status, 0, r.stderr);
   assert.ok(r.stdout.length > 65536, `the output is only ${r.stdout.length} bytes: use a longer transient`);
@@ -98,7 +98,7 @@ test('D5: simulate --transient --json through a pipe arrives whole and parses', 
 // ---- D6: a reader that closes the pipe ends quietly
 
 test('D6: catalog | head -1: the kit exits 0 and prints nothing on stderr', () => {
-  const dir = tempDir('c3-d6-');
+  const dir = tempDir('cli-d6-');
   const err = join(dir, 'err.txt');
   const r = spawnSync('bash', ['-c', `"$NODE" "$BIN" catalog 2>"$ERR" | head -1 >/dev/null; echo "\${PIPESTATUS[0]}"`], {
     cwd: root, encoding: 'utf8', env: { ...process.env, NODE: process.execPath, BIN: bin, ERR: err },
@@ -109,7 +109,7 @@ test('D6: catalog | head -1: the kit exits 0 and prints nothing on stderr', () =
 });
 
 test('D6 (large output): simulate --transient --json | head -c 100: the kit exits 0 and prints nothing on stderr', () => {
-  const { dir, target } = laid('c3-d6b-', 'rc-square');
+  const { dir, target } = laid('cli-d6b-', 'rc-square');
   const err = join(dir, 'err.txt');
   const r = spawnSync('bash', ['-c', `"$NODE" "$BIN" simulate "$T" --transient 1,0.001 --json 2>"$ERR" | head -c 100 >/dev/null; echo "\${PIPESTATUS[0]}"`], {
     cwd: root, encoding: 'utf8', env: { ...process.env, NODE: process.execPath, BIN: bin, ERR: err, T: target },
@@ -119,7 +119,7 @@ test('D6 (large output): simulate --transient --json | head -c 100: the kit exit
 });
 
 test('D6 (failing command): check <circuit with errors> | head -1 keeps the kit exit code 1', () => {
-  const dir = tempDir('c3-d6c-');
+  const dir = tempDir('cli-d6c-');
   const bad = join(dir, 'bad.json');
   writeFileSync(bad, JSON.stringify({ parts: [{ id: 'R1', type: 'resistor', value: 'banana', pins: ['a1', 'a5'] }] }));
   const alone = cli(['check', bad]);
@@ -134,14 +134,14 @@ test('D6 (failing command): check <circuit with errors> | head -1 keeps the kit 
 
 const badOps = '[{"op":"set","part":"U2","angle":-72}]';
 
-// Arbitrated after the contract was written (a decision of the maintainer): a change is one of two
+// Decided after these items were written: a change is one of two
 // kinds. Input the kit cannot read (a value a part does not understand, an unknown pin…) is the
 // caller's slip and is refused whole. A circuit the kit reads and that turns out wrong (a part on
 // occupied holes, a short) is allowed, because getting it wrong is part of learning: it is saved,
 // and the save line says so.
 
 test('D7: apply --dry-run reports the value the part does not understand and says the real run would be refused', () => {
-  const { target } = laid('c3-d7a-', 'encoder-uno');
+  const { target } = laid('cli-d7a-', 'encoder-uno');
   const r = cli(['apply', target, '--ops', badOps, '--dry-run']);
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stdout, /^\s*✖ new: error: .*U2.*$/m);
@@ -150,7 +150,7 @@ test('D7: apply --dry-run reports the value the part does not understand and say
 });
 
 test('D7: apply refuses a value the part does not understand: nothing saved, and simulate still accepts the circuit', () => {
-  const { target } = laid('c3-d7b-', 'encoder-uno');
+  const { target } = laid('cli-d7b-', 'encoder-uno');
   const r = cli(['apply', target, '--ops', badOps]);
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stdout, /^\s*✖ new: error: .*U2.*$/m);
@@ -162,7 +162,7 @@ test('D7: apply refuses a value the part does not understand: nothing saved, and
 });
 
 test('D7: apply saves a readable change that breaks the circuit, says so in words, and undo takes it back', () => {
-  const { target } = laid('c3-d7c-');
+  const { target } = laid('cli-d7c-');
   // R1 moved onto holes the LED already uses: read fine, wrong as a circuit.
   const r = cli(['apply', target, '--ops', '[{"op":"move","part":"R1","pins":["j6","j2"]}]']);
   assert.equal(r.status, 0, r.stderr);
@@ -180,7 +180,7 @@ test('D7: apply saves a readable change that breaks the circuit, says so in word
 const setR1 = '[{"op":"set","part":"R1","value":"470"}]';
 
 test('D8: a spec with "lang": "es": apply answers in Spanish, --lang en wins', () => {
-  const dir = tempDir('c3-d8a-');
+  const dir = tempDir('cli-d8a-');
   const spec = join(dir, 'spec.json');
   writeFileSync(spec, JSON.stringify({ recipe: 'led-resistor', values: { R1: '330' }, lang: 'es' }));
   const target = join(dir, 'x');
@@ -194,7 +194,7 @@ test('D8: a spec with "lang": "es": apply answers in Spanish, --lang en wins', (
 });
 
 test('D8: layout --lang es keeps the language: apply, review, check, simulate, undo answer in Spanish', () => {
-  const dir = tempDir('c3-d8b-');
+  const dir = tempDir('cli-d8b-');
   const target = join(dir, 'x');
   assert.equal(cli(['layout', target, '--recipe', 'led-resistor', '--lang', 'es']).status, 0);
   const es = cli(['apply', target, '--ops', setR1]);
@@ -210,7 +210,7 @@ test('D8: layout --lang es keeps the language: apply, review, check, simulate, u
 // ---- D9: unexpected errors are contained (hidden hook PROTOBOARD_TEST_THROW=1)
 
 test('D9: an internal error is one "internal error:" line, exit 3, no stack; PROTOBOARD_DEBUG=1 adds the stack', () => {
-  const { target } = laid('c3-d9-');
+  const { target } = laid('cli-d9-');
   const quiet = cli(['check', target], { env: { PROTOBOARD_TEST_THROW: '1', PROTOBOARD_DEBUG: '' } });
   assert.equal(quiet.status, 3, `${quiet.stdout}${quiet.stderr}`);
   assert.match(`${quiet.stdout}${quiet.stderr}`, /internal error: /);
@@ -223,7 +223,7 @@ test('D9: an internal error is one "internal error:" line, exit 3, no stack; PRO
 // ---- D10: a normal run is unchanged (invariants recorded on v0.12.1)
 
 test('D10: layout, simulate, review and catalog keep their normal output', () => {
-  const dir = tempDir('c3-d10-');
+  const dir = tempDir('cli-d10-');
   const target = join(dir, 'x');
   const layout = cli(['layout', target, '--recipe', 'led-resistor']);
   assert.equal(layout.status, 0);

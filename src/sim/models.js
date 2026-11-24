@@ -447,14 +447,14 @@ export const CLIMATE = {
 };
 
 // Reverse voltage a supply input takes before it is damaged: the supply pin below the ground (or common)
-// pin, in volts. One place for every family; the physics review reads this table.
+// pin, in volts. One place for every family, read against the datasheets.
 //   ic         0.5 V [assumed]: an IC's input has a substrate or ESD diode to its ground pin that starts to
 //              conduct near 0.6 V; the datasheets of regulators (78xx, LM317), the 555 and the op-amps
 //              give no reverse rating at all (their absolute maximum is the ground pin as the lowest
 //              potential), so any reverse voltage is outside it and 0.5 V only keeps the solver's noise out.
 //   board      0.5 V [assumed]: a development board's supply pins (its regulator, its USB diode): same reason.
 //   capacitor  1 V [assumed]: aluminium electrolytic datasheets allow a reverse voltage of about 1 V
-//              briefly (the contract's "about 1 V"); beyond it the oxide layer reforms and the part heats.
+//              briefly (the datasheets' "about 1 V"); beyond it the oxide layer reforms and the part heats.
 // A LED counts as lit, for a computed fix, from a tenth of its rated current (brightness 0.1): the
 // look of the page says a tenth of the rated current "still shows clearly" (look.js, glowOpacity).
 // A coil carrying less than this share of its pull-in current is leaking, not driven hard (a

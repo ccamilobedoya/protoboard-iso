@@ -1,4 +1,4 @@
-// Loose ends left by the command-line work (C12) in the simulator's files, closed with C11: a program
+// Loose ends of the command-line work in the simulator's files: a program
 // that names a folder, a one-line program that is a file name, a run's "at its strongest" only on a
 // warning with a quantity, and two batteries facing each other as a hazard.
 
@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { simulate } from '../src/sim/index.js';
-import { runCircuit } from '../src/sim/run.js'; // its runs take under a second since C15b's step
+import { runCircuit } from '../src/sim/run.js'; // its runs take under a second at a run's step
 import { formatIssue, review } from '../src/index.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 
@@ -22,7 +22,7 @@ const withProgram = (program, folder) => {
 const programIssue = (r) => r.issues.find((i) => i.code.startsWith('SIM_PROGRAM_'));
 
 test('a program that names a folder says it is a folder, and where the kit looked', () => {
-  const dir = tempDir('c11-folder-');
+  const dir = tempDir('sim-loose-folder-');
   mkdirSync(join(dir, 'sketches'));
   mkdirSync(join(dir, 'blink.ino'));
   for (const program of ['sketches/', 'blink.ino']) {
@@ -36,7 +36,7 @@ test('a program that names a folder says it is a folder, and where the kit looke
 });
 
 test('a one-line program that is a file name the kit does not read is said so, not parsed as a sketch', () => {
-  const dir = tempDir('c11-name-');
+  const dir = tempDir('sim-loose-name-');
   for (const program of ['blink.cpp', 'sketches/blink']) {
     const r = simulate(withProgram(program, dir));
     const i = programIssue(r);

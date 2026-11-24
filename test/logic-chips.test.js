@@ -340,8 +340,8 @@ for (const [name, entry] of Object.entries(PART_NUMBERS).filter(([n, e]) => e.ty
   });
 }
 
-// A slow chaser: the review's run must follow it long enough to see every LED come on (C11, second
-// round). 555 astable 10 kΩ, 47 kΩ, 47 µF: f = 1.44 / ((10 kΩ + 2 · 47 kΩ) · 47 µF) ≈ 0.29 Hz, a period
+// A slow chaser: the review's run must follow it long enough to see every LED come on. 555
+// astable 10 kΩ, 47 kΩ, 47 µF: f = 1.44 / ((10 kΩ + 2 · 47 kΩ) · 47 µF) ≈ 0.29 Hz, a period
 // of about 3.4 s; the five LEDs need four clock edges, over 13 s, far past the plain 2 s.
 const slowChaser = (c1) => {
   const spec = JSON.parse(JSON.stringify(SLOW_BASE));
@@ -365,7 +365,7 @@ test('a 555 too slow for the review\'s run (470 µF: a period of about 34 s): no
   assert.match(formatLayout(r, 'en', { t, formatIssue }), /^Checked: .*whether every output comes on \(the run was too short to tell\)/m);
 });
 
-// SUPPLY_PINS_UNWIRED (C12) reads a chip's supply pins by name: VCC/GND on the 74HC595, VDD/VSS on the
+// SUPPLY_PINS_UNWIRED reads a chip's supply pins by name: VCC/GND on the 74HC595, VDD/VSS on the
 // CD4017. Left open, each is said; the examples, wired, are not.
 test('a 74HC595 or a CD4017 with a supply pin left open gets SUPPLY_PINS_UNWIRED; the logic examples do not', async () => {
   const { compile } = await import('../src/sim/compile.js');

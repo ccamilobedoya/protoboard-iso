@@ -1,8 +1,8 @@
-// C5 acceptance (F1-F11): an assistant can check what a circuit does from the command line.
+// Acceptance (items F1-F11): an assistant can check what a circuit does from the command line.
 // The CLI is spawned as a child process, always with a timeout. Every number below is computed by hand
 // from the recipe in the catalog (comments beside each assertion).
 //
-// The shape of `simulate --run --json` is fixed by the contract's author:
+// The shape of `simulate --run --json` is fixed by the items:
 //   { ok, run: {seconds, step}, serial: {count, lines: [{t, text}]},
 //     outputs: [{id, kind, onShare, changes, frequency, period, duty, intervals: [[tOn, tOff], ...]}],
 //     readings, issues }
@@ -17,7 +17,7 @@ import { RUN_BUDGET_ARGS } from './run-generous.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const bin = join(root, 'bin/protoboard-iso.js');
-const work = tempDir('trust-c5-');
+const work = tempDir('run-acc-');
 
 const cli = (args, timeout = 120000) =>
   spawnSync(process.execPath, [bin, ...args], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28, timeout });
@@ -159,7 +159,7 @@ test('F8: --transient on distance-alarm-uno at 10 cm lights D1 or warns and name
   let lit = false;
   try {
     const j = JSON.parse(r.stdout);
-    // Arbitrated: a transient keeps its own shape (a series per part), so the LED is read there:
+    // A transient keeps its own shape (a series per part), so the LED is read there:
     // lit means its voltage reaches its forward drop (about 1.8 V for the red LED) at some sample.
     const o = (j.outputs ?? []).find((x) => x.id === 'D1');
     lit = (!!o && onTime(o, 0, 1) > 0) || Math.max(...(j.parts?.D1?.voltage ?? [0])) > 1.5;

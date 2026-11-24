@@ -1,6 +1,5 @@
-// The join of the last three branches (C16), each test from a reproduction: the sketch runner's
-// warnings are doubts of the review wherever they are raised, and what each branch left for a file it
-// did not own (the MCP tool's serial input, layout's Behaviour line, a print at a run's end, a circuit
+// Each test from a reproduction: the sketch runner's warnings are doubts of the review wherever
+// they are raised, and the loose ends around them (the MCP tool's serial input, layout's Behaviour line, a print at a run's end, a circuit
 // saved with parts left out, the resupply fix applied by layout).
 
 import { test } from 'node:test';
@@ -105,7 +104,7 @@ test('simulate and review on a circuit saved with parts left out name them on th
   const whole = layoutAtBudget({ parts: [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'R2', type: 'resistor', value: '1k' }, { id: 'R3', type: 'resistor', value: '1k' }], nets: [['T+', 'R1.1'], ['R1.2', 'R2.1'], ['R2.2', 'R3.1'], ['R3.2', 'T-']], supplies: [{ id: 'V1', voltage: 5 }] }).circuit;
   const left = ['R2', 'R3'];
   const r = { circuit: { ...whole, parts: whole.parts.filter((p) => !left.includes(p.id)), spec: { ...whole.spec, unplaced: left.map((id) => ({ id, type: 'resistor', value: '1k' })) } } };
-  const dir = tempDir('pb-c16-unplaced-');
+  const dir = tempDir('pb-unplaced-');
   mkdirSync(join(dir, 'c'));
   writeFileSync(join(dir, 'c', 'circuit.json'), JSON.stringify(r.circuit));
   const first = t('en', 'spec.unplaced', { parts: left.join(', ') });
@@ -122,7 +121,7 @@ test('simulate and review on a circuit saved with parts left out name them on th
 // layout --fix on a 74HC595 fed 3.3 V and driven by an UNO printed "Applied the fix: U2 = ? in
 // series with {with}."; it says the chip is fed from the 5 V rail, and the circuit has no hazard.
 test('layout --fix applies the resupply fix, says so, and ends with no hazard', () => {
-  const dir = tempDir('pb-c16-resupply-');
+  const dir = tempDir('pb-resupply-');
   const spec = {
     parts: [
       { id: 'U1', part: 'UNO', program: 'int n = 0;\nvoid setup() { pinMode(11, OUTPUT); pinMode(12, OUTPUT); pinMode(8, OUTPUT); }\nvoid loop() { digitalWrite(8, LOW); shiftOut(11, 12, MSBFIRST, n); digitalWrite(8, HIGH); n = (n + 1) % 256; delay(100); }' },
@@ -164,7 +163,7 @@ test('the skill points at --serial and at parts left off the board, inside its s
 
 test('beyond-the-kit.md: the asks it names say what it quotes', () => {
   const text = skillFile('references/beyond-the-kit.md').replace(/\s+/g, ' ');
-  const say = (name) => kit(tempDir('pb-c16-ask-'), 'catalog', name).stdout;
+  const say = (name) => kit(tempDir('pb-ask-'), 'catalog', name).stdout;
   assert.match(say('keypad'), /Nearest it has: push buttons \(type button\), one per key, each on a board's pin\./);
   assert.ok(text.includes('"Nearest it has: push buttons (type button), one per key, each on a board\'s pin."'));
   for (const name of ['28BYJ-48', 'OLED', 'joystick', 'HC-05', 'ESP8266']) assert.match(say(name), /Nearest it has: /, name);

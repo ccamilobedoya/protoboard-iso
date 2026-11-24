@@ -33,7 +33,7 @@ const withProgram = (program) => {
   return { ...placed, parts: placed.parts.map((p) => (p.id === 'U1' ? { ...p, program } : p)) };
 };
 
-// The LM386 this used to take is simulated now (C11); the e-paper adapter of examples/epaper-esp32.json
+// The LM386 this used to take is simulated now; the e-paper adapter of examples/epaper-esp32.json
 // is a part the kit still draws only (layout cannot place a module beside the board by itself, so
 // the circuit is the example as drawn and its review is the answer).
 const epaper = () => JSON.parse(readFileSync(join(root, 'examples/epaper-esp32.json'), 'utf8'));
@@ -95,7 +95,7 @@ test('a board program the kit cannot run is a doubt: syntax error with its line,
 });
 
 test('a missing program file says where the kit looked and where the file goes', () => {
-  const dir = tempDir('pbi-c1-');
+  const dir = tempDir('pbi-verdict-');
   const target = join(dir, 'lights');
   mkdirSync(target);
   const spec = join(dir, 'spec.json');
@@ -127,7 +127,7 @@ test('hazards alone keep their words and the fix; hazards and doubts together sh
   assert.doesNotMatch(a, /could not check/);
   assert.match(lastLine(a), /would be damaged as wired \(marked ⚠ above\)/);
 
-  // Since C11a the 74HC595 is simulated: its one doubt here is RCLK left open (the rest tied to a rail).
+  // The 74HC595 is simulated: its one doubt here is RCLK left open (the rest tied to a rail).
   const both = autoLayout({ parts: [...led.parts, { id: 'U2', part: '74HC595' }], nets: [['BT1.+', 'D1.anode', 'U2.VCC', 'U2.SRCLR', 'U2.SER', 'U2.SRCLK'], ['BT1.-', 'D1.cathode', 'U2.GND', 'U2.OE']] });
   assert.equal(both.status, 'warnings');
   const b = text(both);
@@ -197,7 +197,7 @@ test('catalog marks what is drawn but not simulated, and names no path of the so
 });
 
 test('the CLI review --json carries doubts next to hazards', () => {
-  const dir = tempDir('pbi-c1-');
+  const dir = tempDir('pbi-verdict-');
   const file = join(dir, 'c', 'circuit.json');
   mkdirSync(join(dir, 'c'));
   writeFileSync(file, JSON.stringify(epaper()));
@@ -210,7 +210,7 @@ test('the CLI review --json carries doubts next to hazards', () => {
 
 test('a button across its joined pins is a doubt: layout WARNINGS, check lists it, apply saves it with ⚠', () => {
   const button = (nets) => ({ parts: [{ id: 'S1', type: 'button' }, { id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }], nets });
-  const dir = tempDir('pbi-c1-');
+  const dir = tempDir('pbi-verdict-');
   const spec = join(dir, 'spec.json');
   writeFileSync(spec, JSON.stringify(button([['T+', 'S1.1'], ['S1.2', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'T-']])));
   const target = join(dir, 'b');
