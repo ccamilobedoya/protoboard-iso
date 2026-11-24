@@ -37,7 +37,11 @@ export function failureDetail(output) {
   const lines = output.trim().split('\n');
   const tail = lines.slice(-15);
   const start = lines.findIndex((l) => /^✖ failing tests:/.test(l));
-  if (start < 0) return tail.join('\n');
+  if (start < 0) {
+    // Node 22 writes TAP when there is no terminal: its failing tests are the "not ok" lines.
+    const notOk = lines.filter((l) => /^\s*not ok \d+ /.test(l) && !tail.includes(l));
+    return [...notOk.slice(0, 80), ...(notOk.length > 80 ? ['…'] : []), ...tail].join('\n');
+  }
   const failing = lines.slice(start, start + 80).filter((l) => !tail.includes(l));
   return [...failing, ...(lines.length - start > 80 ? ['…'] : []), ...tail].join('\n');
 }

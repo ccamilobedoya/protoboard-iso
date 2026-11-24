@@ -674,7 +674,8 @@ test('G20: every recipe still ends DONE with unchanged readings (recipe-sweep) a
   // A child `node --test` inside a test run would inherit the runner's context and report nothing: the context is dropped.
   const env = { ...process.env };
   delete env.NODE_TEST_CONTEXT;
-  const sweep = spawnSync(process.execPath, ['--test', 'test/recipe-sweep.test.js'], { cwd: root, env, encoding: 'utf8', maxBuffer: 1 << 28, timeout: 1_500_000, killSignal: 'SIGKILL' });
+  // The reporter is named: without a terminal Node 22 writes TAP and Node 24 the spec report read below.
+  const sweep = spawnSync(process.execPath, ['--test', '--test-reporter=spec', 'test/recipe-sweep.test.js'], { cwd: root, env, encoding: 'utf8', maxBuffer: 1 << 28, timeout: 1_500_000, killSignal: 'SIGKILL' });
   assert.ok(sweep.error?.code !== 'ETIMEDOUT', 'recipe-sweep timed out');
   assert.equal(sweep.status, 0, `recipe-sweep failed:\n${(sweep.stdout ?? '').slice(-2500)}${sweep.stderr ?? ''}`);
   assert.match(sweep.stdout, /ℹ pass (\d+)/, 'the sweep really ran');

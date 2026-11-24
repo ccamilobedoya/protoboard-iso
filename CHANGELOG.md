@@ -12,6 +12,8 @@ detail.
 ### Fixed
 
 - The CI's verification job is given the time the suite now takes (it was cancelled at 20 minutes).
+- The suite passes under Node 22: a test that runs the recipe sweep read the runner's report in the form only Node 24 writes without a terminal.
+- A failed verification step names its failing tests under Node 22 as well (they were missing from the CI's log).
 
 ## [0.13.0] - 2026-11-24
 

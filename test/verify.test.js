@@ -29,6 +29,15 @@ test('verify: a failed step names its failing tests, not only the coverage table
   assert.equal(failureDetail('a\nb'), 'a\nb');
 });
 
+test('verify: a failed step names its failing tests in TAP too (Node 22 without a terminal)', () => {
+  const table = Array.from({ length: 20 }, (_, i) => `file${i}.js | 90`);
+  const output = ['TAP version 13', 'ok 1 - one', 'not ok 2 - the sweep really ran', '  ---', '# pass 1', '# fail 1', ...table].join('\n');
+  const detail = failureDetail(output);
+  assert.match(detail, /not ok 2 - the sweep really ran/);
+  assert.doesNotMatch(detail, /ok 1 - one/);
+  assert.match(detail, /file19\.js/, 'and the last lines');
+});
+
 test('verify: the issues of each example, read from npm run examples and compared', () => {
   const out = 'Rendering…\nled.front.svg: 0 issues\nbad.front.svg: 8 issues\n  error: Hole h12 holds two leads\nbad.back.svg: 1 issue\n';
   const found = examplesIssues(out);
