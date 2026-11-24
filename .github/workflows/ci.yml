@@ -20,7 +20,8 @@ jobs:
   verify:
     name: verify (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The whole verification with coverage takes about forty minutes; the limit only stops a hang.
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:

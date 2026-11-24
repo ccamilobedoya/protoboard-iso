@@ -9,6 +9,10 @@ detail.
 
 ## [Unreleased]
 
+### Fixed
+
+- The CI's verification job is given the time the suite now takes (it was cancelled at 20 minutes).
+
 ## [0.13.0] - 2026-11-24
 
 What `DONE` means: the kit says `DONE` only for what it checked, and `STATUS: WARNINGS` names every
